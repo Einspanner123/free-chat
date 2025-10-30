@@ -1,0 +1,31 @@
+syntax = "proto3";
+package auth;
+option go_package = "./auth;auth";
+option py_generic_services = true;
+
+service AuthService {
+    rpc Login (LoginRequest) returns (LoginResponse);
+    rpc VerifyToken (VerifyTokenRequest) returns (VerifyTokenResponse); 
+}
+
+message LoginRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message LoginResponse {
+    string jwt_token = 1;
+    string user_id = 2;
+    string error = 3;
+}
+
+message VerifyTokenRequest {
+    string jwt_token = 1;
+}
+
+message VerifyTokenResponse {
+    bool valid = 1;
+    string user_id = 2;
+    string error = 3;
+}
+

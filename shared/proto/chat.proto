@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package chat;
+option go_package = "./chat;chat";
+
+service ChatService {
+	rpc StreamChat (ChatRequest) returns (stream ChatResponse);
+}
+
+message ChatRequest { 
+	string user_id = 1;
+	string session_id = 2;
+	string query = 3;
+	string model = 4;
+	int32 max_tokens = 5;
+	float temperature = 6;
+}
+
+message ChatResponse {
+	string session_id = 1;
+	string token = 2;
+	bool is_finished = 3;
+	string error = 4;
+}
