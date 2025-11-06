@@ -2,41 +2,22 @@ package service
 
 import (
 	"fmt"
-	"free-chat/services/registry"
-	"free-chat/shared/config"
-	"time"
-
+	"free-chat/shared/registry"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
-type ServiceConfig struct {
-	ID          string       // 服务实例ID
-	Name        string       // 服务名称
-	Tags        []string     // 服务标签
-	Address     string       // 服务地址
-	Port        int          // 服务端口
-	HealthCheck *HealthCheck // 健康检查配置
-}
-
-type HealthCheck struct {
-	HTTP                           string        // HTTP健康检查URL
-	Interval                       time.Duration // 检查间隔
-	Timeout                        time.Duration // 超时时间
-	DeregisterCriticalServiceAfter time.Duration // 失败后注销时间
-}
-
 // 服务管理器
 type ServiceManager struct {
 	registry      *registry.ConsulRegistry
-	serviceConfig *ServiceConfig
+	serviceConfig *registry.ServiceConfig
 	stopChan      chan os.Signal
 }
 
 // 创建服务管理器
-func NewServiceManager(consulConfig *config.ConsulConfig, serviceConfig *ServiceConfig) (*ServiceManager, error) {
+func NewServiceManager(consulConfig *registry.ConsulConfig, serviceConfig *registry.ServiceConfig) (*ServiceManager, error) {
 	// 创建Consul注册器
 	consulRegistry, err := registry.NewConsulRegistry(consulConfig)
 	if err != nil {

@@ -2,7 +2,7 @@ package handler
 
 import (
 	"context"
-	"free-chat/services/gateway/internal/consul"
+	"free-chat/cmd/gateway/internal/consul"
 	"free-chat/shared/proto/chat"
 	"net/http"
 

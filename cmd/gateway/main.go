@@ -1,10 +1,10 @@
 package main
 
 import (
-	"free-chat/services/gateway/internal/consul"
-	"free-chat/services/gateway/internal/handler"
-	"free-chat/services/gateway/internal/middleware"
+	"free-chat/cmd/gateway/internal/handler"
+	"free-chat/cmd/gateway/internal/middleware"
 	"free-chat/shared/config"
+	"free-chat/shared/registry"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -13,13 +13,28 @@ import (
 
 func main() {
 	cfg := config.LoadConfig("gateway")
-	consulClient, err := consul.NewClient(&cfg.Consul)
+
+	consulCfg := registry.ConsulConfig{
+		Address:    cfg.Consul.Address,
+		Scheme:     cfg.Consul.Scheme,
+		Datacenter: cfg.Consul.Datacenter,
+	}
+	registry, err := registry.NewConsulRegistry(&consulCfg)
+	if err != nil {
+		log.Fatalf("注册Consul时出错: %v", err)
+	}
+	serviceCfg := registry.ServiceConfig{
+		ID: registry.GenerateServiceID()
+	}
+
+	// consulClient, err := consul.NewClient(&cfg.Consul)
 	if err != nil {
 		log.Fatalf("初始化Consul客户端失败: %v", err)
 	}
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: cfg.Redis.Address + ":" + cfg.Redis.Port,
 	})
+	// set router
 	r := gin.Default()
 	r.SetTrustedProxies([]string{"127.0.0.1", "192.168.31.255"})
 	r.Use(gin.Logger(), gin.Recovery())

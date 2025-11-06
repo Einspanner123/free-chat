@@ -68,22 +68,6 @@ type AuthConfig struct {
 	Expire_H  int
 }
 
-type ServiceConfig struct {
-	ID          string       // 服务实例ID
-	Name        string       // 服务名称
-	Tags        []string     // 服务标签
-	Address     string       // 服务地址
-	Port        int          // 服务端口
-	HealthCheck *HealthCheck // 健康检查配置
-}
-
-type HealthCheck struct {
-	HTTP                           string        // HTTP健康检查URL
-	Interval                       time.Duration // 检查间隔
-	Timeout                        time.Duration // 超时时间
-	DeregisterCriticalServiceAfter time.Duration // 失败后注销时间
-}
-
 func LoadConfig(serviceName string) *AppConfig {
 	return &AppConfig{
 		ServerName:  serviceName,

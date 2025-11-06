@@ -2,41 +2,42 @@ package registry
 
 import (
 	"fmt"
-
 	"log"
 	"net"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 )
 
 type ConsulRegistry struct {
 	client *api.Client
-	config *cfg.ConsulConfig
+	config *ConsulConfig
 }
 
-// type ConsulConfig struct {
-// 	Address    string
-// 	Scheme     string
-// 	Datacenter string
-// }
+type ConsulConfig struct {
+	Address    string
+	Scheme     string
+	Datacenter string
+}
 
-// type ServiceConfig struct {
-// 	ID          string
-// 	Name        string
-// 	Tags        []string
-// 	Address     string
-// 	Port        int
-// 	HealthCheck *HealthCheck
-// }
+type ServiceConfig struct {
+	ID          string
+	Name        string
+	Tags        []string
+	Address     string
+	Port        int
+	HealthCheck *HealthCheck
+}
 
-// type HealthCheck struct {
-// 	HTTP                           string
-// 	Interval                       time.Duration
-// 	Timeout                        time.Duration
-// 	DeregisterCriticalServiceAfter time.Duration
-// }
+type HealthCheck struct {
+	HTTP                           string
+	Interval                       time.Duration
+	Timeout                        time.Duration
+	DeregisterCriticalServiceAfter time.Duration
+}
 
-func NewConsulRegistry(config *config.ConsulConfig) (*ConsulRegistry, error) {
+// 创建Consul
+func NewConsulRegistry(config *ConsulConfig) (*ConsulRegistry, error) {
 	consulConfig := api.DefaultConfig()
 	consulConfig.Address = config.Address
 	consulConfig.Scheme = config.Scheme
@@ -58,7 +59,7 @@ func NewConsulRegistry(config *config.ConsulConfig) (*ConsulRegistry, error) {
 }
 
 // 注册服务
-func (r *ConsulRegistry) RegisterService(config *cfg.ServiceConfig) error {
+func (r *ConsulRegistry) RegisterService(config *ServiceConfig) error {
 	// 构建服务注册信息
 	registration := &api.AgentServiceRegistration{
 		ID:      config.ID,
@@ -131,10 +132,10 @@ type ServiceInstance struct {
 	Tags    []string
 }
 
-// 获取服务URL
-func (s *ServiceInstance) GetURL() string {
-	return fmt.Sprintf("http://%s:%d", s.Address, s.Port)
-}
+// // 获取服务URL
+// func (s *ServiceInstance) GetURL() string {
+// 	return fmt.Sprintf("http://%s:%d", s.Address, s.Port)
+// }
 
 // 获取本机IP地址
 func GetLocalIP() (string, error) {
@@ -153,3 +154,19 @@ func GenerateServiceID(serviceName string, port int) string {
 	ip, _ := GetLocalIP()
 	return fmt.Sprintf("%s-%s-%d", serviceName, ip, port)
 }
+
+// consul/
+// ├── client.go           # 基础客户端
+// │   ├── NewClient()     # 创建连接
+// │   ├── GetClient()     # 获取客户端
+// │   └── Close()         # 关闭连接
+// │
+// ├── registry.go         # 服务注册
+// │   ├── Register()      # 注册服务
+// │   ├── Deregister()    # 注销服务
+// │   └── UpdateHealth()  # 更新健康状态
+// │
+// └── discovery.go        # 服务发现
+//     ├── Discover()      # 发现服务
+//     ├── Watch()         # 监听变化
+//     └── LoadBalance()   # 负载均衡

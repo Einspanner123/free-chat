@@ -3,7 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
-	"free-chat/services/auth-service/internal/store"
+	"free-chat/cmd/auth-service/internal/store"
 	"free-chat/shared/config"
 	"time"
 

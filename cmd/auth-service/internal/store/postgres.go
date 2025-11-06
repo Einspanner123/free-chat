@@ -19,7 +19,7 @@ type PostgresStore struct {
 func NewPostgresStore(cfg config.PostgresConfig) (*PostgresStore, error) {
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		cfg.Address, cfg.Port, cfg.User, cfg.DBName,
+		cfg.Address, cfg.Port, cfg.User, cfg.Password, cfg.DBName,
 	)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
