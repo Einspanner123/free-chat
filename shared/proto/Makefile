@@ -17,10 +17,11 @@ endif
 # 检查Go插件
 check-plugins:
 	@echo "检查protoc插件..."
-	@which $(GO_PLUGIN) >/dev/null || (echo "安装protoc-gen-go..."; \
+	@which $(GO_PLUGIN) >/dev/null || (echo "需要安装protoc-gen-go..."; \
 		go install google.golang.org/protobuf/cmd/protoc-gen-go@latest)
-	@which $(GRPC_PLUGIN) >/dev/null || (echo "安装protoc-gen-go-grpc..."; \
+	@which $(GRPC_PLUGIN) >/dev/null || (echo "需要安装protoc-gen-go-grpc..."; \
 		go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest)
+# export PATH="$PATH:$(go env GOPATH)/bin"
 
 # protoc --go_out=./	--go-grpc_out=./	./proto/summarizer.proto
 # 生成Go代码

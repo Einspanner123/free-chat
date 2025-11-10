@@ -31,6 +31,14 @@ func NewPostgresStore(cfg config.PostgresConfig) (*PostgresStore, error) {
 	return &PostgresStore{db: db}, nil
 }
 
+func (s *PostgresStore) CreateUser(id, username, password string) error {
+	query := "INSERT INTO users (id, username, password) VALUES ($1, $2, $3)"
+	if _, err := s.db.Exec(query, id, username, password); err != nil {
+		return fmt.Errorf("创建用户失败: %v", err)
+	}
+	return nil
+}
+
 func (s *PostgresStore) GetUserByUsername(username string) (*User, error) {
 	query := "SELECT id, username, password FROM users WHERE username = $1 LIMIT 1"
 	row := s.db.QueryRow(query, username)

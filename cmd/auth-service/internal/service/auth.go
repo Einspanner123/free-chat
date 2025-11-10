@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -31,7 +32,7 @@ func (s *AuthService) Login(username, password string) (token string, userID str
 		return "", "", fmt.Errorf("登录失败: %v", err)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		return "", "", errors.New("密码错误")
 	}
 
@@ -90,4 +91,33 @@ func (s *AuthService) generateJWT(userID string) (string, error) {
 	// 生成令牌
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.cfg.JwtSecret))
+}
+
+func (s *AuthService) Register(username, password string) (string, error) {
+	if username == "" || password == "" {
+		return "", errors.New("用户名或密码不能为空")
+	}
+	// 若用户已存在，返回错误
+	if _, err := s.store.GetUserByUsername(username); err == nil {
+		return "", errors.New("用户已存在")
+	}
+
+	// 哈希密码
+	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", fmt.Errorf("密码加密失败: %v", err)
+	}
+
+	// 生成用户ID并入库
+	id := uuid.NewString()
+	if err = s.store.CreateUser(id, username, string(hashed)); err != nil {
+		return "", err
+	}
+
+	// 生成JWT
+	token, err := s.generateJWT(id)
+	if err != nil {
+		return "", fmt.Errorf("生成令牌失败: %v", err)
+	}
+	return token, nil
 }

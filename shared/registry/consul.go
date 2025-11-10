@@ -20,15 +20,6 @@ type ConsulConfig struct {
 	Datacenter string
 }
 
-type ServiceConfig struct {
-	ID          string
-	Name        string
-	Tags        []string
-	Address     string
-	Port        int
-	HealthCheck *HealthCheck
-}
-
 type HealthCheck struct {
 	HTTP                           string
 	Interval                       time.Duration
@@ -122,20 +113,6 @@ func (r *ConsulRegistry) DiscoverService(serviceName string) ([]*ServiceInstance
 
 	return instances, nil
 }
-
-// 服务实例信息
-type ServiceInstance struct {
-	ID      string
-	Name    string
-	Address string
-	Port    int
-	Tags    []string
-}
-
-// // 获取服务URL
-// func (s *ServiceInstance) GetURL() string {
-// 	return fmt.Sprintf("http://%s:%d", s.Address, s.Port)
-// }
 
 // 获取本机IP地址
 func GetLocalIP() (string, error) {

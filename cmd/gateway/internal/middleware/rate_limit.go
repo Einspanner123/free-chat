@@ -16,8 +16,8 @@ func RateLimit(redisClient *redis.Client, qps int) gin.HandlerFunc {
 
 		// 使用Redis实现令牌桶：1秒内最多qps个请求
 		// 逻辑：incr计数，设置过期时间1秒，若计数>qps则限流
-		// ctx := c.Request.Context()
-		count, err := redisClient.Incr(c, key).Result()
+		ctx := c.Request.Context()
+		count, err := redisClient.Incr(ctx, key).Result()
 		if err != nil {
 			log.Printf("限流服务出错: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "限流服务异常"})
@@ -26,7 +26,7 @@ func RateLimit(redisClient *redis.Client, qps int) gin.HandlerFunc {
 		}
 		// 首次过期时间
 		if count == 1 {
-			redisClient.Expire(c, key, time.Second)
+			redisClient.Expire(ctx, key, time.Second)
 		}
 
 		if count > int64(qps) {

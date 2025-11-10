@@ -1,25 +1,47 @@
-package service
+package registry
 
 import (
 	"fmt"
-	"free-chat/shared/registry"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 )
 
+type ServiceConfig struct {
+	ID          string
+	Name        string
+	Tags        []string
+	Address     string
+	Port        int
+	HealthCheck *HealthCheck
+}
+
+// 服务实例信息
+type ServiceInstance struct {
+	ID      string
+	Name    string
+	Address string
+	Port    int
+	Tags    []string
+}
+
+// 获取服务URL
+func (s *ServiceInstance) GetURL() string {
+	return fmt.Sprintf("http://%s:%d", s.Address, s.Port)
+}
+
 // 服务管理器
 type ServiceManager struct {
-	registry      *registry.ConsulRegistry
-	serviceConfig *registry.ServiceConfig
+	registry      *ConsulRegistry
+	serviceConfig *ServiceConfig
 	stopChan      chan os.Signal
 }
 
 // 创建服务管理器
-func NewServiceManager(consulConfig *registry.ConsulConfig, serviceConfig *registry.ServiceConfig) (*ServiceManager, error) {
+func NewServiceManager(consulConfig *ConsulConfig, serviceConfig *ServiceConfig) (*ServiceManager, error) {
 	// 创建Consul注册器
-	consulRegistry, err := registry.NewConsulRegistry(consulConfig)
+	consulRegistry, err := NewConsulRegistry(consulConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +86,7 @@ func (sm *ServiceManager) gracefulShutdown() {
 }
 
 // 发现服务
-func (sm *ServiceManager) DiscoverService(serviceName string) ([]*registry.ServiceInstance, error) {
+func (sm *ServiceManager) DiscoverService(serviceName string) ([]*ServiceInstance, error) {
 	return sm.registry.DiscoverService(serviceName)
 }
 
