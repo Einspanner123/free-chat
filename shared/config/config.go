@@ -22,6 +22,7 @@ type AppConfig struct {
 	Postgres PostgresConfig
 	Chat     ChatConfig
 	Auth     AuthConfig
+	LLM      LLMConfig
 }
 
 type MysqlConfig struct {
@@ -66,6 +67,13 @@ type AuthConfig struct {
 	// Jwt
 	JwtSecret string
 	Expire_H  int
+}
+
+type LLMConfig struct {
+	Models      []string
+	Temperature float64
+	TopP        float64
+	MaxTokens   int
 }
 
 func LoadConfig(serviceName string) *AppConfig {

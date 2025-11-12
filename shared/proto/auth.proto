@@ -1,31 +1,65 @@
 syntax = "proto3";
+
 package auth;
 option go_package = "./auth;auth";
-option py_generic_services = true;
 
 service AuthService {
-    rpc Login (LoginRequest) returns (LoginResponse);
-    rpc VerifyToken (VerifyTokenRequest) returns (VerifyTokenResponse); 
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
 }
 
 message LoginRequest {
-    string username = 1;
-    string password = 2;
+  string username = 1;
+  string password = 2;
 }
 
 message LoginResponse {
-    string jwt_token = 1;
-    string user_id = 2;
-    string error = 3;
+  bool success = 1;
+  string message = 2;
+  string access_token = 3;
+  string refresh_token = 4;
+  int64 expires_at = 5;
+  User user = 6;
 }
 
-message VerifyTokenRequest {
-    string jwt_token = 1;
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string email = 3;
 }
 
-message VerifyTokenResponse {
-    bool valid = 1;
-    string user_id = 2;
-    string error = 3;
+message RegisterResponse {
+  bool success = 1;
+  string message = 2;
+  string user_id = 3;
 }
 
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string user_id = 2;
+  string username = 3;
+  int64 expires_at = 4;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  bool success = 1;
+  string access_token = 2;
+  int64 expires_at = 3;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  string email = 3;
+  int64 created_at = 4;
+}

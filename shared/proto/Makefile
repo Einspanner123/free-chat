@@ -14,6 +14,9 @@ ifeq ($(shell command -v $(PROTOC) 2>/dev/null),)
 $(error "protoc编译器未安装，请先安装: sudo apt-get install protobuf-compiler")
 endif
 
+# 默认目标
+all: generate
+
 # 检查Go插件
 check-plugins:
 	@echo "检查protoc插件..."
@@ -33,7 +36,7 @@ generate: check-plugins
 	for proto in $(PROTO_FILES); do \
 		dir_name=$$(basename $$proto .proto); \
 		mkdir -p $(GO_PROTO_OUT)/$$dir_name; \
-		echo "   → 处理 $$proto → 生成到 $(GO_BASE_OUT)/$$dir_name"; \
+		echo "   → 处理 $$proto → 生成到 $(GO_PROTO_OUT)/$$dir_name"; \
 		$(PROTOC) \
 			--go_out=$(GO_PROTO_OUT)/$$dir_name \
 			--go_opt=paths=source_relative \
@@ -61,7 +64,5 @@ install-deps:
 	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 	@echo "✅ 依赖安装完成"
 
-# 默认目标
-all: generate
 
 .PHONY: generate clean install-deps all check-plugins

@@ -11,11 +11,11 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func ChatHandler(consulRegistry *registry.ConsulRegistry, chatServiceName string) gin.HandlerFunc {
+func ChatHandler(service *registry.ServiceManager, chatServiceName string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req struct {
 			SessionID string `json:"session_id"`
-			Query     string `json:"query" binding:"required"`
+			Message   string `json:"message" binding:"required"`
 			Model     string `json:"model" binding:"required"`
 		}
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -29,7 +29,7 @@ func ChatHandler(consulRegistry *registry.ConsulRegistry, chatServiceName string
 			return
 		}
 
-		instances, err := consulRegistry.DiscoverService(chatServiceName)
+		instances, err := service.DiscoverService(chatServiceName)
 		if err != nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "聊天服务暂时不可用：" + err.Error()})
 			return
@@ -46,7 +46,7 @@ func ChatHandler(consulRegistry *registry.ConsulRegistry, chatServiceName string
 		stream, err := chatClient.StreamChat(c.Request.Context(), &chat.ChatRequest{
 			UserId:    userID.(string),
 			SessionId: req.SessionID,
-			Query:     req.Query,
+			Message:   req.Message,
 			Model:     req.Model,
 		})
 		if err != nil {

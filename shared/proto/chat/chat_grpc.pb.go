@@ -19,7 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ChatService_StreamChat_FullMethodName = "/chat.ChatService/StreamChat"
+	ChatService_StreamChat_FullMethodName     = "/chat.ChatService/StreamChat"
+	ChatService_GetChatHistory_FullMethodName = "/chat.ChatService/GetChatHistory"
+	ChatService_CreateSession_FullMethodName  = "/chat.ChatService/CreateSession"
+	ChatService_DeleteSession_FullMethodName  = "/chat.ChatService/DeleteSession"
 )
 
 // ChatServiceClient is the client API for ChatService service.
@@ -27,6 +30,9 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ChatServiceClient interface {
 	StreamChat(ctx context.Context, in *ChatRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ChatResponse], error)
+	GetChatHistory(ctx context.Context, in *HistoryRequest, opts ...grpc.CallOption) (*HistoryResponse, error)
+	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error)
+	DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error)
 }
 
 type chatServiceClient struct {
@@ -56,11 +62,44 @@ func (c *chatServiceClient) StreamChat(ctx context.Context, in *ChatRequest, opt
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ChatService_StreamChatClient = grpc.ServerStreamingClient[ChatResponse]
 
+func (c *chatServiceClient) GetChatHistory(ctx context.Context, in *HistoryRequest, opts ...grpc.CallOption) (*HistoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HistoryResponse)
+	err := c.cc.Invoke(ctx, ChatService_GetChatHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateSessionResponse)
+	err := c.cc.Invoke(ctx, ChatService_CreateSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteSessionResponse)
+	err := c.cc.Invoke(ctx, ChatService_DeleteSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChatServiceServer is the server API for ChatService service.
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility.
 type ChatServiceServer interface {
 	StreamChat(*ChatRequest, grpc.ServerStreamingServer[ChatResponse]) error
+	GetChatHistory(context.Context, *HistoryRequest) (*HistoryResponse, error)
+	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error)
+	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -73,6 +112,15 @@ type UnimplementedChatServiceServer struct{}
 
 func (UnimplementedChatServiceServer) StreamChat(*ChatRequest, grpc.ServerStreamingServer[ChatResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method StreamChat not implemented")
+}
+func (UnimplementedChatServiceServer) GetChatHistory(context.Context, *HistoryRequest) (*HistoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetChatHistory not implemented")
+}
+func (UnimplementedChatServiceServer) CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateSession not implemented")
+}
+func (UnimplementedChatServiceServer) DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteSession not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
@@ -106,13 +154,80 @@ func _ChatService_StreamChat_Handler(srv interface{}, stream grpc.ServerStream) 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type ChatService_StreamChatServer = grpc.ServerStreamingServer[ChatResponse]
 
+func _ChatService_GetChatHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).GetChatHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_GetChatHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).GetChatHistory(ctx, req.(*HistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_CreateSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).CreateSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_CreateSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).CreateSession(ctx, req.(*CreateSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_DeleteSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).DeleteSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_DeleteSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).DeleteSession(ctx, req.(*DeleteSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ChatService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "chat.ChatService",
 	HandlerType: (*ChatServiceServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetChatHistory",
+			Handler:    _ChatService_GetChatHistory_Handler,
+		},
+		{
+			MethodName: "CreateSession",
+			Handler:    _ChatService_CreateSession_Handler,
+		},
+		{
+			MethodName: "DeleteSession",
+			Handler:    _ChatService_DeleteSession_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "StreamChat",

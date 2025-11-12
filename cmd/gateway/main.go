@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"free-chat/cmd/gateway/internal/handler"
 	"free-chat/cmd/gateway/internal/middleware"
 	"free-chat/shared/config"
 	"free-chat/shared/registry"
@@ -26,7 +27,7 @@ func main() {
 		Scheme:     cfg.Consul.Scheme,
 		Datacenter: cfg.Consul.Datacenter,
 	}
-	consul, err := registry.NewConsulRegistry(consulCfg)
+	// consul, err := registry.NewConsulRegistry(consulCfg)
 	if err != nil {
 		log.Fatalf("注册Consul时出错: %v", err)
 	}
@@ -51,7 +52,7 @@ func main() {
 		Addr: cfg.Redis.Address + ":" + cfg.Redis.Port,
 	})
 
-	r := gin.Default()
+	r := gin.New()
 	r.SetTrustedProxies([]string{"127.0.0.1", "192.168.31.255"})
 	r.Use(gin.Logger(), gin.Recovery())
 	r.Use(middleware.RateLimit(redisClient, cfg.Redis.RateLimitQPS))
@@ -65,9 +66,26 @@ func main() {
 	})
 	api := r.Group("/api/v1")
 	{
-		api.POST("/auth", func(c *gin.Context) {
+		// 认证相关路由
+		auth := api.Group("/auth")
+		{
+			authHandler := handler.NewAuthHandler(consulClient)
+			auth.POST("/login", authHandler.Login)
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/refresh", authHandler.RefreshToken)
+		}
 
-		})
+		// 聊天相关路由（需要认证）
+		chat := api.Group("/chat")
+		chat.Use(middleware.JwtAuth(cfg.Auth.JwtSecret))
+		{
+			chatHandler := handler.NewChatHandler(consulClient)
+			chat.POST("/sessions", chatHandler.CreateSession)
+			chat.GET("/sessions/:sessionId/history", chatHandler.GetHistory)
+			chat.DELETE("/sessions/:sessionId", chatHandler.DeleteSession)
+			chat.POST("/sessions/:sessionId/messages", chatHandler.SendMessage)
+			chat.GET("/sessions/:sessionId/stream", chatHandler.StreamChat)
+		}
 	}
 
 	service.Start()
