@@ -5,7 +5,6 @@ import (
 	"free-chat/shared/config"
 	"free-chat/shared/registry"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +13,7 @@ import (
 func main() {
 	cfg := config.LoadConfig("chat-service")
 	serviceName := cfg.ServerName
-	servicePort, _ := strconv.Atoi(cfg.Port)
+	servicePort := cfg.Port
 	localIP, err := registry.GetLocalIP()
 	if err != nil {
 		log.Fatalf("获取本机IP失败: %v", err)

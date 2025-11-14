@@ -13,7 +13,7 @@ type AppConfig struct {
 	ServerName  string
 	Version     string
 	Environment string
-	Port        string
+	Port        int
 
 	// server
 	Mysql    MysqlConfig
@@ -27,7 +27,7 @@ type AppConfig struct {
 
 type MysqlConfig struct {
 	Host     string
-	Port     string
+	Port     int
 	Username string
 	Password string
 	Database string
@@ -38,7 +38,7 @@ type MysqlConfig struct {
 
 type RedisConfig struct {
 	Address      string
-	Port         string
+	Port         int
 	Password     string
 	Database     int
 	RateLimitQPS int
@@ -46,7 +46,7 @@ type RedisConfig struct {
 
 type PostgresConfig struct {
 	Address  string
-	Port     string
+	Port     int
 	User     string
 	Password string
 	DBName   string
@@ -64,9 +64,11 @@ type ChatConfig struct {
 
 type AuthConfig struct {
 	ServerName string
+	GRPCPort   int
 	// Jwt
-	JwtSecret string
-	Expire_H  int
+	JwtSecret        string
+	Expire_Access_H  int
+	Expire_Refresh_H int
 }
 
 type LLMConfig struct {
@@ -81,11 +83,11 @@ func LoadConfig(serviceName string) *AppConfig {
 		ServerName:  serviceName,
 		Version:     getEnv("APP_VERSION", "1.0.0"),
 		Environment: getEnv("APP_ENV", "development"),
-		Port:        getEnv("APP_PORT", "8080"),
+		Port:        getEnvInt("APP_PORT", 8080),
 
 		Mysql: MysqlConfig{
 			Host:     getEnv("MYSQL_HOST", "localhost"),
-			Port:     getEnv("MYSQL_PORT", "3306"),
+			Port:     getEnvInt("MYSQL_PORT", 3306),
 			Username: getEnv("MYSQL_USERNAME", "root"),
 			Password: getEnv("MYSQL_PASSWORD", "123456"),
 			Database: getEnv("MYSQL_DATABASE", "free-chat"),
@@ -96,7 +98,7 @@ func LoadConfig(serviceName string) *AppConfig {
 
 		Redis: RedisConfig{
 			Address:      getEnv("REDIS_ADDR", "localhost"),
-			Port:         getEnv("REDIS_PORT", "6379"),
+			Port:         getEnvInt("REDIS_PORT", 6379),
 			Password:     getEnv("REDIS_PASSWORD", ""),
 			Database:     getEnvInt("REDIS_DATABASE", 0),
 			RateLimitQPS: getEnvInt("RATE_LIMIT_QPS", 10),
@@ -104,7 +106,7 @@ func LoadConfig(serviceName string) *AppConfig {
 
 		Postgres: PostgresConfig{
 			Address:  getEnv("PG_ADDR", "localhost"),
-			Port:     getEnv("PG_PORT", "5432"),
+			Port:     getEnvInt("PG_PORT", 5432),
 			User:     getEnv("PG_USER", "free-chat"),
 			Password: getEnv("PG_PASSWD", "free-chat-passwd"),
 			DBName:   getEnv("PG_DBNAME", "free-chat"),
@@ -117,13 +119,15 @@ func LoadConfig(serviceName string) *AppConfig {
 		},
 
 		Chat: ChatConfig{
-			ServerName: "chat-service",
+			ServerName: getEnv("CHAT_SERVICE_NAME", "chat-service"),
 		},
 
 		Auth: AuthConfig{
-			ServerName: "auth-service",
-			JwtSecret:  "llm_chat_secret",
-			Expire_H:   24,
+			ServerName:       getEnv("AUTH_SERVICE_NAME", "auth-service"),
+			GRPCPort:         getEnvInt("GRPC_PORT", 8083),
+			JwtSecret:        "llm_chat_secret",
+			Expire_Access_H:  1,
+			Expire_Refresh_H: 24 * 3,
 		},
 	}
 }

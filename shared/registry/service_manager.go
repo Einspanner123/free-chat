@@ -28,7 +28,7 @@ type ServiceInstance struct {
 
 // 获取服务URL
 func (s *ServiceInstance) GetURL() string {
-	return fmt.Sprintf("http://%s:%d", s.Address, s.Port)
+	return fmt.Sprintf("%s:%d", s.Address, s.Port)
 }
 
 // 服务管理器

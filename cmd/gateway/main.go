@@ -7,7 +7,6 @@ import (
 	"free-chat/shared/config"
 	"free-chat/shared/registry"
 	"log"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,7 +16,7 @@ import (
 func main() {
 	cfg := config.LoadConfig("gateway")
 	serviceName := cfg.ServerName
-	servicePort, _ := strconv.Atoi(cfg.Port)
+	servicePort := cfg.Port
 	localIP, err := registry.GetLocalIP()
 	if err != nil {
 		log.Fatalf("获取本机IP失败: %v", err)
@@ -26,10 +25,6 @@ func main() {
 		Address:    cfg.Consul.Address,
 		Scheme:     cfg.Consul.Scheme,
 		Datacenter: cfg.Consul.Datacenter,
-	}
-	// consul, err := registry.NewConsulRegistry(consulCfg)
-	if err != nil {
-		log.Fatalf("注册Consul时出错: %v", err)
 	}
 	serviceCfg := &registry.ServiceConfig{
 		ID:      registry.GenerateServiceID(serviceName, servicePort),
@@ -44,19 +39,22 @@ func main() {
 			DeregisterCriticalServiceAfter: 30 * time.Second,
 		},
 	}
-	service, err := registry.NewServiceManager(consulCfg, serviceCfg)
+	serviceManager, err := registry.NewServiceManager(consulCfg, serviceCfg)
 	if err != nil {
 		log.Fatalf("初始化Consul客户端失败: %v", err)
 	}
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: cfg.Redis.Address + ":" + cfg.Redis.Port,
+		Addr: fmt.Sprintf("%s:%d", cfg.Redis.Address, cfg.Redis.Port),
 	})
 
 	r := gin.New()
-	r.SetTrustedProxies([]string{"127.0.0.1", "192.168.31.255"})
+	r.SetTrustedProxies([]string{
+		"127.0.0.1/32",
+		"192.168.31.0/24",
+		"172.20.0.0/16",
+	})
 	r.Use(gin.Logger(), gin.Recovery())
 	r.Use(middleware.RateLimit(redisClient, cfg.Redis.RateLimitQPS))
-	// r.Use(middleware.JwtAuth(consul, "auth-service"))
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":    "healthy",
@@ -64,12 +62,13 @@ func main() {
 			"timestamp": time.Now(),
 		})
 	})
+
 	api := r.Group("/api/v1")
 	{
 		// 认证相关路由
 		auth := api.Group("/auth")
 		{
-			authHandler := handler.NewAuthHandler(consulClient)
+			authHandler := handler.NewAuthHandler(serviceManager, cfg.Auth.ServerName)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/refresh", authHandler.RefreshToken)
@@ -79,7 +78,7 @@ func main() {
 		chat := api.Group("/chat")
 		chat.Use(middleware.JwtAuth(cfg.Auth.JwtSecret))
 		{
-			chatHandler := handler.NewChatHandler(consulClient)
+			chatHandler := handler.NewChatHandler(serviceManager, cfg.Chat.ServerName)
 			chat.POST("/sessions", chatHandler.CreateSession)
 			chat.GET("/sessions/:sessionId/history", chatHandler.GetHistory)
 			chat.DELETE("/sessions/:sessionId", chatHandler.DeleteSession)
@@ -88,7 +87,7 @@ func main() {
 		}
 	}
 
-	service.Start()
-	log.Printf("网关服务启动, 监听服务 %s", cfg.Port)
-	log.Fatal(r.Run(":" + cfg.Port))
+	serviceManager.Start()
+	log.Printf("网关服务启动, 监听服务 %d", cfg.Port)
+	log.Fatal(r.Run(fmt.Sprintf(":%d", servicePort)))
 }

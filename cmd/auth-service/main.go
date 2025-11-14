@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	server "free-chat/cmd/auth-service/internal/grpc-server"
+	"free-chat/cmd/auth-service/internal/handler"
 	"free-chat/cmd/auth-service/internal/service"
-	"free-chat/cmd/auth-service/internal/store"
+	store "free-chat/cmd/auth-service/internal/store"
 	"free-chat/shared/config"
-	"free-chat/shared/proto/auth"
+	authpb "free-chat/shared/proto/auth"
 	"free-chat/shared/registry"
 	"log"
 	"net"
@@ -17,24 +17,25 @@ import (
 )
 
 func main() {
-	serviceName := "auth-service"
+	cfg := config.LoadConfig("auth-service")
+	serviceName := cfg.Auth.ServerName
 	servicePort := 8082
+	grpcPort := cfg.Auth.GRPCPort
 	localIP, err := registry.GetLocalIP()
 	if err != nil {
 		log.Fatalf("获取本机IP失败: %v", err)
 	}
-	cfg := config.LoadConfig(serviceName)
 	consulCfg := &registry.ConsulConfig{
 		Address:    cfg.Consul.Address,
 		Scheme:     cfg.Consul.Scheme,
 		Datacenter: cfg.Consul.Datacenter,
 	}
 	serviceCfg := &registry.ServiceConfig{
-		ID:      registry.GenerateServiceID(serviceName, servicePort),
+		ID:      registry.GenerateServiceID(serviceName, grpcPort),
 		Name:    serviceName,
 		Tags:    []string{serviceName, "api", "v1"},
 		Address: localIP,
-		Port:    servicePort,
+		Port:    grpcPort,
 		HealthCheck: &registry.HealthCheck{
 			HTTP:                           fmt.Sprintf("http://%s:%d/health", localIP, servicePort),
 			Interval:                       10 * time.Second,
@@ -47,28 +48,41 @@ func main() {
 	if err != nil {
 		log.Fatalf("创建服务管理器失败: %v", err)
 	}
+	// 注册到 Consul
 	serviceManager.Start()
-	// 初始化存储与业务服务
-	pg, err := store.NewPostgresStore(cfg.Postgres)
+	// 创建数据库连接
+	db, err := store.NewConnection(store.GetURL(&cfg.Postgres))
 	if err != nil {
-		log.Fatalf("数据库初始化失败: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	svc := service.NewAuthService(cfg.Auth, pg)
-	// 启动 gRPC 认证服务
+	defer db.Close()
+	// 创建数据库表
+	if err = db.CreateTables(); err != nil {
+		log.Fatalf("Failed to create tables: %v", err)
+	}
+
+	// 初始化服务
+	userRepo := store.NewUserRepository(db)
+	jwtService := service.NewJWTService(cfg.Auth.JwtSecret, cfg.Auth.Expire_Access_H, cfg.Auth.Expire_Refresh_H)
+	authHandler := handler.NewAuthHandler(userRepo, jwtService)
+
+	// 创建并启动gRPC服务器
 	go func() {
-		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", servicePort))
+		lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
 		if err != nil {
 			log.Fatalf("监听失败: %v", err)
 		}
 		grpcServer := grpc.NewServer()
-		auth.RegisterAuthServiceServer(grpcServer, &server.AuthGRPCServer{Svc: svc})
-		log.Printf("Auth gRPC 服务启动: %d", servicePort)
+		authpb.RegisterAuthServiceServer(grpcServer, authHandler)
+
+		log.Printf("Auth gRPC 服务启动: %d", grpcPort)
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Fatal(err)
 		}
 	}()
+
+	// 启动Gin健康检查服务
 	r := gin.Default()
-	// 健康检查接口
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":    "healthy",
@@ -76,26 +90,9 @@ func main() {
 			"timestamp": time.Now(),
 		})
 	})
-	if err := r.Run(fmt.Sprintf(":%d", servicePort)); err != nil {
+	port := fmt.Sprintf(":%d", servicePort)
+	log.Printf("健康检查服务启动，监听端口: %s", port)
+	if err := r.Run(port); err != nil {
 		log.Fatal(err)
 	}
-	// api := r.Group("/api/v1")
-	// {
-	// 	api.POST("/login", func(c *gin.Context) {
-
-	// 	})
-	// }
-	// port := fmt.Sprintf(":%d", servicePort)
-	// log.Printf("🚀 用户服务启动成功! 监听端口: %s", port)
-	// log.Printf("📍 服务ID: %s", serviceConfig.ID)
-	// log.Printf("🏥 健康检查: %s", serviceConfig.HealthCheck.HTTP)
-	// log.Println("📋 API接口:")
-	// log.Println("   GET  /health                    - 健康检查")
-	// log.Println("   GET  /api/v1/users              - 获取用户列表")
-	// log.Println("   GET  /api/v1/users/:id          - 获取用户详情")
-	// log.Println("   GET  /api/v1/services/:name     - 服务发现")
-	// log.Println("   GET  /api/v1/call/:service/*path - 调用其他服务")
-	// if err := r.Run(port); err != nil {
-	// 	log.Fatal("服务器启动失败: ", err)
-	// }
 }

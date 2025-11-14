@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	authpb "free-chat/shared/proto/auth"
@@ -28,6 +29,9 @@ func (h *AuthHandler) getGRPCConnection() (*grpc.ClientConn, error) {
 	instances, err := h.mgr.DiscoverService(h.authService)
 	if err != nil {
 		return nil, err
+	}
+	if len(instances) == 0 {
+		return nil, fmt.Errorf("没有可用的`%s`服务", h.authService)
 	}
 	select_inst := instances[0] // 进行简单负载均衡选择
 
@@ -87,9 +91,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	}
 
 	// 连接到认证服务
-	conn, err := h.consulClient.GetGRPCConnection("auth-service")
+	conn, err := h.getGRPCConnection()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Auth service unavailable"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Auth service unavailable: " + err.Error()})
 		return
 	}
 	defer conn.Close()
@@ -100,9 +104,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		Email:    req.Email,
 		Password: req.Password,
 	})
-
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Registration failed"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Registration failed: " + err.Error()})
 		return
 	}
 
@@ -124,7 +127,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	}
 
 	// 连接到认证服务
-	conn, err := h.consulClient.GetGRPCConnection("auth-service")
+	conn, err := h.getGRPCConnection()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Auth service unavailable"})
 		return

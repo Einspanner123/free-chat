@@ -1,59 +1,70 @@
-package store
+package database
 
 import (
-	"database/sql"
 	"fmt"
 	"free-chat/shared/config"
+	"log"
+	"time"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
-type User struct {
-	ID       string
-	Username string
-	Password string
+type DB struct {
+	*gorm.DB
 }
 
-type PostgresStore struct {
-	db *sql.DB
-}
-
-func NewPostgresStore(cfg config.PostgresConfig) (*PostgresStore, error) {
-	connStr := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		cfg.Address, cfg.Port, cfg.User, cfg.Password, cfg.DBName,
-	)
-	db, err := sql.Open("postgres", connStr)
+func NewConnection(databaseURL string) (*DB, error) {
+	gormCfg := &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	}
+	db, err := gorm.Open(postgres.Open(databaseURL), gormCfg)
 	if err != nil {
-		return nil, fmt.Errorf("打开数据库失败: %v", err)
+		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("连接数据库失败: %v", err)
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get underlying database connection: %w", err)
 	}
-	return &PostgresStore{db: db}, nil
+
+	// 设置连接池参数
+	sqlDB.SetMaxOpenConns(25)
+	sqlDB.SetMaxIdleConns(25)
+	sqlDB.SetConnMaxLifetime(5 * time.Minute)
+
+	// 测试连接
+	if err := sqlDB.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	log.Println("Database connection established")
+	return &DB{db}, nil
 }
 
-func (s *PostgresStore) CreateUser(id, username, password string) error {
-	query := "INSERT INTO users (id, username, password) VALUES ($1, $2, $3)"
-	if _, err := s.db.Exec(query, id, username, password); err != nil {
-		return fmt.Errorf("创建用户失败: %v", err)
+func (db *DB) CreateTables() error {
+	// 使用GORM的AutoMigrate自动创建表
+	if err := db.AutoMigrate(&User{}); err != nil {
+		return fmt.Errorf("failed to migrate database: %w", err)
 	}
+
+	log.Println("Database tables migrated successfully")
 	return nil
 }
 
-func (s *PostgresStore) GetUserByUsername(username string) (*User, error) {
-	query := "SELECT id, username, password FROM users WHERE username = $1 LIMIT 1"
-	row := s.db.QueryRow(query, username)
-
-	var user User
-	err := row.Scan(&user.ID, &user.Username, &user.Password)
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("用户不存在")
-	}
+func (db *DB) Close() error {
+	sqlDB, err := db.DB.DB()
 	if err != nil {
-		return nil, fmt.Errorf("查询用户失败: %v", err)
+		return fmt.Errorf("failed to get underlying database connection: %w", err)
 	}
-	return &user, nil
+	if err := sqlDB.Close(); err != nil {
+		return fmt.Errorf("failed to close database connection: %w", err)
+	}
+	log.Println("Database connection closed")
+	return nil
 }
 
-func (s *PostgresStore) Close() error {
-	return s.db.Close()
+func GetURL(cfg *config.PostgresConfig) string {
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=Asia/Shanghai",
+		cfg.Address, cfg.User, cfg.Password, cfg.DBName, cfg.Port)
 }

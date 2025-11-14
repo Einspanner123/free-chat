@@ -1,0 +1,156 @@
+services:
+  # 基础设施服务
+  postgres:
+    image: postgres:14.11-alpine
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: free-chat
+      POSTGRES_PASSWORD: free-chat-passwd
+      POSTGRES_DB: free-chat
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U free-chat -d free-chat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: redis
+    restart: always
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  consul:
+    image: consul:1.15
+    container_name: consul
+    restart: always
+    command: >
+      agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+    volumes:
+      - consul_data:/consul/data
+    ports:
+      - "8500:8500"  # HTTP API
+      - "8600:8600"  # DNS
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "consul", "members", "-status=alive"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # 微服务
+  auth-service:
+    build:
+      context: .
+      dockerfile: cmd/auth-service/Dockerfile
+    container_name: auth-service
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+    environment:
+      APP_ENV: "development"
+      APP_PORT: "8082"
+      PG_ADDR: "postgres"
+      PG_PORT: "5432"
+      PG_USER: "free-chat"
+      PG_PASSWD: "free-chat-passwd"
+      PG_DBNAME: "free-chat"
+      CONSUL_ADDRESS: "consul:8500"
+      JWT_SECRET: "llm_chat_secret"
+    ports:
+      - "8082:8082"
+    networks:
+      - app-network
+
+  # chat-service:
+  #   build:
+  #     context: .
+  #     dockerfile: cmd/chat-service/Dockerfile
+  #   container_name: chat-service
+  #   restart: always
+  #   depends_on:
+  #     consul:
+  #       condition: service_healthy
+  #   environment:
+  #     APP_ENV: "development"
+  #     APP_PORT: "8081"
+  #     CONSUL_ADDRESS: "consul:8500"
+  #   ports:
+  #     - "8081:8081"
+  #   networks:
+  #     - app-network
+
+  gateway:
+    build:
+      context: .
+      dockerfile: cmd/gateway/Dockerfile
+    container_name: gateway
+    restart: always
+    depends_on:
+      consul:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: "development"
+      APP_PORT: "8080"
+      CONSUL_ADDRESS: "consul:8500"
+      REDIS_ADDR: "redis"
+      REDIS_PORT: "6379"
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+  # llm-inference:
+  #   build:
+  #     context: .
+  #     dockerfile: cmd/llm-inference/Dockerfile
+  #   container_name: llm-inference
+  #   restart: always
+  #   depends_on:
+  #     consul:
+  #       condition: service_healthy
+  #   environment:
+  #     APP_ENV: "development"
+  #     APP_PORT: "8083"
+  #     CONSUL_ADDRESS: "consul:8500"
+  #   ports:
+  #     - "8083:8083"
+  #   networks:
+  #     - app-network
+
+# 网络配置
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+# 数据持久化
+volumes:
+  postgres_data:
+  redis_data:
+  consul_data:
