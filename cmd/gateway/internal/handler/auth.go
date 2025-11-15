@@ -70,11 +70,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"access_token":  resp.AccessToken,
 		"refresh_token": resp.RefreshToken,
-		"user": gin.H{
-			"id":       resp.User.Id,
-			"username": resp.User.Username,
-			"email":    resp.User.Email,
-		},
 	})
 }
 
@@ -112,7 +107,6 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"success": resp.Success,
 		"message": resp.Message,
-		"user_id": resp.UserId,
 	})
 }
 

@@ -1,0 +1,32 @@
+meta {
+  name: refresh
+  type: http
+  seq: 6
+}
+
+post {
+  url: http://localhost:8080/api/v1/auth/refresh
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3R1c2VyIiwic3ViIjoicmVmcmVzaCIsImV4cCI6MTc2MzM2NTE2NSwibmJmIjoxNzYzMTA1OTY1LCJpYXQiOjE3NjMxMDU5NjV9.h5KLk9xnmjaypve71GBz9iH7sHg2_4qhe5OOEUZo6Eg
+}
+
+body:json {
+  {
+    "username": "testuser",
+    "email": "test@example.com",
+    "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3R1c2VyIiwic3ViIjoicmVmcmVzaCIsImV4cCI6MTc2MzM2NTE2NSwibmJmIjoxNzYzMTA1OTY1LCJpYXQiOjE3NjMxMDU5NjV9.h5KLk9xnmjaypve71GBz9iH7sHg2_4qhe5OOEUZo6Eg"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

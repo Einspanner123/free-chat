@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"free-chat/cmd/auth-service/internal/handler"
 	"free-chat/cmd/auth-service/internal/service"
-	store "free-chat/cmd/auth-service/internal/store"
+	"free-chat/cmd/auth-service/internal/store"
 	"free-chat/shared/config"
 	authpb "free-chat/shared/proto/auth"
 	"free-chat/shared/registry"

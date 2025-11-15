@@ -2,13 +2,11 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	authpb "free-chat/shared/proto/auth"
 	"log"
-	"strconv"
 
 	"free-chat/cmd/auth-service/internal/service"
-	store "free-chat/cmd/auth-service/internal/store"
+	"free-chat/cmd/auth-service/internal/store"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -66,11 +64,6 @@ func (h *AuthHandler) Login(ctx context.Context, req *authpb.LoginRequest) (*aut
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresAt:    accessExpireAt.Unix(),
-		User: &authpb.User{
-			Id:       fmt.Sprintf("%d", user.ID),
-			Username: user.Username,
-			Email:    user.Email,
-		},
 	}, nil
 }
 
@@ -94,8 +87,8 @@ func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest)
 	}
 
 	// 创建用户
-	user, err := h.userRepo.CreateUser(req.Username, req.Email, req.Password)
-	if err != nil {
+
+	if _, err := h.userRepo.CreateUser(req.Username, req.Email, req.Password); err != nil {
 		log.Printf("Failed to create user: %v", err)
 		return nil, status.Error(codes.Internal, "Failed to create user")
 	}
@@ -103,7 +96,6 @@ func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest)
 	return &authpb.RegisterResponse{
 		Success: true,
 		Message: "User registered successfully",
-		UserId:  fmt.Sprintf("%d", user.ID),
 	}, nil
 }
 
@@ -116,7 +108,7 @@ func (h *AuthHandler) ValidateToken(ctx context.Context, req *authpb.ValidateTok
 	}
 
 	// 获取用户信息
-	user, err := h.userRepo.GetUserByID(claims.UserID)
+	_, err = h.userRepo.GetUserByID(claims.UserID)
 	if err != nil {
 		return &authpb.ValidateTokenResponse{
 			Valid: false,
@@ -124,9 +116,7 @@ func (h *AuthHandler) ValidateToken(ctx context.Context, req *authpb.ValidateTok
 	}
 
 	return &authpb.ValidateTokenResponse{
-		Valid:    true,
-		UserId:   strconv.Itoa(user.ID),
-		Username: user.Username,
+		Valid: true,
 	}, nil
 }
 
