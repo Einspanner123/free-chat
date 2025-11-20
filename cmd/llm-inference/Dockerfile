@@ -1,10 +1,24 @@
 FROM python:3.11-slim
 
+# 安装系统依赖
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     build-essential \
+#     git \
+#     gcc \
+#     g++ \
+#     && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-COPY cmd/llm-inference/ .
+# 复制项目文件
+COPY . .
 
-RUN if [ -f requirements.txt ]; then pip install --no-cache-dir -r requirements.txt; fi
+# 安装Python依赖
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -e .
 
-# 运行应用
-CMD ["python", "hello.py"]
+# 设置环境变量
+ENV PYTHONPATH=/app
+
+# 默认运行server.py
+CMD ["python", "server.py"]
