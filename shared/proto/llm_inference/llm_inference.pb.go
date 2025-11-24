@@ -4,7 +4,7 @@
 // 	protoc        v3.21.12
 // source: llm_inference.proto
 
-package inference
+package llm_inference
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -21,74 +21,17 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type Message struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Role          string                 `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"`
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Message) Reset() {
-	*x = Message{}
-	mi := &file_llm_inference_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Message) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Message) ProtoMessage() {}
-
-func (x *Message) ProtoReflect() protoreflect.Message {
-	mi := &file_llm_inference_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Message.ProtoReflect.Descriptor instead.
-func (*Message) Descriptor() ([]byte, []int) {
-	return file_llm_inference_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *Message) GetRole() string {
-	if x != nil {
-		return x.Role
-	}
-	return ""
-}
-
-func (x *Message) GetContent() string {
-	if x != nil {
-		return x.Content
-	}
-	return ""
-}
-
 type InferenceRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"` // 输入文本
-	UserQuery     string                 `protobuf:"bytes,2,opt,name=user_query,json=userQuery,proto3" json:"user_query,omitempty"`
-	History       []*Message             `protobuf:"bytes,3,rep,name=history,proto3" json:"history,omitempty"`
-	Model         string                 `protobuf:"bytes,4,opt,name=model,proto3" json:"model,omitempty"`
-	Temperature   float32                `protobuf:"fixed32,5,opt,name=temperature,proto3" json:"temperature,omitempty"`
-	MaxTokens     int32                  `protobuf:"varint,6,opt,name=max_tokens,json=maxTokens,proto3" json:"max_tokens,omitempty"`
-	StopWords     []string               `protobuf:"bytes,7,rep,name=stop_words,json=stopWords,proto3" json:"stop_words,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *InferenceRequest) Reset() {
 	*x = InferenceRequest{}
-	mi := &file_llm_inference_proto_msgTypes[1]
+	mi := &file_llm_inference_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -100,7 +43,7 @@ func (x *InferenceRequest) String() string {
 func (*InferenceRequest) ProtoMessage() {}
 
 func (x *InferenceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_llm_inference_proto_msgTypes[1]
+	mi := &file_llm_inference_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -113,7 +56,7 @@ func (x *InferenceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InferenceRequest.ProtoReflect.Descriptor instead.
 func (*InferenceRequest) Descriptor() ([]byte, []int) {
-	return file_llm_inference_proto_rawDescGZIP(), []int{1}
+	return file_llm_inference_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *InferenceRequest) GetSessionId() string {
@@ -123,51 +66,16 @@ func (x *InferenceRequest) GetSessionId() string {
 	return ""
 }
 
-func (x *InferenceRequest) GetUserQuery() string {
+func (x *InferenceRequest) GetMessage() string {
 	if x != nil {
-		return x.UserQuery
+		return x.Message
 	}
 	return ""
-}
-
-func (x *InferenceRequest) GetHistory() []*Message {
-	if x != nil {
-		return x.History
-	}
-	return nil
-}
-
-func (x *InferenceRequest) GetModel() string {
-	if x != nil {
-		return x.Model
-	}
-	return ""
-}
-
-func (x *InferenceRequest) GetTemperature() float32 {
-	if x != nil {
-		return x.Temperature
-	}
-	return 0
-}
-
-func (x *InferenceRequest) GetMaxTokens() int32 {
-	if x != nil {
-		return x.MaxTokens
-	}
-	return 0
-}
-
-func (x *InferenceRequest) GetStopWords() []string {
-	if x != nil {
-		return x.StopWords
-	}
-	return nil
 }
 
 type InferenceResponse struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
-	Token           string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Chunk           string                 `protobuf:"bytes,1,opt,name=chunk,proto3" json:"chunk,omitempty"`
 	IsFinished      bool                   `protobuf:"varint,2,opt,name=is_finished,json=isFinished,proto3" json:"is_finished,omitempty"`
 	Error           string                 `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
 	GeneratedTokens int32                  `protobuf:"varint,4,opt,name=generated_tokens,json=generatedTokens,proto3" json:"generated_tokens,omitempty"`
@@ -177,7 +85,7 @@ type InferenceResponse struct {
 
 func (x *InferenceResponse) Reset() {
 	*x = InferenceResponse{}
-	mi := &file_llm_inference_proto_msgTypes[2]
+	mi := &file_llm_inference_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -189,7 +97,7 @@ func (x *InferenceResponse) String() string {
 func (*InferenceResponse) ProtoMessage() {}
 
 func (x *InferenceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_llm_inference_proto_msgTypes[2]
+	mi := &file_llm_inference_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -202,12 +110,12 @@ func (x *InferenceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InferenceResponse.ProtoReflect.Descriptor instead.
 func (*InferenceResponse) Descriptor() ([]byte, []int) {
-	return file_llm_inference_proto_rawDescGZIP(), []int{2}
+	return file_llm_inference_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *InferenceResponse) GetToken() string {
+func (x *InferenceResponse) GetChunk() string {
 	if x != nil {
-		return x.Token
+		return x.Chunk
 	}
 	return ""
 }
@@ -237,30 +145,19 @@ var File_llm_inference_proto protoreflect.FileDescriptor
 
 const file_llm_inference_proto_rawDesc = "" +
 	"\n" +
-	"\x13llm_inference.proto\x12\tinference\"7\n" +
-	"\aMessage\x12\x12\n" +
-	"\x04role\x18\x01 \x01(\tR\x04role\x12\x18\n" +
-	"\acontent\x18\x02 \x01(\tR\acontent\"\xf4\x01\n" +
+	"\x13llm_inference.proto\x12\rllm_inference\"K\n" +
 	"\x10InferenceRequest\x12\x1d\n" +
 	"\n" +
-	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x1d\n" +
-	"\n" +
-	"user_query\x18\x02 \x01(\tR\tuserQuery\x12,\n" +
-	"\ahistory\x18\x03 \x03(\v2\x12.inference.MessageR\ahistory\x12\x14\n" +
-	"\x05model\x18\x04 \x01(\tR\x05model\x12 \n" +
-	"\vtemperature\x18\x05 \x01(\x02R\vtemperature\x12\x1d\n" +
-	"\n" +
-	"max_tokens\x18\x06 \x01(\x05R\tmaxTokens\x12\x1d\n" +
-	"\n" +
-	"stop_words\x18\a \x03(\tR\tstopWords\"\x8b\x01\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\x8b\x01\n" +
 	"\x11InferenceResponse\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\x12\x1f\n" +
+	"\x05chunk\x18\x01 \x01(\tR\x05chunk\x12\x1f\n" +
 	"\vis_finished\x18\x02 \x01(\bR\n" +
 	"isFinished\x12\x14\n" +
 	"\x05error\x18\x03 \x01(\tR\x05error\x12)\n" +
-	"\x10generated_tokens\x18\x04 \x01(\x05R\x0fgeneratedTokens2c\n" +
-	"\x11InferencerService\x12N\n" +
-	"\x0fStreamInference\x12\x1b.inference.InferenceRequest\x1a\x1c.inference.InferenceResponse0\x01B\x17Z\x15./inference;inferenceb\x06proto3"
+	"\x10generated_tokens\x18\x04 \x01(\x05R\x0fgeneratedTokens2m\n" +
+	"\x11InferencerService\x12X\n" +
+	"\x0fStreamInference\x12\x1f.llm_inference.InferenceRequest\x1a .llm_inference.InferenceResponse(\x010\x01B\x1fZ\x1d./llm_inference;llm_inferenceb\x06proto3"
 
 var (
 	file_llm_inference_proto_rawDescOnce sync.Once
@@ -274,21 +171,19 @@ func file_llm_inference_proto_rawDescGZIP() []byte {
 	return file_llm_inference_proto_rawDescData
 }
 
-var file_llm_inference_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_llm_inference_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_llm_inference_proto_goTypes = []any{
-	(*Message)(nil),           // 0: inference.Message
-	(*InferenceRequest)(nil),  // 1: inference.InferenceRequest
-	(*InferenceResponse)(nil), // 2: inference.InferenceResponse
+	(*InferenceRequest)(nil),  // 0: llm_inference.InferenceRequest
+	(*InferenceResponse)(nil), // 1: llm_inference.InferenceResponse
 }
 var file_llm_inference_proto_depIdxs = []int32{
-	0, // 0: inference.InferenceRequest.history:type_name -> inference.Message
-	1, // 1: inference.InferencerService.StreamInference:input_type -> inference.InferenceRequest
-	2, // 2: inference.InferencerService.StreamInference:output_type -> inference.InferenceResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // 0: llm_inference.InferencerService.StreamInference:input_type -> llm_inference.InferenceRequest
+	1, // 1: llm_inference.InferencerService.StreamInference:output_type -> llm_inference.InferenceResponse
+	1, // [1:2] is the sub-list for method output_type
+	0, // [0:1] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_llm_inference_proto_init() }
@@ -302,7 +197,7 @@ func file_llm_inference_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_llm_inference_proto_rawDesc), len(file_llm_inference_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

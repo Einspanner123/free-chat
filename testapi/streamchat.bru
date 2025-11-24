@@ -1,0 +1,30 @@
+meta {
+  name: streamchat
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8080/api/v1/chat/sessions/1/stream
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3R1c2VyIiwic3ViIjoiYWNjZXNzIiwiZXhwIjoxNzYzOTU5MTI0LCJuYmYiOjE3NjM5NTU1MjQsImlhdCI6MTc2Mzk1NTUyNH0.SiRPcltyU_YlTeDANeipxi87n8RJgS8LDH89HPP4oFI
+}
+
+body:json {
+  {
+    "user_id": "1",
+    "message": "你好"
+  }
+}
+
+docs {
+  This request retrieves a list of users from the JSONPlaceholder API.
+}

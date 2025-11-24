@@ -4,7 +4,7 @@
 // - protoc             v3.21.12
 // source: llm_inference.proto
 
-package inference
+package llm_inference
 
 import (
 	context "context"
@@ -19,14 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	InferencerService_StreamInference_FullMethodName = "/inference.InferencerService/StreamInference"
+	InferencerService_StreamInference_FullMethodName = "/llm_inference.InferencerService/StreamInference"
 )
 
 // InferencerServiceClient is the client API for InferencerService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type InferencerServiceClient interface {
-	StreamInference(ctx context.Context, in *InferenceRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[InferenceResponse], error)
+	// 双向流式对话
+	StreamInference(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[InferenceRequest, InferenceResponse], error)
 }
 
 type inferencerServiceClient struct {
@@ -37,30 +38,25 @@ func NewInferencerServiceClient(cc grpc.ClientConnInterface) InferencerServiceCl
 	return &inferencerServiceClient{cc}
 }
 
-func (c *inferencerServiceClient) StreamInference(ctx context.Context, in *InferenceRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[InferenceResponse], error) {
+func (c *inferencerServiceClient) StreamInference(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[InferenceRequest, InferenceResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &InferencerService_ServiceDesc.Streams[0], InferencerService_StreamInference_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	x := &grpc.GenericClientStream[InferenceRequest, InferenceResponse]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
 	return x, nil
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type InferencerService_StreamInferenceClient = grpc.ServerStreamingClient[InferenceResponse]
+type InferencerService_StreamInferenceClient = grpc.BidiStreamingClient[InferenceRequest, InferenceResponse]
 
 // InferencerServiceServer is the server API for InferencerService service.
 // All implementations must embed UnimplementedInferencerServiceServer
 // for forward compatibility.
 type InferencerServiceServer interface {
-	StreamInference(*InferenceRequest, grpc.ServerStreamingServer[InferenceResponse]) error
+	// 双向流式对话
+	StreamInference(grpc.BidiStreamingServer[InferenceRequest, InferenceResponse]) error
 	mustEmbedUnimplementedInferencerServiceServer()
 }
 
@@ -71,7 +67,7 @@ type InferencerServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedInferencerServiceServer struct{}
 
-func (UnimplementedInferencerServiceServer) StreamInference(*InferenceRequest, grpc.ServerStreamingServer[InferenceResponse]) error {
+func (UnimplementedInferencerServiceServer) StreamInference(grpc.BidiStreamingServer[InferenceRequest, InferenceResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method StreamInference not implemented")
 }
 func (UnimplementedInferencerServiceServer) mustEmbedUnimplementedInferencerServiceServer() {}
@@ -96,21 +92,17 @@ func RegisterInferencerServiceServer(s grpc.ServiceRegistrar, srv InferencerServ
 }
 
 func _InferencerService_StreamInference_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(InferenceRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(InferencerServiceServer).StreamInference(m, &grpc.GenericServerStream[InferenceRequest, InferenceResponse]{ServerStream: stream})
+	return srv.(InferencerServiceServer).StreamInference(&grpc.GenericServerStream[InferenceRequest, InferenceResponse]{ServerStream: stream})
 }
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type InferencerService_StreamInferenceServer = grpc.ServerStreamingServer[InferenceResponse]
+type InferencerService_StreamInferenceServer = grpc.BidiStreamingServer[InferenceRequest, InferenceResponse]
 
 // InferencerService_ServiceDesc is the grpc.ServiceDesc for InferencerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var InferencerService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "inference.InferencerService",
+	ServiceName: "llm_inference.InferencerService",
 	HandlerType: (*InferencerServiceServer)(nil),
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
@@ -118,6 +110,7 @@ var InferencerService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "StreamInference",
 			Handler:       _InferencerService_StreamInference_Handler,
 			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "llm_inference.proto",

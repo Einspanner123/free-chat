@@ -60,6 +60,7 @@ type ConsulConfig struct {
 
 type ChatConfig struct {
 	ServerName string
+	GRPCPort   int
 }
 
 type AuthConfig struct {
@@ -72,6 +73,8 @@ type AuthConfig struct {
 }
 
 type LLMConfig struct {
+	Name        string
+	Port        int
 	Models      []string
 	Temperature float64
 	TopP        float64
@@ -119,15 +122,24 @@ func LoadConfig(serviceName string) *AppConfig {
 		},
 
 		Chat: ChatConfig{
-			ServerName: getEnv("CHAT_SERVICE_NAME", "chat-service"),
+			ServerName: "chat-service",
+			GRPCPort:   getEnvInt("CHAT_GRPC_PORT", 8088),
 		},
 
 		Auth: AuthConfig{
 			ServerName:       getEnv("AUTH_SERVICE_NAME", "auth-service"),
-			GRPCPort:         getEnvInt("GRPC_PORT", 8083),
+			GRPCPort:         getEnvInt("AUTH_GRPC_PORT", 8082),
 			JwtSecret:        "llm_chat_secret",
 			Expire_Access_H:  1,
 			Expire_Refresh_H: 24 * 3,
+		},
+		LLM: LLMConfig{
+			Name:        "llm-inference",
+			Port:        8083,
+			Models:      []string{"Qwen/Qwen3-0.6B"},
+			Temperature: getEnvFloat("LLM_TEMPERATURE", 0.7),
+			TopP:        getEnvFloat("LLM_TOP_P", 0.9),
+			MaxTokens:   getEnvInt("LLM_MAX_TOKENS", 1000),
 		},
 	}
 }

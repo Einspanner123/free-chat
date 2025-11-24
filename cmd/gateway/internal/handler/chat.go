@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	chatpb "free-chat/shared/proto/chat"
@@ -10,17 +11,20 @@ import (
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 type ChatHandler struct {
 	mgr         *registry.ServiceManager
 	chatService string
+	llmService  string
 }
 
-func NewChatHandler(mgr *registry.ServiceManager, chatService string) *ChatHandler {
+func NewChatHandler(mgr *registry.ServiceManager, chatService, llmService string) *ChatHandler {
 	return &ChatHandler{
 		mgr:         mgr,
 		chatService: chatService,
+		llmService:  llmService,
 	}
 }
 
@@ -32,7 +36,6 @@ func (h *ChatHandler) getGRPCConnection() (*grpc.ClientConn, error) {
 	select_inst := instances[0] // 进行简单负载均衡选择
 
 	return grpc.NewClient(select_inst.GetURL(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-
 }
 
 func (h *ChatHandler) CreateSession(c *gin.Context) {
@@ -56,11 +59,11 @@ func (h *ChatHandler) CreateSession(c *gin.Context) {
 	defer conn.Close()
 
 	client := chatpb.NewChatServiceClient(conn)
-	resp, err := client.CreateSession(context.Background(), &chatpb.CreateSessionRequest{
-		UserId: userID,
-		Title:  req.Title,
-	})
-
+	resp, err := client.CreateSession(
+		context.Background(),
+		&chatpb.CreateSessionRequest{
+			UserId: userID,
+		})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session"})
 		return
@@ -99,7 +102,6 @@ func (h *ChatHandler) GetHistory(c *gin.Context) {
 	messages := make([]gin.H, len(resp.Messages))
 	for i, msg := range resp.Messages {
 		messages[i] = gin.H{
-			"id":        msg.Id,
 			"role":      msg.Role,
 			"content":   msg.Content,
 			"timestamp": msg.Timestamp,
@@ -141,16 +143,17 @@ func (h *ChatHandler) DeleteSession(c *gin.Context) {
 	})
 }
 
-func (h *ChatHandler) SendMessage(c *gin.Context) {
+func (h *ChatHandler) StreamChat(c *gin.Context) {
 	sessionID := c.Param("sessionId")
-	userID := c.GetString("user_id")
+	// userID := c.GetString("user_id")
 
 	var req struct {
-		Content   string `json:"content" binding:"required"`
-		ModelName string `json:"model_name"`
+		Message string `json:"message" binding:"required"`
+		UserId  string `json:"user_id" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("req binding error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -158,19 +161,26 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 	// 连接到聊天服务
 	conn, err := h.getGRPCConnection()
 	if err != nil {
+		log.Printf("Chat service unavailable: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Chat service unavailable"})
 		return
 	}
 	defer conn.Close()
 
+	llmInstances, err := h.mgr.DiscoverService(h.llmService)
+	if err != nil {
+		log.Printf("LLM service unavailable: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "LLM service unavailable"})
+		return
+	}
 	client := chatpb.NewChatServiceClient(conn)
 
 	// 创建流式聊天请求
 	stream, err := client.StreamChat(context.Background(), &chatpb.ChatRequest{
-		SessionId: sessionID,
-		UserId:    userID,
-		Message:   req.Content,
-		Model:     req.ModelName,
+		SessionId:  sessionID,
+		UserId:     req.UserId,
+		Message:    req.Message,
+		LlmService: llmInstances[0].GetURL(),
 		Config: &chatpb.ChatConfig{
 			Temperature: 0.7,
 			MaxTokens:   2048,
@@ -191,9 +201,26 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
+			if grpcStatus, ok := status.FromError(err); ok {
+				c.SSEvent("error", gin.H{
+					"message": grpcStatus.Message(),
+					"code":    grpcStatus.Code(),
+				})
+			} else {
+				c.SSEvent("error", gin.H{
+					"message": "Unknown error occurred",
+				})
+			}
+			c.Writer.Flush()
 			break
 		}
-
+		if resp.Error != "" {
+			c.SSEvent("error", gin.H{
+				"message": resp.Error,
+			})
+			c.Writer.Flush()
+			break
+		}
 		c.SSEvent("message", gin.H{
 			"token":     resp.Token,
 			"finished":  resp.IsFinished,
@@ -205,9 +232,4 @@ func (h *ChatHandler) SendMessage(c *gin.Context) {
 			break
 		}
 	}
-}
-
-func (h *ChatHandler) StreamChat(c *gin.Context) {
-	// 这个方法与SendMessage类似，但专门用于WebSocket连接
-	h.SendMessage(c)
 }
