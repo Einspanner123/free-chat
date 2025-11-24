@@ -36,7 +36,6 @@ generate: check-deps
 	@set -e; \
 	for proto in $(PROTO_FILES); do \
 		dir_name=$$(basename $$proto .proto); \
-# 		mkdir -p $(PY_PROTO_OUT)/$$dir_name; \
 		echo "   → 处理 $$proto → 生成到 $(PY_PROTO_OUT)"; \
 		$(UV) run python -m grpc_tools.protoc \
 			--python_out=$(PY_PROTO_OUT) \

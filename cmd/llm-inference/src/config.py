@@ -4,9 +4,9 @@ import os
 class AppConfig:
     def __init__(self):
         # 应用配置
-        self.serverName = os.getenv("LLM_SERVER_NAME", "LLM_Service")
+        self.serverName = os.getenv("SERVER_NAME", "llm-inference")
         self.environment = os.getenv("ENVIRONMENT", "development")
-        self.grpcPort = int(os.getenv("LLM_GRPC_PORT", 50051))
+        self.grpcPort = int(os.getenv("GRPC_PORT", 8083))
 
         # 模型配置
         self.modelName = os.getenv("MODEL_NAME", "Qwen/Qwen3-0.6B")
