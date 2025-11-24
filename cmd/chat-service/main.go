@@ -2,18 +2,24 @@ package main
 
 import (
 	"fmt"
+	"free-chat/cmd/chat-service/internal/handler"
+	"free-chat/cmd/chat-service/internal/service"
 	"free-chat/shared/config"
+	chatpb "free-chat/shared/proto/chat"
 	"free-chat/shared/registry"
 	"log"
+	"net"
 	"time"
 
-	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func main() {
 	cfg := config.LoadConfig("chat-service")
 	serviceName := cfg.ServerName
-	servicePort := cfg.Port
+	grpcPort := cfg.Chat.GRPCPort
 	localIP, err := registry.GetLocalIP()
 	if err != nil {
 		log.Fatalf("获取本机IP失败: %v", err)
@@ -23,39 +29,52 @@ func main() {
 		Scheme:     cfg.Consul.Scheme,
 		Datacenter: cfg.Consul.Datacenter,
 	}
-
-	if err != nil {
-		log.Fatalf("注册Consul时出错: %v", err)
-	}
 	serviceCfg := &registry.ServiceConfig{
-		ID:      registry.GenerateServiceID(serviceName, servicePort),
+		ID:      registry.GenerateServiceID(serviceName, grpcPort),
 		Name:    serviceName,
 		Tags:    []string{serviceName, "api", "v1"},
 		Address: localIP,
-		Port:    servicePort,
+		Port:    grpcPort,
 		HealthCheck: &registry.HealthCheck{
-			HTTP:                           fmt.Sprintf("http://%s:%d/health", localIP, servicePort),
+			Type:                           "grpc",
+			GRPC:                           fmt.Sprintf("%s:%d", localIP, grpcPort),
 			Interval:                       10 * time.Second,
 			Timeout:                        3 * time.Second,
-			DeregisterCriticalServiceAfter: 30 * time.Second,
+			DeregisterCriticalServiceAfter: 1 * time.Minute,
 		},
 	}
-	service, err := registry.NewServiceManager(consulCfg, serviceCfg)
-	if err != nil {
+	var serviceManager *registry.ServiceManager
+	if serviceManager, err = registry.NewServiceManager(consulCfg, serviceCfg); err != nil {
 		log.Fatalf("初始化Consul客户端失败: %v", err)
 	}
 
-	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery())
-	chat := r.Group("chat")
-	{
-		chat.GET("/health", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"status":    "healthy",
-				"service":   serviceName,
-				"timestamp": time.Now(),
-			})
-		})
+	// redisAddr := fmt.Sprintf("%s:%d", cfg.Redis.Address, cfg.Redis.Port)
+	// var redis *service.RedisService
+	// if redis, err = service.NewRedisService(redisAddr, cfg.Redis.Database); err != nil {
+	// 	log.Fatalf("Failed to connect to Redis: %v", err)
+	// }
+	// defer redis.Close()
+	// 初始化LLM客户端
+	llmClient := service.NewLLMClient(serviceManager)
+	// 注册grpc服务
+	chatHandler := handler.NewChatHandler(llmClient)
+	grpcServer := grpc.NewServer()
+	chatpb.RegisterChatServiceServer(grpcServer, chatHandler)
+	// 注册健康检查服务
+	healthServer := health.NewServer()
+	healthServer.SetServingStatus(serviceName, grpc_health_v1.HealthCheckResponse_SERVING)
+	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
+
+	var lis net.Listener
+	if lis, err = net.Listen("tcp", fmt.Sprintf(":%d", grpcPort)); err != nil {
+		log.Fatalf("Failed to listen: %v", err)
 	}
-	service.Start()
+	log.Printf("Chat service listening on port %d", grpcPort)
+
+	// 启动服务
+	serviceManager.Start()
+
+	if err = grpcServer.Serve(lis); err != nil {
+		log.Fatalf("Failed to serve: %v", err)
+	}
 }

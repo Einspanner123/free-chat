@@ -5,48 +5,12 @@ import uuid
 import grpc
 import llm_inference_pb2 as pb2
 import llm_inference_pb2_grpc as pb2_grpc
-
-"""
-==================================================
-
-测试消息 1: 请介绍一下人工智能的发展历程。
-  接收响应数: 514
-  总耗时: 17060.35 ms
-  首响应延迟: 1001.72 ms
-
-测试消息 2: 解释一下量子计算的基本原理。
-  接收响应数: 514
-  总耗时: 17746.81 ms
-  首响应延迟: 42.40 ms
-
-测试消息 3: Python和Go语言各有什么优缺点？
-  接收响应数: 514
-  总耗时: 14749.72 ms
-  首响应延迟: 52.49 ms
-
-测试消息 4: 描述一下宇宙大爆炸理论的主要内容。
-  接收响应数: 514
-  总耗时: 17014.70 ms
-  首响应延迟: 42.83 ms
-
-测试消息 5: 我是一名智力低下的硕士生, 请你解释DDIM的扩散原理, 每一步每一个符号都必须合理解释, 并且用中文回答
-  接收响应数: 514
-  总耗时: 14844.37 ms
-  首响应延迟: 59.70 ms
-
-==================================================
-测试完成，统计结果:
-  测试次数: 5
-  平均延迟: 239.83 ms
-  最小延迟: 42.40 ms
-  最大延迟: 1001.72 ms
-  延迟标准差: 425.97 ms
-"""
+from config import config
 
 
 def run_test():
     # 连接到gRPC服务器
-    channel = grpc.insecure_channel("localhost:50051")
+    channel = grpc.insecure_channel(f"localhost:{config.grpcPort}")
     stub = pb2_grpc.InferencerServiceStub(channel)
 
     # 测试参数
@@ -76,7 +40,7 @@ def run_test():
         # 创建请求生成器
         def request_generator():
             yield pb2.InferenceRequest(
-                session_id=session_id, message=message, temperature=0.7
+                session_id=session_id, message=message
             )
 
         # 发送流式请求并接收响应

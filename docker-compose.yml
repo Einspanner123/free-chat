@@ -56,6 +56,33 @@ services:
       retries: 3
 
   # 微服务
+  llm-inference:
+    build:
+      context: .
+      dockerfile: cmd/llm-inference/Dockerfile
+    container_name: llm-inference
+    restart: always
+    depends_on:
+      consul:
+        condition: service_healthy
+    environment:
+      APP_ENV: "development"
+      GRPC_PORT: "8083"
+      CONSUL_ADDRESS: "consul:8500"
+      SERVER_NAME: "llm-inference"
+    ports:
+      - "8083:8083"
+    networks:
+      - app-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    runtime: nvidia
+    
   auth-service:
     build:
       context: .
@@ -82,23 +109,23 @@ services:
     networks:
       - app-network
 
-  # chat-service:
-  #   build:
-  #     context: .
-  #     dockerfile: cmd/chat-service/Dockerfile
-  #   container_name: chat-service
-  #   restart: always
-  #   depends_on:
-  #     consul:
-  #       condition: service_healthy
-  #   environment:
-  #     APP_ENV: "development"
-  #     APP_PORT: "8081"
-  #     CONSUL_ADDRESS: "consul:8500"
-  #   ports:
-  #     - "8081:8081"
-  #   networks:
-  #     - app-network
+  chat-service:
+    build:
+      context: .
+      dockerfile: cmd/chat-service/Dockerfile
+    container_name: chat-service
+    restart: always
+    depends_on:
+      consul:
+        condition: service_healthy
+    environment:
+      APP_ENV: "development"
+      APP_PORT: "8081"
+      CONSUL_ADDRESS: "consul:8500"
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
 
   gateway:
     build:
@@ -122,23 +149,7 @@ services:
     networks:
       - app-network
 
-  # llm-inference:
-  #   build:
-  #     context: .
-  #     dockerfile: cmd/llm-inference/Dockerfile
-  #   container_name: llm-inference
-  #   restart: always
-  #   depends_on:
-  #     consul:
-  #       condition: service_healthy
-  #   environment:
-  #     APP_ENV: "development"
-  #     APP_PORT: "8083"
-  #     CONSUL_ADDRESS: "consul:8500"
-  #   ports:
-  #     - "8083:8083"
-  #   networks:
-  #     - app-network
+
 
 # 网络配置
 networks:

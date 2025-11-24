@@ -1,29 +1,20 @@
 syntax = "proto3";
 
-package inference;
-option go_package = "./inference;inference";
+package llm_inference;
+option go_package = "./llm_inference;llm_inference";
 
 service InferencerService {
-	rpc StreamInference (InferenceRequest) returns (stream InferenceResponse);
-}
-
-message Message {
-	string role = 1;
-	string content = 2;
+	// 双向流式对话
+	rpc StreamInference (stream InferenceRequest) returns (stream InferenceResponse);
 }
 
 message InferenceRequest { 
 	string session_id = 1; // 输入文本
-	string user_query = 2;
-	repeated Message history = 3;
-	string model = 4;
-	float temperature = 5;
-	int32 max_tokens = 6;
-	repeated string stop_words = 7;
+	string message = 2;
 }
 
 message InferenceResponse {
-	string token = 1;
+	string chunk = 1;
 	bool is_finished = 2;
 	string error = 3;
 	int32 generated_tokens = 4;

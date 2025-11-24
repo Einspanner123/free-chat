@@ -36,7 +36,7 @@ func main() {
 			HTTP:                           fmt.Sprintf("http://%s:%d/health", localIP, servicePort),
 			Interval:                       10 * time.Second,
 			Timeout:                        3 * time.Second,
-			DeregisterCriticalServiceAfter: 30 * time.Second,
+			DeregisterCriticalServiceAfter: 1 * time.Minute,
 		},
 	}
 	serviceManager, err := registry.NewServiceManager(consulCfg, serviceCfg)
@@ -47,13 +47,12 @@ func main() {
 		Addr: fmt.Sprintf("%s:%d", cfg.Redis.Address, cfg.Redis.Port),
 	})
 
-	r := gin.New()
+	r := gin.Default()
 	r.SetTrustedProxies([]string{
 		"127.0.0.1/32",
 		"192.168.31.0/24",
 		"172.20.0.0/16",
 	})
-	r.Use(gin.Logger(), gin.Recovery())
 	r.Use(middleware.RateLimit(redisClient, cfg.Redis.RateLimitQPS))
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -78,12 +77,12 @@ func main() {
 		chat := api.Group("/chat")
 		chat.Use(middleware.JwtAuth(cfg.Auth.JwtSecret))
 		{
-			chatHandler := handler.NewChatHandler(serviceManager, cfg.Chat.ServerName)
+			chatHandler := handler.NewChatHandler(serviceManager, cfg.Chat.ServerName, cfg.LLM.Name)
 			chat.POST("/sessions", chatHandler.CreateSession)
 			chat.GET("/sessions/:sessionId/history", chatHandler.GetHistory)
 			chat.DELETE("/sessions/:sessionId", chatHandler.DeleteSession)
-			chat.POST("/sessions/:sessionId/messages", chatHandler.SendMessage)
-			chat.GET("/sessions/:sessionId/stream", chatHandler.StreamChat)
+			chat.POST("/sessions/:sessionId/messages", chatHandler.StreamChat)
+			chat.POST("/sessions/:sessionId/stream", chatHandler.StreamChat)
 		}
 	}
 

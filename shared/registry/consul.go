@@ -21,7 +21,9 @@ type ConsulConfig struct {
 }
 
 type HealthCheck struct {
+	Type                           string
 	HTTP                           string
+	GRPC                           string
 	Interval                       time.Duration
 	Timeout                        time.Duration
 	DeregisterCriticalServiceAfter time.Duration
@@ -62,12 +64,19 @@ func (r *ConsulRegistry) RegisterService(config *ServiceConfig) error {
 
 	// 添加健康检查
 	if config.HealthCheck != nil {
-		registration.Check = &api.AgentServiceCheck{
+		check := &api.AgentServiceCheck{
 			HTTP:                           config.HealthCheck.HTTP,
 			Interval:                       config.HealthCheck.Interval.String(),
 			Timeout:                        config.HealthCheck.Timeout.String(),
 			DeregisterCriticalServiceAfter: config.HealthCheck.DeregisterCriticalServiceAfter.String(),
 		}
+		if config.HealthCheck.Type == "grpc" && config.HealthCheck.GRPC != "" {
+			check.GRPC = config.HealthCheck.GRPC
+			check.GRPCUseTLS = false
+		} else if config.HealthCheck.HTTP != "" {
+			check.HTTP = config.HealthCheck.HTTP
+		}
+		registration.Check = check
 	}
 
 	// 注册服务
