@@ -27,12 +27,10 @@ func (UserEntity) TableName() string {
 
 func (u *UserEntity) ToDomain() *domain.User {
 	return &domain.User{
-		UserID:    u.UserID,
-		Username:  u.Username,
-		Email:     u.Email,
-		Password:  u.Password,
-		CreatedAt: u.CreatedAt,
-		UpdatedAt: u.UpdatedAt,
+		ID:       u.UserID,
+		Username: u.Username,
+		Email:    u.Email,
+		Password: u.Password,
 	}
 }
 

@@ -1,6 +1,8 @@
 package domain
 
-import "time"
+import (
+	"time"
+)
 
 type Role string
 
@@ -12,7 +14,7 @@ const (
 
 // Message 核心消息实体
 type Message struct {
-	ID        string
+	MessageID        string
 	SessionID string
 	UserID    string
 	Role      Role
@@ -21,21 +23,28 @@ type Message struct {
 	DeletedAt *time.Time
 }
 
-// Session 会话实体
+// IsUser checks if the message is from a user
+func (m *Message) IsUser() bool {
+	return m.Role == RoleUser
+}
+
+// Session 会话实体 (Aggregate Root)
 type Session struct {
-	ID        string
+	SessionID        string
 	UserID    string
 	Title     string
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
-// Summary 总结实体
-type Summary struct {
-	ID                 string
-	SessionID          string
-	UserHistoryID      string
-	AssistantHistoryID string
-	Content            string
-	CreatedAt          time.Time
+// SetTitle automatically generates a title from the content if not provided
+// "Good Taste": Eliminate edge cases by handling length checks internally.
+func (s *Session) SetTitle(content string) {
+	const maxLen = 20
+	runes := []rune(content)
+	if len(runes) > maxLen {
+		s.Title = string(runes[:maxLen])
+	} else {
+		s.Title = content
+	}
 }

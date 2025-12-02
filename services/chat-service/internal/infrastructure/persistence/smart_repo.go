@@ -1,18 +1,18 @@
-package repository
+package persistence
 
 import (
 	"context"
 
 	"free-chat/services/chat-service/internal/domain"
-	"free-chat/services/chat-service/internal/infrastructure/cache"
 	"free-chat/services/chat-service/internal/infrastructure/mq"
+	"free-chat/services/chat-service/internal/infrastructure/persistence/cache"
 
 	"gorm.io/gorm"
 )
 
 // SmartChatRepository 负责协调 Redis, MQ 和 Postgres
 type SmartRepository struct {
-	rdb      *cache.RedisDB
+	rdb      *cache.RedisCache
 	db       *gorm.DB
 	producer *mq.Producer
 }
@@ -26,7 +26,7 @@ func NewSmartRepository(rdb *cache.RedisCache, db *gorm.DB, producer *mq.Produce
 }
 
 // SaveMessage 实现 "写缓存 + 投递MQ" 的策略
-func (r *SmartChatRepository) SaveMessage(ctx context.Context, msg *domain.Message) error {
+func (r *SmartRepository) SaveMessage(ctx context.Context, msg *domain.Message) error {
 	// 1. 写入 Redis (List 或 ZSet)，保证前端刷新页面能立即看到
 	// 设置较短的过期时间，或者作为热数据缓存
 	if err := r.redis.SaveMessage(ctx, msg); err != nil {

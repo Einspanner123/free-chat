@@ -18,5 +18,5 @@ type ChatRepository interface {
 // LLMService 定义大模型服务接口
 type LLMService interface {
 	// StreamInference 返回生成的文本通道和错误通道
-	StreamInference(ctx context.Context, message, model string) (<-chan string, <-chan error)
+	StreamInference(ctx context.Context, sessionID, message, model string) (<-chan string, <-chan error)
 }

@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"context"
 	"errors"
 	"time"
 )
@@ -10,41 +9,49 @@ var (
 	ErrUserNotFound      = errors.New("user not found")
 	ErrUserAlreadyExists = errors.New("user already exists")
 	ErrInvalidPassword   = errors.New("invalid password")
+	ErrInvalidEmail      = errors.New("invalid email format")
+	ErrInvalidUsername   = errors.New("username cannot be empty")
 )
 
-// User 是核心领域对象
-// 纯 Go struct，不包含数据库标签
+type UserStatus int8
+
+const (
+	UserStatusActive    UserStatus = 1
+	UserStatusInactive  UserStatus = 2
+	UserStatusSuspended UserStatus = 3
+)
+
+// User 是聚合根 (Aggregate Root)
+// 包含业务逻辑和不变量检查
 type User struct {
-	ID        string
-	UserID    string
-	Username  string
-	Email     string
-	Password  string // 加密后的密码
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID       string
+	Username string
+	Email    string
+	Password string // 加密后的密码
+	Status   UserStatus
 }
 
-type UserRepository interface {
-	Save(ctx context.Context, user *User) error
-	FindByUsername(ctx context.Context, username string) (*User, error)
-	FindByEmail(ctx context.Context, email string) (*User, error)
-	FindByID(ctx context.Context, id string) (*User, error)
+type Password struct {
+	hash string
 }
 
-type PasswordService interface {
+func (p Password) Verify(plainPassword string, h PasswordHandler) bool {
+	return h.Compare(p.hash, plainPassword)
+}
+
+type PasswordHandler interface {
 	Hash(password string) (string, error)
 	Compare(hashedPassword, password string) bool
 }
 
-type TokenService interface {
-	GenerateAccessToken(userID, username string) (string, time.Time, error)
-	GenerateRefreshToken(userID, username string) (string, time.Time, error)
-	ValidateToken(token string) (*TokenClaims, error)
-	RefreshToken(refreshToken string) (string, time.Time, error)
+type TokenClaims struct {
+	Token     string
+	ExpiresAt time.Time
 }
 
-type TokenClaims struct {
-	UserID    string
-	Username  string
-	ExpiresAt time.Time
+type TokenService interface {
+	GenerateAccessToken(userID, username string) (*TokenClaims, error)
+	GenerateRefreshToken(userID, username string) (*TokenClaims, error)
+	ValidateToken(token string) (bool, error)
+	RefreshToken(refreshToken string) (*TokenClaims, *TokenClaims, error)
 }

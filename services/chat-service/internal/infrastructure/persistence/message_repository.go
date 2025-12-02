@@ -25,8 +25,7 @@ func (MessageEntity) TableName() string {
 
 func (m *MessageEntity) ToDomain() *domain.Message {
 	return &domain.Message{
-		ID:        m.ID,
-		MessageID: m.MessageID,
+		MessageID:        m.MessageID,
 		UserID:    m.UserID,
 		Role:      domain.Role(m.Role),
 		Content:   m.Content,
@@ -55,7 +54,7 @@ func NewMessageRepository(db *gorm.DB) *MessageRepository {
 	return &MessageRepository{db: db}
 }
 
-func (r *MessageRepository) CreateMessage(m domain.Message) error {
+func (r *MessageRepository) Save(m domain.Message) error {
 	message := FromDomain(m)
 	if err := r.db.
 		Create(message).Error; err != nil {
@@ -64,7 +63,7 @@ func (r *MessageRepository) CreateMessage(m domain.Message) error {
 	return nil
 }
 
-func (r *MessageRepository) GetMessageBySessionID(sessionID string, limit, offset int) ([]*domain.Message, error) {
+func (r *MessageRepository) FindBySessionID(sessionID string, limit, offset int) ([]*domain.Message, error) {
 	var entities []*MessageEntity
 	if err := r.db.Where("session_id = ?", sessionID).
 		Order("created_at desc").

@@ -6,25 +6,21 @@ import (
 	"time"
 
 	"free-chat/services/auth-service/internal/domain"
-
-	"github.com/google/uuid"
 )
 
 type AuthService struct {
 	userRepo        domain.UserRepository
-	passwordService domain.PasswordService
 	tokenService    domain.TokenService
+	passwordService domain.PasswordService
 }
 
 func NewAuthService(
 	userRepo domain.UserRepository,
-	passwordService domain.PasswordService,
 	tokenService domain.TokenService,
 ) *AuthService {
 	return &AuthService{
-		userRepo:        userRepo,
-		passwordService: passwordService,
-		tokenService:    tokenService,
+		userRepo:     userRepo,
+		tokenService: tokenService,
 	}
 }
 
@@ -77,16 +73,9 @@ func (s *AuthService) Register(ctx context.Context, username, email, password st
 		return nil, domain.ErrUserAlreadyExists
 	}
 
-	hashedPassword, err := s.passwordService.Hash(password)
+	user, err := domain.NewUser(username, email, password)
 	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %w", err)
-	}
-
-	user := &domain.User{
-		ID:       uuid.New().String(),
-		Username: username,
-		Email:    email,
-		Password: hashedPassword,
+		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	if err := s.userRepo.Save(ctx, user); err != nil {

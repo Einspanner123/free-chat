@@ -25,12 +25,12 @@ func (s *ChatService) StreamChat(ctx context.Context, userID, sessionID, content
 		sessionID = uuid.New().String()
 		// 创建新 Session
 		session := &domain.Session{
-			SessionID: sessionID,
+			ID:        sessionID,
 			UserID:    userID,
-			Title:     string([]rune(content)[:min(len(content), 20)]), // 简单取标题
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
 		}
+		session.SetTitle(content)
 		if err := s.repo.CreateSession(ctx, session); err != nil {
 			return nil, nil, err
 		}
@@ -93,11 +93,4 @@ func (s *ChatService) StreamChat(ctx context.Context, userID, sessionID, content
 	}()
 
 	return outTokenChan, outErrChan, nil
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
