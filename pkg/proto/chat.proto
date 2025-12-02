@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package chat;
+option go_package = "./chat;chat";
+
+service ChatService {
+    // Chat
+    rpc StreamChat(ChatRequest) returns (stream ChatResponse);
+    // History
+    rpc GetChatHistory(HistoryRequest) returns (HistoryResponse);
+    // Session
+    rpc GetSessions(GetSessionRequest) returns (GetSessionResponse);
+    rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+    rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
+    // Summary
+    rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
+}
+
+message ChatMessage {
+    string session_id = 1;
+    string role = 2;
+    string content = 3;
+    int64 timestamp = 4;
+}
+
+// Chat
+message ChatRequest {
+    string user_id = 1;
+    string session_id = 2;
+    string message = 3;
+    string model_name = 4;
+}
+message ChatResponse {
+    string session_id = 1;
+    string content = 2;
+    bool is_finished = 3;
+    string error = 4;
+    int32 generated_tokens = 5;
+}
+
+// History
+message HistoryRequest {
+    string user_id = 1;
+    string session_id = 2;
+    int32 limit = 3;
+    int32 offset = 4;
+}
+message HistoryResponse {
+    repeated ChatMessage messages = 1;
+    int32 total = 2;
+}
+
+// Session
+message Session {
+    string session_id = 1;
+    string title = 2;
+}
+message GetSessionRequest {
+    string user_id = 1;
+}
+message GetSessionResponse {
+    repeated Session sessions = 1;
+    int32 total = 2;
+}
+message CreateSessionRequest {
+    string user_id = 1;
+}
+message CreateSessionResponse {
+    bool success = 1;
+    string session_id = 2;
+    string message = 3;
+}
+message DeleteSessionRequest {
+    string user_id = 1;
+    string session_id = 2;
+}
+message DeleteSessionResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+// Summary
+message GetSummaryRequest {
+    string user_id = 1;
+    string session_id = 2;
+    string user_history_id = 3;
+    string assistant_history_id = 4;
+}
+message GetSummaryResponse {
+    bool success = 1;
+    string summary_content = 2;
+    string message = 3;
+}

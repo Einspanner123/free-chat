@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package auth;
+option go_package = "./auth;auth";
+
+service AuthService {
+    rpc Login(LoginRequest) returns (LoginResponse);
+    rpc Register(RegisterRequest) returns (RegisterResponse);
+    rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+    rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+}
+// Login
+message LoginRequest {
+    string username = 1;
+    string email = 2;
+    string password = 3;
+}
+message LoginResponse {
+    bool success = 1;
+    string message = 2;
+    string access_token = 3;
+    string refresh_token = 4;
+    int64 expires_at = 5;
+}
+
+// Register
+message RegisterRequest {
+    string username = 1;
+    string password = 2;
+    string email = 3;
+}
+message RegisterResponse {
+    bool success = 1;
+    string user_id = 2;
+    string message = 3;
+}
+
+// Validate
+message ValidateTokenRequest {
+    string token = 1;
+}
+
+message ValidateTokenResponse {
+    bool valid = 1;
+    int64 expires_at = 2;
+}
+
+// Refresh
+message RefreshTokenRequest {
+    string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+    bool success = 1;
+    string access_token = 2;
+    int64 expires_at = 3;
+}

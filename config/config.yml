@@ -1,0 +1,53 @@
+server_name: "chat-service"
+version: "0.1.0"
+port: 8081
+environment: "development"
+
+consul:
+  address: "localhost:8500"
+  scheme: "http"
+  datacenter: "dc1"
+
+postgres:
+  address: "localhost"
+  port: 5432
+  user: "free-chat"
+  password: "free-chat-passwd"
+  db_name: "free-chat"
+
+redis:
+  address: "localhost"
+  port: 6379
+  database: 0
+  rate_limit_qps: 10
+
+chat:
+  server_name: "chat-service"
+  grpc_port: 8088
+
+auth:
+  server_name: "auth-service"
+  grpc_port: 8082
+  jwt_secret: "llm_chat_secret"
+  expire_access_h: 1
+  expire_refresh_h: 72
+
+llm:
+  name: "llm-inference"
+  port: 8083
+  models: ["Qwen/Qwen3-0.6B"]
+  temperature: 0.7
+  top_p: 0.9
+  max_tokens: 1000
+  
+rocketmq:
+  name_servers: ["localhost:9876"]
+  max_retries: 3
+  consumer_group: "chat-consumer"
+  message_model: "clustering"   # clustering | broadcasting
+  topics:
+    llm_request: "prod-chat-llm-req"
+    llm_response: "prod-chat-llm-resp"
+    user_event: "prod-user-events"
+    system_log: "prod-system-logs"
+  

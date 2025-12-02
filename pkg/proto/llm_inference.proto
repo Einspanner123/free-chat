@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package llm_inference;
+option go_package = "./llm_inference;llm_inference";
+
+service InferencerService {
+	// 双向流式对话
+	rpc StreamInference (stream InferenceRequest) returns (stream InferenceResponse);
+}
+
+message InferenceRequest { 
+	string session_id = 1; // 输入文本
+	string message = 2;
+}
+
+message InferenceResponse {
+	string chunk = 1;
+	bool is_finished = 2;
+	string error = 3;
+	int32 generated_tokens = 4;
+}
