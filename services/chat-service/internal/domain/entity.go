@@ -12,7 +12,7 @@ const (
 
 // Message 核心消息实体
 type Message struct {
-	ID        uint
+	ID        string
 	SessionID string
 	UserID    string
 	Role      Role
@@ -23,8 +23,7 @@ type Message struct {
 
 // Session 会话实体
 type Session struct {
-	ID        uint
-	SessionID string
+	ID        string
 	UserID    string
 	Title     string
 	CreatedAt time.Time
@@ -33,7 +32,7 @@ type Session struct {
 
 // Summary 总结实体
 type Summary struct {
-	ID                 uint
+	ID                 string
 	SessionID          string
 	UserHistoryID      string
 	AssistantHistoryID string

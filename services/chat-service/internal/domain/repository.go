@@ -7,7 +7,7 @@ import "context"
 type ChatRepository interface {
 	// 消息相关
 	SaveMessage(ctx context.Context, msg *Message) error
-	GetHistory(ctx context.Context, sessionID string, limit, offset int) ([]*Message, error)
+	GetMessages(ctx context.Context, sessionID string, limit, offset int) ([]*Message, error)
 
 	// 会话相关
 	CreateSession(ctx context.Context, session *Session) error

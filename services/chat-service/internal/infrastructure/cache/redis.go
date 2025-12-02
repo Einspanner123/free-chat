@@ -32,7 +32,7 @@ func (r *RedisCache) SaveMessage(ctx context.Context, message domain.Message) er
 		return err
 	}
 
-	msgKey := fmt.Sprintf("message:%s", message.MessageID)
+	msgKey := fmt.Sprintf("message:%s", message.ID)
 	if err := r.client.
 		Set(ctx, msgKey, msgData, 24*time.Hour).Err(); err != nil {
 		return err
@@ -40,7 +40,7 @@ func (r *RedisCache) SaveMessage(ctx context.Context, message domain.Message) er
 	sessionMsgKey := fmt.Sprintf("session_messages:%s", message.SessionID)
 	return r.client.ZAdd(ctx, sessionMsgKey, &redis.Z{
 		Score:  float64(message.CreatedAt.Unix()),
-		Member: message.MessageID,
+		Member: message.ID,
 	}).Err()
 }
 
