@@ -1,96 +1,94 @@
 package application
 
 import (
-	"context"
-	"fmt"
-	"time"
-
+	"free-chat/services/auth-service/internal/application/dto"
 	"free-chat/services/auth-service/internal/domain"
+
+	"github.com/google/uuid"
 )
 
 type AuthService struct {
+	userService     domain.UserService
 	userRepo        domain.UserRepository
 	tokenService    domain.TokenService
-	passwordService domain.PasswordService
+	passwordService domain.PasswordEncoder
 }
 
 func NewAuthService(
+	userService domain.UserService,
 	userRepo domain.UserRepository,
 	tokenService domain.TokenService,
+	passwordService domain.PasswordEncoder,
 ) *AuthService {
 	return &AuthService{
-		userRepo:     userRepo,
-		tokenService: tokenService,
+		userService:     userService,
+		userRepo:        userRepo,
+		tokenService:    tokenService,
+		passwordService: passwordService,
 	}
 }
 
-type LoginResult struct {
-	AccessToken  string
-	RefreshToken string
-	ExpiresAt    time.Time
-}
-
-func (s *AuthService) Login(ctx context.Context, username, password string) (*LoginResult, error) {
-	user, err := s.userRepo.FindByUsername(ctx, username)
+func (s *AuthService) Login(req *dto.LoginReq) (*dto.LoginResp, error) {
+	u, err := s.userRepo.FindByUsername(req.Username)
 	if err != nil {
-		if err == domain.ErrUserNotFound {
-			return nil, domain.ErrUserNotFound // Or generic invalid credentials
-		}
-		return nil, fmt.Errorf("failed to find user: %w", err)
+		return nil, domain.ErrUserNotFound
 	}
-
-	if !s.passwordService.Compare(user.Password, password) {
+	if !u.Password.Verify(req.Password, s.passwordService) {
 		return nil, domain.ErrInvalidPassword
 	}
-
-	accessToken, accessExpireAt, err := s.tokenService.GenerateAccessToken(user.ID, user.Username)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate access token: %w", err)
+	if u.Status == domain.UserStatusDisabled {
+		return nil, domain.ErrUserDisabled
 	}
-
-	refreshToken, _, err := s.tokenService.GenerateRefreshToken(user.ID, user.Username)
+	accessToken, err := s.tokenService.GenerateAccessToken(u.ID, u.Username)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate refresh token: %w", err)
+		return nil, domain.ErrTokenGenerateFailed
 	}
-
-	return &LoginResult{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-		ExpiresAt:    accessExpireAt,
+	refreshToken, err := s.tokenService.GenerateRefreshToken(u.ID, u.Username)
+	if err != nil {
+		return nil, domain.ErrTokenGenerateFailed
+	}
+	return &dto.LoginResp{
+		AccessToken:  accessToken.Token,
+		RefreshToken: refreshToken.Token,
+		ExpiresAt:    accessToken.ExpiresAt.Unix(),
+		UserID:       u.ID,
 	}, nil
 }
 
-type RegisterResult struct {
-	UserID string
-}
-
-func (s *AuthService) Register(ctx context.Context, username, email, password string) (*RegisterResult, error) {
-	// Check if user already exists
-	if _, err := s.userRepo.FindByUsername(ctx, username); err == nil {
-		return nil, domain.ErrUserAlreadyExists
-	}
-	if _, err := s.userRepo.FindByEmail(ctx, email); err == nil {
-		return nil, domain.ErrUserAlreadyExists
-	}
-
-	user, err := domain.NewUser(username, email, password)
+func (s *AuthService) Register(req *dto.RegisterReq) (*dto.RegisterResp, error) {
+	hashedPassword, err := s.passwordService.Hash(req.Password)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user: %w", err)
+		return nil, err
+	}
+	newUser := domain.NewUser(
+		uuid.NewString(), req.Username, req.Email, hashedPassword,
+	)
+	if err := s.userService.ValidateForCreate(newUser, s.userRepo); err != nil {
+		return nil, err
 	}
 
-	if err := s.userRepo.Save(ctx, user); err != nil {
-		return nil, fmt.Errorf("failed to save user: %w", err)
+	if err := s.userRepo.Save(newUser); err != nil {
+		return nil, err
 	}
-
-	return &RegisterResult{
-		UserID: user.ID,
+	return &dto.RegisterResp{
+		UserID:   newUser.ID,
+		Username: newUser.Username,
+		Email:    newUser.Email,
 	}, nil
 }
 
-func (s *AuthService) ValidateToken(ctx context.Context, token string) (*domain.TokenClaims, error) {
+func (s *AuthService) ValidateToken(token string) (bool, error) {
 	return s.tokenService.ValidateToken(token)
 }
 
-func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (string, time.Time, error) {
-	return s.tokenService.RefreshToken(refreshToken)
+func (s *AuthService) RefreshToken(refreshToken string) (*dto.LoginResp, error) {
+	accessToken, newRefreshToken, err := s.tokenService.RefreshToken(refreshToken)
+	if err != nil {
+		return nil, err
+	}
+	return &dto.LoginResp{
+		AccessToken:  accessToken.Token,
+		RefreshToken: newRefreshToken.Token,
+		ExpiresAt:    accessToken.ExpiresAt.Unix(),
+	}, nil
 }

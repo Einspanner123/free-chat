@@ -7,9 +7,10 @@ import (
 	authpb "free-chat/pkg/proto/auth"
 	"free-chat/pkg/registry"
 	"free-chat/services/auth-service/internal/application"
+	"free-chat/services/auth-service/internal/domain"
 	"free-chat/services/auth-service/internal/infrastructure/persistence"
 	"free-chat/services/auth-service/internal/infrastructure/security"
-	handler "free-chat/services/auth-service/internal/interfaces"
+	handler "free-chat/services/auth-service/internal/interfaces/grpc"
 	"log"
 	"net"
 	"time"
@@ -75,11 +76,14 @@ func main() {
 	passwordService := security.NewBcryptService()
 	jwtService := security.NewJWTService(cfg.Auth.JwtSecret, cfg.Auth.Expire_Access_H, cfg.Auth.Expire_Refresh_H)
 
+	// 初始化领域服务 (Domain Layer)
+	userService := domain.NewUserService()
+
 	// 初始化应用服务 (Application Layer)
-	authService := application.NewAuthService(userRepo, passwordService, jwtService)
+	authService := application.NewAuthService(*userService, userRepo, jwtService, passwordService)
 
 	// 初始化接口层 (Interface/Handler Layer)
-	authHandler := handler.NewAuthHandler(authService)
+	authHandler := handler.NewAuthServer(authService)
 
 	// 创建并启动gRPC服务器
 	var lis net.Listener
@@ -94,7 +98,10 @@ func main() {
 	grpc_health_v1.RegisterHealthServer(grpcServer, healthServer)
 
 	// 注册到 Consul
-	serviceManager.Start()
+	if err := serviceManager.Start(); err != nil {
+		log.Fatalf("服务启动失败: %v", err)
+	}
+
 	// 启动gRPC服务器
 	log.Printf("Auth gRPC 服务启动: %d", grpcPort)
 	if err = grpcServer.Serve(lis); err != nil {
