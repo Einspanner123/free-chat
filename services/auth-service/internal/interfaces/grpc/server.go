@@ -5,6 +5,7 @@ import (
 	"fmt"
 	authpb "free-chat/pkg/proto/auth"
 	"log"
+	"net"
 	"time"
 
 	"google.golang.org/grpc"
@@ -14,20 +15,20 @@ import (
 )
 
 type AuthServer struct {
-	registryURL string
-	serviceName string
-	authHandler *AuthHandler
+	registryEndpoint string
+	serviceName      string
+	authHandler      *AuthHandler
 }
 
-func NewAuthServer(registryURL, serviceName string, authHandler *AuthHandler) *AuthServer {
+func NewAuthServer(registryEndpoint, serviceName string, authHandler *AuthHandler) *AuthServer {
 	return &AuthServer{
-		registryURL: registryURL,
-		serviceName: serviceName,
-		authHandler: authHandler,
+		registryEndpoint: registryEndpoint,
+		serviceName:      serviceName,
+		authHandler:      authHandler,
 	}
 }
 
-func (s *AuthServer) Register() error {
+func (s *AuthServer) Serve(servePort int) error {
 	grpcServer := grpc.NewServer()
 	authpb.RegisterAuthServiceServer(grpcServer, s.authHandler)
 	// 注册gRPC健康检查服务
@@ -40,7 +41,7 @@ func (s *AuthServer) Register() error {
 	defer cancel()
 
 	// 创建健康检查客户端进行测试
-	conn, err := grpc.NewClient(s.registryURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(s.registryEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Printf("无法连接到gRPC服务: %v", err)
 		return err
@@ -63,5 +64,10 @@ func (s *AuthServer) Register() error {
 	}
 
 	log.Println("服务连接性测试成功")
-	return nil
+
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", servePort))
+	if err != nil {
+		return err
+	}
+	return grpcServer.Serve(listener)
 }

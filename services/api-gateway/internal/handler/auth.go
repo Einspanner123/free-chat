@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"free-chat/infra/registry"
 	authpb "free-chat/pkg/proto/auth"
+	"free-chat/pkg/registry"
 
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"

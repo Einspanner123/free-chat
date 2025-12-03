@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"free-chat/config"
-	"free-chat/infra/registry"
+	"free-chat/pkg/registry"
 	"free-chat/services/api-gateway/internal/handler"
 	"free-chat/services/api-gateway/internal/middleware"
 	"log"

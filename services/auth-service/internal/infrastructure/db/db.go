@@ -15,7 +15,10 @@ func InitGorm(dsn string) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	_ = db.AutoMigrate(&UserModel{})
+	err = db.AutoMigrate(&UserModel{})
+	if err != nil {
+		return nil, err
+	}
 	return db, nil
 }
 

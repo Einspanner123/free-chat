@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	llmpb "free-chat/shared/proto/llm_inference"
-	"free-chat/shared/registry"
+	"free-chat/infra/registry"
+	llmpb "free-chat/pkg/proto/llm_inference"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

@@ -27,7 +27,7 @@ type ServiceInstance struct {
 }
 
 // 获取服务URL
-func (s *ServiceInstance) GetURL() string {
+func (s *ServiceInstance) GetEndpoint() string {
 	return fmt.Sprintf("%s:%d", s.Address, s.Port)
 }
 
@@ -75,23 +75,21 @@ func (sm *ServiceManager) Start() error {
 // 优雅关闭
 func (sm *ServiceManager) gracefulShutdown() {
 	sm.waitForShutdown()
-	log.Println("🛑 接收到关闭信号，开始优雅关闭...")
+	log.Println("🛑 接收到关闭信号，开始关闭...")
 
 	// 注销服务
 	if err := sm.registry.DeregisterService(sm.serviceConfig.ID); err != nil {
 		log.Printf("❌ 服务注销失败: %v", err)
 	}
 
-	log.Println("✅ 服务已优雅关闭")
+	log.Println("✅ 服务已关闭")
 	os.Exit(0)
 }
 
-// 发现服务
 func (sm *ServiceManager) DiscoverService(serviceName string) ([]*ServiceInstance, error) {
 	return sm.registry.DiscoverService(serviceName)
 }
 
-// 等待关闭信号
 func (sm *ServiceManager) waitForShutdown() {
 	<-sm.stopChan
 }

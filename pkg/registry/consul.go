@@ -11,7 +11,6 @@ import (
 
 type ConsulRegistry struct {
 	client *api.Client
-	config *ConsulConfig
 }
 
 type ConsulConfig struct {
@@ -47,7 +46,6 @@ func NewConsulRegistry(config *ConsulConfig) (*ConsulRegistry, error) {
 	log.Printf("✅ Consul连接成功: %s", config.Address)
 	return &ConsulRegistry{
 		client: client,
-		config: config,
 	}, nil
 }
 
