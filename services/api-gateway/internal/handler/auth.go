@@ -110,7 +110,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	client := authpb.NewAuthServiceClient(conn)
 	resp, err := client.Login(c.Request.Context(), &authpb.LoginRequest{
-		UserName: req.UserName,
+		Username: req.UserName,
 		Password: req.Password,
 	})
 	if err != nil {
@@ -145,7 +145,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	client := authpb.NewAuthServiceClient(conn)
 	resp, err := client.Register(c.Request.Context(), &authpb.RegisterRequest{
-		UserName: req.UserName,
+		Username: req.UserName,
 		Email:    req.Email,
 		Password: req.Password,
 	})

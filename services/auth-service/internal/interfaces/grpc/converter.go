@@ -11,7 +11,7 @@ func ToLoginDTO(req *authpb.LoginRequest) *dto.LoginReq {
 		return nil
 	}
 	return &dto.LoginReq{
-		Username: req.UserName,
+		Username: req.Username,
 		Password: req.Password,
 	}
 }
@@ -23,7 +23,7 @@ func ToLoginRPC(req *dto.LoginReq) *authpb.LoginRequest {
 		return nil
 	}
 	return &authpb.LoginRequest{
-		UserName: req.Username,
+		Username: req.Username,
 		Password: req.Password,
 	}
 }
@@ -51,7 +51,7 @@ func ToRegisterDTO(req *authpb.RegisterRequest) *dto.RegisterReq {
 		return nil
 	}
 	return &dto.RegisterReq{
-		Username: req.UserName,
+		Username: req.Username,
 		Password: req.Password,
 		Email:    req.Email,
 	}
