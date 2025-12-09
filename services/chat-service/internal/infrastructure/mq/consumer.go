@@ -6,60 +6,99 @@ import (
 	"log"
 
 	"free-chat/services/chat-service/internal/domain"
+	"free-chat/services/chat-service/internal/infrastructure/persistence/repository"
 
 	rocketmq "github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/consumer"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
-	"gorm.io/gorm"
 )
 
-type ChatConsumer struct {
-	client rocketmq.PushConsumer
-	db     *gorm.DB
+type Consumer struct {
+	client      rocketmq.PushConsumer
+	msgRepo     *repository.MessageRepository
+	sessionRepo *repository.SessionRepository
 }
 
-func NewChatConsumer(client rocketmq.PushConsumer, db *gorm.DB) *ChatConsumer {
-	return &ChatConsumer{
-		client: client,
-		db:     db,
+func NewConsumer(
+	client rocketmq.PushConsumer,
+	msgRepo *repository.MessageRepository,
+	sessionRepo *repository.SessionRepository,
+) *Consumer {
+	return &Consumer{
+		client:      client,
+		msgRepo:     msgRepo,
+		sessionRepo: sessionRepo,
 	}
 }
 
-func (c *ChatConsumer) Start() error {
-	err := c.client.Subscribe(TopicChat, consumer.MessageSelector{}, c.handleMessage)
-	if err != nil {
-		return err
-	}
-	return c.client.Start()
+func (c *Consumer) Subscribe(
+	topic string,
+	handler func(context.Context, ...*primitive.MessageExt) (consumer.ConsumeResult, error),
+) error {
+	return c.client.Subscribe(topic, consumer.MessageSelector{}, handler)
 }
 
-func (c *ChatConsumer) handleMessage(ctx context.Context, msgs ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
+func (c *Consumer) SubscribePersistence() error {
+	return c.client.Subscribe(
+		TopicPersistence,
+		consumer.MessageSelector{},
+		c.handlePersistenceMessage,
+	)
+}
+
+func (c *Consumer) handlePersistenceMessage(ctx context.Context, msgs ...*primitive.MessageExt) (consumer.ConsumeResult, error) {
 	for _, msg := range msgs {
+		var err error
 		switch msg.GetTags() {
-		case TagSaveMsg:
-			var domainMsg domain.Message
-			if err := json.Unmarshal(msg.Body, &domainMsg); err != nil {
-				log.Printf("Unmarshal message error: %v", err)
-				continue
-			}
-			// 持久化到 Postgres
-			if err := c.db.Create(&domainMsg).Error; err != nil {
-				log.Printf("DB Save Message Error: %v", err)
-				return consumer.ConsumeRetryLater, err
-			}
-
+		case TagSaveMessage:
+			err = c.handleSaveMessage(ctx, msg.Body)
 		case TagSaveSession:
-			var session domain.Session
-			if err := json.Unmarshal(msg.Body, &session); err != nil {
-				log.Printf("Unmarshal session error: %v", err)
-				continue
-			}
-			// Upsert Session
-			if err := c.db.Save(&session).Error; err != nil {
-				log.Printf("DB Save Session Error: %v", err)
-				return consumer.ConsumeRetryLater, err
-			}
+			err = c.handleSaveSession(ctx, msg.Body)
+		default:
+			log.Printf("[WARN] unknown tag: %s", msg.GetTags())
+			continue
+		}
+
+		if err != nil {
+			log.Printf("[ERROR] handle message failed, will retry: %v", err)
+			return consumer.ConsumeRetryLater, nil
 		}
 	}
 	return consumer.ConsumeSuccess, nil
+}
+
+func (c *Consumer) handleSaveMessage(ctx context.Context, body []byte) error {
+	var msg domain.Message
+	if err := json.Unmarshal(body, &msg); err != nil {
+		log.Printf("[ERROR] unmarshal message error: %v", err)
+		return nil
+	}
+
+	if err := c.msgRepo.Save(ctx, &msg); err != nil {
+		return err
+	}
+	log.Printf("[INFO] message persisted: %s", msg.ID)
+	return nil
+}
+
+func (c *Consumer) handleSaveSession(ctx context.Context, body []byte) error {
+	var session domain.Session
+	if err := json.Unmarshal(body, &session); err != nil {
+		log.Printf("[ERROR] unmarshal session error: %v", err)
+		return nil
+	}
+
+	if err := c.sessionRepo.Save(ctx, &session); err != nil {
+		return err
+	}
+	log.Printf("[INFO] session persisted: %s", session.ID)
+	return nil
+}
+
+func (c *Consumer) Start() error {
+	return c.client.Start()
+}
+
+func (c *Consumer) Shutdown() error {
+	return c.client.Shutdown()
 }

@@ -24,7 +24,6 @@ const (
 	ChatService_GetSessions_FullMethodName    = "/chat.ChatService/GetSessions"
 	ChatService_CreateSession_FullMethodName  = "/chat.ChatService/CreateSession"
 	ChatService_DeleteSession_FullMethodName  = "/chat.ChatService/DeleteSession"
-	ChatService_GetSummary_FullMethodName     = "/chat.ChatService/GetSummary"
 )
 
 // ChatServiceClient is the client API for ChatService service.
@@ -39,8 +38,6 @@ type ChatServiceClient interface {
 	GetSessions(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetSessionResponse, error)
 	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error)
 	DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error)
-	// Summary
-	GetSummary(ctx context.Context, in *GetSummaryRequest, opts ...grpc.CallOption) (*GetSummaryResponse, error)
 }
 
 type chatServiceClient struct {
@@ -110,16 +107,6 @@ func (c *chatServiceClient) DeleteSession(ctx context.Context, in *DeleteSession
 	return out, nil
 }
 
-func (c *chatServiceClient) GetSummary(ctx context.Context, in *GetSummaryRequest, opts ...grpc.CallOption) (*GetSummaryResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetSummaryResponse)
-	err := c.cc.Invoke(ctx, ChatService_GetSummary_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // ChatServiceServer is the server API for ChatService service.
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility.
@@ -132,8 +119,6 @@ type ChatServiceServer interface {
 	GetSessions(context.Context, *GetSessionRequest) (*GetSessionResponse, error)
 	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error)
 	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error)
-	// Summary
-	GetSummary(context.Context, *GetSummaryRequest) (*GetSummaryResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -158,9 +143,6 @@ func (UnimplementedChatServiceServer) CreateSession(context.Context, *CreateSess
 }
 func (UnimplementedChatServiceServer) DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSession not implemented")
-}
-func (UnimplementedChatServiceServer) GetSummary(context.Context, *GetSummaryRequest) (*GetSummaryResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetSummary not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
@@ -266,24 +248,6 @@ func _ChatService_DeleteSession_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ChatService_GetSummary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSummaryRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ChatServiceServer).GetSummary(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ChatService_GetSummary_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).GetSummary(ctx, req.(*GetSummaryRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -306,10 +270,6 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteSession",
 			Handler:    _ChatService_DeleteSession_Handler,
-		},
-		{
-			MethodName: "GetSummary",
-			Handler:    _ChatService_GetSummary_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -65,31 +65,18 @@ func (sm *ServiceManager) Start() error {
 	}
 	serviceName := sm.serviceConfig.Name
 
-	// 启动优雅关闭监听
-	go sm.gracefulShutdown()
-
 	log.Printf("🎯 %s 服务启动成功", serviceName)
 	return nil
 }
 
-// 优雅关闭
-func (sm *ServiceManager) gracefulShutdown() {
-	sm.waitForShutdown()
-	log.Println("🛑 接收到关闭信号，开始关闭...")
-
+// 停止服务
+func (sm *ServiceManager) Stop() {
 	// 注销服务
 	if err := sm.registry.DeregisterService(sm.serviceConfig.ID); err != nil {
 		log.Printf("❌ 服务注销失败: %v", err)
 	}
-
-	log.Println("✅ 服务已关闭")
-	os.Exit(0)
 }
 
 func (sm *ServiceManager) DiscoverService(serviceName string) ([]*ServiceInstance, error) {
 	return sm.registry.DiscoverService(serviceName)
-}
-
-func (sm *ServiceManager) waitForShutdown() {
-	<-sm.stopChan
 }

@@ -3,20 +3,29 @@ package domain
 import "context"
 
 // ChatRepository 定义数据访问接口
-// 注意：这里不关心是写 Redis, MQ 还是 Postgres，这是 Infra 的事
+// 不关心具体实现是redis，mq，还是db
 type ChatRepository interface {
-	// 消息相关
 	SaveMessage(ctx context.Context, msg *Message) error
-	GetMessages(ctx context.Context, sessionID string, limit, offset int) ([]*Message, error)
-
-	// 会话相关
-	CreateSession(ctx context.Context, session *Session) error
+	SaveSession(ctx context.Context, session *Session) error
 	GetSession(ctx context.Context, sessionID string) (*Session, error)
-	GetUserSessions(ctx context.Context, userID string) ([]*Session, error)
+	GetSessionMessages(ctx context.Context, sessionID string, limit, offset int) ([]*Message, error)
+	GetSessions(ctx context.Context, userID string, limit, offset int) ([]*Session, error)
+	DeleteMessage(ctx context.Context, messageID string) error
+	DeleteSession(ctx context.Context, sessionID string) error
 }
 
-// LLMService 定义大模型服务接口
-type LLMService interface {
-	// StreamInference 返回生成的文本通道和错误通道
-	StreamInference(ctx context.Context, sessionID, message, model string) (<-chan string, <-chan error)
-}
+// type MessageRepository interface {
+// 	Save(ctx context.Context, msg *Message) error
+// 	FindByID(ctx context.Context, id string) (*Message, error)
+// 	FindBySessionID(ctx context.Context, sessionID string, limit, offset int) ([]*Message, error)
+// 	FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*Message, error)
+// 	DeleteByID(ctx context.Context, id string) error
+// 	DeleteBySessionID(ctx context.Context, sessionID string) error
+// }
+
+// type SessionRepository interface {
+// 	Save(ctx context.Context, session *Session) error
+// 	FindByID(ctx context.Context, sessionID string) (*Session, error)
+// 	FindByUserID(ctx context.Context, userID string, limit, offset int) ([]*Session, error)
+// 	DeleteByID(ctx context.Context, sessionID string) error
+// }

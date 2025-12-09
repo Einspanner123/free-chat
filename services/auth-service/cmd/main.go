@@ -11,6 +11,9 @@ import (
 	"free-chat/services/auth-service/internal/infrastructure/security"
 	"free-chat/services/auth-service/internal/interfaces/grpc"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -76,8 +79,23 @@ func main() {
 		log.Fatalf("服务启动失败: %v", err)
 	}
 
-	log.Printf("Auth gRPC 服务启动: %d", grpcPort)
-	if err = authServer.Serve(grpcPort); err != nil {
-		log.Fatal(err)
-	}
+	// 启动 gRPC 服务
+	go func() {
+		log.Printf("Auth gRPC 服务启动: %d", grpcPort)
+		if err = authServer.Serve(grpcPort); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	// 优雅关闭
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit // 阻塞
+
+	log.Println("Shutting down server...")
+
+	sm.Stop()
+
+	authServer.Stop()
+	log.Println("Server exiting")
 }

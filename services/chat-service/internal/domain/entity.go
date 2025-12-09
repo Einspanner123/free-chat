@@ -6,45 +6,55 @@ import (
 
 type Role string
 
+func (r Role) String() string {
+	return string(r)
+}
+
 const (
 	RoleUser      Role = "user"
 	RoleAssistant Role = "assistant"
 	RoleSystem    Role = "system"
 )
 
-// Message 核心消息实体
 type Message struct {
-	MessageID        string
+	ID        string
 	SessionID string
 	UserID    string
 	Role      Role
 	Content   string
 	CreatedAt time.Time
-	DeletedAt *time.Time
 }
 
-// IsUser checks if the message is from a user
 func (m *Message) IsUser() bool {
 	return m.Role == RoleUser
 }
 
-// Session 会话实体 (Aggregate Root)
 type Session struct {
-	SessionID        string
+	ID        string
 	UserID    string
 	Title     string
 	CreatedAt time.Time
-	UpdatedAt time.Time
 }
 
-// SetTitle automatically generates a title from the content if not provided
-// "Good Taste": Eliminate edge cases by handling length checks internally.
-func (s *Session) SetTitle(content string) {
-	const maxLen = 20
+func (s *Session) SetTitle(content string, maxLen int) {
 	runes := []rune(content)
 	if len(runes) > maxLen {
 		s.Title = string(runes[:maxLen])
 	} else {
 		s.Title = content
 	}
+}
+
+type InferenceRequest struct {
+	SessionID string
+	UserID    string
+	Request   string
+	Model     string
+}
+
+type GeneratedToken struct {
+	Content string
+	IsLast  bool
+	Error   string
+	Count   int32
 }

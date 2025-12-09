@@ -24,7 +24,7 @@ const (
 // Login
 type LoginRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserName      string                 `protobuf:"bytes,1,opt,name=user_name,json=userName,proto3" json:"user_name,omitempty"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
 	Email         string                 `protobuf:"bytes,2,opt,name=email,proto3" json:"email,omitempty"`
 	Password      string                 `protobuf:"bytes,3,opt,name=password,proto3" json:"password,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -61,9 +61,9 @@ func (*LoginRequest) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *LoginRequest) GetUserName() string {
+func (x *LoginRequest) GetUsername() string {
 	if x != nil {
-		return x.UserName
+		return x.Username
 	}
 	return ""
 }
@@ -161,7 +161,7 @@ func (x *LoginResponse) GetExpiresAt() int64 {
 // Register
 type RegisterRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	UserName      string                 `protobuf:"bytes,1,opt,name=user_name,json=userName,proto3" json:"user_name,omitempty"`
+	Username      string                 `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
 	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 	Email         string                 `protobuf:"bytes,3,opt,name=email,proto3" json:"email,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -198,9 +198,9 @@ func (*RegisterRequest) Descriptor() ([]byte, []int) {
 	return file_auth_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *RegisterRequest) GetUserName() string {
+func (x *RegisterRequest) GetUsername() string {
 	if x != nil {
-		return x.UserName
+		return x.Username
 	}
 	return ""
 }
@@ -486,9 +486,9 @@ var File_auth_proto protoreflect.FileDescriptor
 const file_auth_proto_rawDesc = "" +
 	"\n" +
 	"\n" +
-	"auth.proto\x12\x04auth\"]\n" +
-	"\fLoginRequest\x12\x1b\n" +
-	"\tuser_name\x18\x01 \x01(\tR\buserName\x12\x14\n" +
+	"auth.proto\x12\x04auth\"\\\n" +
+	"\fLoginRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x14\n" +
 	"\x05email\x18\x02 \x01(\tR\x05email\x12\x1a\n" +
 	"\bpassword\x18\x03 \x01(\tR\bpassword\"\xaa\x01\n" +
 	"\rLoginResponse\x12\x18\n" +
@@ -497,9 +497,9 @@ const file_auth_proto_rawDesc = "" +
 	"\faccess_token\x18\x03 \x01(\tR\vaccessToken\x12#\n" +
 	"\rrefresh_token\x18\x04 \x01(\tR\frefreshToken\x12\x1d\n" +
 	"\n" +
-	"expires_at\x18\x05 \x01(\x03R\texpiresAt\"`\n" +
-	"\x0fRegisterRequest\x12\x1b\n" +
-	"\tuser_name\x18\x01 \x01(\tR\buserName\x12\x1a\n" +
+	"expires_at\x18\x05 \x01(\x03R\texpiresAt\"_\n" +
+	"\x0fRegisterRequest\x12\x1a\n" +
+	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\x12\x14\n" +
 	"\x05email\x18\x03 \x01(\tR\x05email\"_\n" +
 	"\x10RegisterResponse\x12\x18\n" +

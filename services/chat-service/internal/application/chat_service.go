@@ -2,6 +2,8 @@ package application
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"free-chat/services/chat-service/internal/domain"
@@ -10,87 +12,120 @@ import (
 )
 
 type ChatService struct {
-	repo domain.ChatRepository
-	llm  domain.LLMService
+	chatRepo     domain.ChatRepository
+	modelBalance domain.ModelBalanceService
 }
 
-func NewChatService(repo domain.ChatRepository, llm domain.LLMService) *ChatService {
-	return &ChatService{repo: repo, llm: llm}
+func NewChatService(chatRepo domain.ChatRepository, modelBalance domain.ModelBalanceService) *ChatService {
+	return &ChatService{
+		chatRepo:     chatRepo,
+		modelBalance: modelBalance,
+	}
 }
 
-// StreamChat 核心业务逻辑
-func (s *ChatService) StreamChat(ctx context.Context, userID, sessionID, content, model string) (<-chan string, <-chan error, error) {
-	// 1. 确保 Session 存在
+// SelectBestModel 选择负载最小的模型实例并增加计数
+func (s *ChatService) SelectBestModel(ctx context.Context, modelName string) (string, error) {
+	return s.modelBalance.SelectAndIncreaseModelLoads(ctx, modelName)
+}
+
+// DecrementModelLoad 减少模型实例负载计数
+func (s *ChatService) DecrementModelLoad(ctx context.Context, modelName, addr string) error {
+	return s.modelBalance.DecrementTaskCount(ctx, modelName, addr)
+}
+
+// EnsureSession 确保会话存在
+func (s *ChatService) EnsureSession(ctx context.Context, userID, sessionID, content string) (string, error) {
 	if sessionID == "" {
 		sessionID = uuid.New().String()
 		// 创建新 Session
 		session := &domain.Session{
-			ID:        sessionID,
-			UserID:    userID,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			ID:     sessionID,
+			UserID: userID,
 		}
-		session.SetTitle(content)
-		if err := s.repo.CreateSession(ctx, session); err != nil {
-			return nil, nil, err
+		session.SetTitle(content, 20)
+		if err := s.chatRepo.SaveSession(ctx, session); err != nil {
+			return "", err
 		}
 	}
+	return sessionID, nil
+}
 
-	// 2. 保存用户消息 (Async: Redis + MQ)
-	userMsg := &domain.Message{
+// SaveMessage 保存消息
+func (s *ChatService) SaveMessage(ctx context.Context, sessionID, userID string, role domain.Role, content string) error {
+	msg := &domain.Message{
+		ID:        uuid.New().String(),
 		SessionID: sessionID,
 		UserID:    userID,
-		Role:      domain.RoleUser,
+		Role:      role,
 		Content:   content,
 		CreatedAt: time.Now(),
 	}
-	if err := s.repo.SaveMessage(ctx, userMsg); err != nil {
-		return nil, nil, err
+	return s.chatRepo.SaveMessage(ctx, msg)
+}
+
+// GetContext 获取上下文
+func (s *ChatService) GetContext(ctx context.Context, sessionID string) (string, error) {
+	// 获取最近的 10 条消息
+	messages, err := s.chatRepo.GetSessionMessages(ctx, sessionID, 10, 0)
+	if err != nil {
+		return "", fmt.Errorf("get session messages: %w", err)
+	}
+	if len(messages) == 0 {
+		return "", nil
 	}
 
-	// 3. 调用 LLM 服务
-	tokenChan, errChan := s.llm.StreamInference(ctx, sessionID, content, model)
+	// 拼接消息
+	var contextStr strings.Builder
+	for i := len(messages) - 1; i >= 0; i-- {
+		msg := messages[i]
+		role := msg.Role.String()
+		contextStr.WriteString(fmt.Sprintf("%s: %s\n", role, msg.Content))
+	}
 
-	// 4. 处理流式响应并聚合 (用于保存 Assistant 消息)
-	// 这里我们需要返回一个 channel 给上层(Handler)，同时自己监听这个 channel 来聚合完整回复
-	outTokenChan := make(chan string)
-	outErrChan := make(chan error)
+	return contextStr.String(), nil
+}
 
-	go func() {
-		defer close(outTokenChan)
-		defer close(outErrChan)
+// CreateSession 创建会话
+func (s *ChatService) CreateSession(ctx context.Context, userID, title string) (*domain.Session, error) {
+	session := &domain.Session{
+		ID:        uuid.New().String(),
+		UserID:    userID,
+		CreatedAt: time.Now(),
+	}
+	// Set title with length limit
+	session.SetTitle(title, 50)
 
-		var fullResponse string
+	if err := s.chatRepo.SaveSession(ctx, session); err != nil {
+		return nil, err
+	}
+	return session, nil
+}
 
-		for {
-			select {
-			case err, ok := <-errChan:
-				if !ok {
-					errChan = nil
-					continue
-				}
-				outErrChan <- err
-				return
-			case token, ok := <-tokenChan:
-				if !ok {
-					// 流结束，保存 Assistant 完整消息
-					asstMsg := &domain.Message{
-						SessionID: sessionID,
-						UserID:    userID,
-						Role:      domain.RoleAssistant,
-						Content:   fullResponse,
-						CreatedAt: time.Now(),
-					}
-					s.repo.SaveMessage(context.Background(), asstMsg) // Use new context for async save
-					return
-				}
-				fullResponse += token
-				outTokenChan <- token
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
+// GetHistory 获取会话历史
+func (s *ChatService) GetHistory(ctx context.Context, sessionID string, limit, offset int) ([]*domain.Message, error) {
+	session, err := s.chatRepo.GetSession(ctx, sessionID)
+	if err != nil {
+		return nil, err
+	}
+	if session == nil {
+		return nil, fmt.Errorf("session not found")
+	}
 
-	return outTokenChan, outErrChan, nil
+	return s.chatRepo.GetSessionMessages(ctx, sessionID, limit, offset)
+}
+
+// DeleteSession 删除会话
+func (s *ChatService) DeleteSession(ctx context.Context, sessionID, userID string) error {
+	session, err := s.chatRepo.GetSession(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+	if session == nil {
+		return nil // Already deleted
+	}
+	if session.UserID != userID {
+		return fmt.Errorf("permission denied")
+	}
+
+	return s.chatRepo.DeleteSession(ctx, sessionID)
 }

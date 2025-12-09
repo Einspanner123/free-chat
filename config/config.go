@@ -97,6 +97,7 @@ type LLMConfig struct {
 type RocketMQConfig struct {
 	NameServers   []string `mapstructure:"name_servers" yaml:"name_servers"`
 	MaxRetries    int      `mapstructure:"max_retries" yaml:"max_retries"`
+	GroupName     string   `mapstructure:"group_name" yaml:"group_name"`
 	ConsumerGroup string   `mapstructure:"consumer_group" yaml:"consumer_group"`
 	MessageModel  string   `mapstructure:"message_model" yaml:"message_model"`
 	Topics        struct {

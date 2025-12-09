@@ -12,8 +12,6 @@ service ChatService {
     rpc GetSessions(GetSessionRequest) returns (GetSessionResponse);
     rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
     rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
-    // Summary
-    rpc GetSummary(GetSummaryRequest) returns (GetSummaryResponse);
 }
 
 message ChatMessage {
@@ -77,17 +75,4 @@ message DeleteSessionRequest {
 message DeleteSessionResponse {
     bool success = 1;
     string message = 2;
-}
-
-// Summary
-message GetSummaryRequest {
-    string user_id = 1;
-    string session_id = 2;
-    string user_history_id = 3;
-    string assistant_history_id = 4;
-}
-message GetSummaryResponse {
-    bool success = 1;
-    string summary_content = 2;
-    string message = 3;
 }

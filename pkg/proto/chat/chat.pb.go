@@ -712,135 +712,6 @@ func (x *DeleteSessionResponse) GetMessage() string {
 	return ""
 }
 
-// Summary
-type GetSummaryRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	UserId             string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	SessionId          string                 `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	UserHistoryId      string                 `protobuf:"bytes,3,opt,name=user_history_id,json=userHistoryId,proto3" json:"user_history_id,omitempty"`
-	AssistantHistoryId string                 `protobuf:"bytes,4,opt,name=assistant_history_id,json=assistantHistoryId,proto3" json:"assistant_history_id,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
-}
-
-func (x *GetSummaryRequest) Reset() {
-	*x = GetSummaryRequest{}
-	mi := &file_chat_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetSummaryRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetSummaryRequest) ProtoMessage() {}
-
-func (x *GetSummaryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetSummaryRequest.ProtoReflect.Descriptor instead.
-func (*GetSummaryRequest) Descriptor() ([]byte, []int) {
-	return file_chat_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *GetSummaryRequest) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *GetSummaryRequest) GetSessionId() string {
-	if x != nil {
-		return x.SessionId
-	}
-	return ""
-}
-
-func (x *GetSummaryRequest) GetUserHistoryId() string {
-	if x != nil {
-		return x.UserHistoryId
-	}
-	return ""
-}
-
-func (x *GetSummaryRequest) GetAssistantHistoryId() string {
-	if x != nil {
-		return x.AssistantHistoryId
-	}
-	return ""
-}
-
-type GetSummaryResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Success        bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	SummaryContent string                 `protobuf:"bytes,2,opt,name=summary_content,json=summaryContent,proto3" json:"summary_content,omitempty"`
-	Message        string                 `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *GetSummaryResponse) Reset() {
-	*x = GetSummaryResponse{}
-	mi := &file_chat_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetSummaryResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetSummaryResponse) ProtoMessage() {}
-
-func (x *GetSummaryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_chat_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetSummaryResponse.ProtoReflect.Descriptor instead.
-func (*GetSummaryResponse) Descriptor() ([]byte, []int) {
-	return file_chat_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *GetSummaryResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-func (x *GetSummaryResponse) GetSummaryContent() string {
-	if x != nil {
-		return x.SummaryContent
-	}
-	return ""
-}
-
-func (x *GetSummaryResponse) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
 var File_chat_proto protoreflect.FileDescriptor
 
 const file_chat_proto_rawDesc = "" +
@@ -899,26 +770,14 @@ const file_chat_proto_rawDesc = "" +
 	"session_id\x18\x02 \x01(\tR\tsessionId\"K\n" +
 	"\x15DeleteSessionResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\"\xa5\x01\n" +
-	"\x11GetSummaryRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1d\n" +
-	"\n" +
-	"session_id\x18\x02 \x01(\tR\tsessionId\x12&\n" +
-	"\x0fuser_history_id\x18\x03 \x01(\tR\ruserHistoryId\x120\n" +
-	"\x14assistant_history_id\x18\x04 \x01(\tR\x12assistantHistoryId\"q\n" +
-	"\x12GetSummaryResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x12'\n" +
-	"\x0fsummary_content\x18\x02 \x01(\tR\x0esummaryContent\x12\x18\n" +
-	"\amessage\x18\x03 \x01(\tR\amessage2\x9a\x03\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage2\xd9\x02\n" +
 	"\vChatService\x125\n" +
 	"\n" +
 	"StreamChat\x12\x11.chat.ChatRequest\x1a\x12.chat.ChatResponse0\x01\x12=\n" +
 	"\x0eGetChatHistory\x12\x14.chat.HistoryRequest\x1a\x15.chat.HistoryResponse\x12@\n" +
 	"\vGetSessions\x12\x17.chat.GetSessionRequest\x1a\x18.chat.GetSessionResponse\x12H\n" +
 	"\rCreateSession\x12\x1a.chat.CreateSessionRequest\x1a\x1b.chat.CreateSessionResponse\x12H\n" +
-	"\rDeleteSession\x12\x1a.chat.DeleteSessionRequest\x1a\x1b.chat.DeleteSessionResponse\x12?\n" +
-	"\n" +
-	"GetSummary\x12\x17.chat.GetSummaryRequest\x1a\x18.chat.GetSummaryResponseB\rZ\v./chat;chatb\x06proto3"
+	"\rDeleteSession\x12\x1a.chat.DeleteSessionRequest\x1a\x1b.chat.DeleteSessionResponseB\rZ\v./chat;chatb\x06proto3"
 
 var (
 	file_chat_proto_rawDescOnce sync.Once
@@ -932,7 +791,7 @@ func file_chat_proto_rawDescGZIP() []byte {
 	return file_chat_proto_rawDescData
 }
 
-var file_chat_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_chat_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_chat_proto_goTypes = []any{
 	(*ChatMessage)(nil),           // 0: chat.ChatMessage
 	(*ChatRequest)(nil),           // 1: chat.ChatRequest
@@ -946,8 +805,6 @@ var file_chat_proto_goTypes = []any{
 	(*CreateSessionResponse)(nil), // 9: chat.CreateSessionResponse
 	(*DeleteSessionRequest)(nil),  // 10: chat.DeleteSessionRequest
 	(*DeleteSessionResponse)(nil), // 11: chat.DeleteSessionResponse
-	(*GetSummaryRequest)(nil),     // 12: chat.GetSummaryRequest
-	(*GetSummaryResponse)(nil),    // 13: chat.GetSummaryResponse
 }
 var file_chat_proto_depIdxs = []int32{
 	0,  // 0: chat.HistoryResponse.messages:type_name -> chat.ChatMessage
@@ -957,15 +814,13 @@ var file_chat_proto_depIdxs = []int32{
 	6,  // 4: chat.ChatService.GetSessions:input_type -> chat.GetSessionRequest
 	8,  // 5: chat.ChatService.CreateSession:input_type -> chat.CreateSessionRequest
 	10, // 6: chat.ChatService.DeleteSession:input_type -> chat.DeleteSessionRequest
-	12, // 7: chat.ChatService.GetSummary:input_type -> chat.GetSummaryRequest
-	2,  // 8: chat.ChatService.StreamChat:output_type -> chat.ChatResponse
-	4,  // 9: chat.ChatService.GetChatHistory:output_type -> chat.HistoryResponse
-	7,  // 10: chat.ChatService.GetSessions:output_type -> chat.GetSessionResponse
-	9,  // 11: chat.ChatService.CreateSession:output_type -> chat.CreateSessionResponse
-	11, // 12: chat.ChatService.DeleteSession:output_type -> chat.DeleteSessionResponse
-	13, // 13: chat.ChatService.GetSummary:output_type -> chat.GetSummaryResponse
-	8,  // [8:14] is the sub-list for method output_type
-	2,  // [2:8] is the sub-list for method input_type
+	2,  // 7: chat.ChatService.StreamChat:output_type -> chat.ChatResponse
+	4,  // 8: chat.ChatService.GetChatHistory:output_type -> chat.HistoryResponse
+	7,  // 9: chat.ChatService.GetSessions:output_type -> chat.GetSessionResponse
+	9,  // 10: chat.ChatService.CreateSession:output_type -> chat.CreateSessionResponse
+	11, // 11: chat.ChatService.DeleteSession:output_type -> chat.DeleteSessionResponse
+	7,  // [7:12] is the sub-list for method output_type
+	2,  // [2:7] is the sub-list for method input_type
 	2,  // [2:2] is the sub-list for extension type_name
 	2,  // [2:2] is the sub-list for extension extendee
 	0,  // [0:2] is the sub-list for field type_name
@@ -982,7 +837,7 @@ func file_chat_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_chat_proto_rawDesc), len(file_chat_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

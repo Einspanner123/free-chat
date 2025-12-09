@@ -1,15 +1,19 @@
 package handler
 
 import (
-	"context"
+	"io"
 	"log"
+	"math/rand"
 	"net/http"
+	"sync"
 
-	"free-chat/infra/registry"
 	chatpb "free-chat/pkg/proto/chat"
+	"free-chat/pkg/registry"
 
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 )
@@ -18,6 +22,17 @@ type ChatHandler struct {
 	mgr         *registry.ServiceManager
 	chatService string
 	llmService  string
+	mu          sync.RWMutex
+	conns       map[string]*grpc.ClientConn
+}
+
+func (h *ChatHandler) Close() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for _, conn := range h.conns {
+		conn.Close()
+	}
+	h.conns = make(map[string]*grpc.ClientConn)
 }
 
 func NewChatHandler(mgr *registry.ServiceManager, chatService, llmService string) *ChatHandler {
@@ -25,7 +40,42 @@ func NewChatHandler(mgr *registry.ServiceManager, chatService, llmService string
 		mgr:         mgr,
 		chatService: chatService,
 		llmService:  llmService,
+		conns:       make(map[string]*grpc.ClientConn),
 	}
+}
+
+func (h *ChatHandler) getConn(target string) (*grpc.ClientConn, error) {
+	h.mu.RLock()
+	conn, ok := h.conns[target]
+	h.mu.RUnlock()
+
+	if ok {
+		state := conn.GetState()
+		if state == connectivity.Shutdown {
+			// Connection is shutdown, need to create a new one
+		} else {
+			return conn, nil
+		}
+	}
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	// Double check
+	if conn, ok = h.conns[target]; ok {
+		if conn.GetState() != connectivity.Shutdown {
+			return conn, nil
+		}
+	}
+
+	// Dial new connection
+	conn, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+
+	h.conns[target] = conn
+	return conn, nil
 }
 
 func (h *ChatHandler) getGRPCConnection() (*grpc.ClientConn, error) {
@@ -33,9 +83,13 @@ func (h *ChatHandler) getGRPCConnection() (*grpc.ClientConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	select_inst := instances[0] // 进行简单负载均衡选择
+	if len(instances) == 0 {
+		return nil, status.Error(codes.Unavailable, "no chat service instances found")
+	}
 
-	return grpc.NewClient(select_inst.GetURL(), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	select_inst := instances[rand.Intn(len(instances))]
+
+	return h.getConn(select_inst.GetEndpoint())
 }
 
 func (h *ChatHandler) CreateSession(c *gin.Context) {
@@ -56,11 +110,10 @@ func (h *ChatHandler) CreateSession(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Chat service unavailable"})
 		return
 	}
-	defer conn.Close()
 
 	client := chatpb.NewChatServiceClient(conn)
 	resp, err := client.CreateSession(
-		context.Background(),
+		c.Request.Context(),
 		&chatpb.CreateSessionRequest{
 			UserId: userID,
 		})
@@ -86,10 +139,9 @@ func (h *ChatHandler) GetHistory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Chat service unavailable"})
 		return
 	}
-	defer conn.Close()
 
 	client := chatpb.NewChatServiceClient(conn)
-	resp, err := client.GetChatHistory(context.Background(), &chatpb.HistoryRequest{
+	resp, err := client.GetChatHistory(c.Request.Context(), &chatpb.HistoryRequest{
 		SessionId: sessionID,
 		UserId:    userID,
 	})
@@ -124,10 +176,9 @@ func (h *ChatHandler) DeleteSession(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Chat service unavailable"})
 		return
 	}
-	defer conn.Close()
 
 	client := chatpb.NewChatServiceClient(conn)
-	resp, err := client.DeleteSession(context.Background(), &chatpb.DeleteSessionRequest{
+	resp, err := client.DeleteSession(c.Request.Context(), &chatpb.DeleteSessionRequest{
 		SessionId: sessionID,
 		UserId:    userID,
 	})
@@ -146,12 +197,18 @@ func (h *ChatHandler) DeleteSession(c *gin.Context) {
 func (h *ChatHandler) StreamChat(c *gin.Context) {
 	var req struct {
 		Message   string `json:"message" binding:"required"`
-		UserId    string `json:"user_id" binding:"required"`
 		SessionId string `json:"session_id" binding:"required"`
+		Model     string `json:"model"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Printf("req binding error: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID := c.GetString("user_id")
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 		return
 	}
 
@@ -162,15 +219,20 @@ func (h *ChatHandler) StreamChat(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Chat service unavailable"})
 		return
 	}
-	defer conn.Close()
+
 	client := chatpb.NewChatServiceClient(conn)
 
+	model := req.Model
+	if model == "" {
+		model = h.llmService
+	}
+
 	// 创建流式聊天请求
-	stream, err := client.StreamChat(context.Background(), &chatpb.ChatRequest{
+	stream, err := client.StreamChat(c.Request.Context(), &chatpb.ChatRequest{
 		SessionId: req.SessionId,
-		UserId:    req.UserId,
+		UserId:    userID,
 		Message:   req.Message,
-		ModelName: h.llmService,
+		ModelName: model,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send message"})
@@ -186,6 +248,10 @@ func (h *ChatHandler) StreamChat(c *gin.Context) {
 	flushCounter := 0
 	for {
 		resp, err := stream.Recv()
+		if err == io.EOF {
+			c.Writer.Flush()
+			break
+		}
 		if err != nil {
 			// 处理stream错误
 			if grpcStatus, ok := status.FromError(err); ok {

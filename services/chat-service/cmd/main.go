@@ -2,16 +2,28 @@ package main
 
 import (
 	"fmt"
-	"free-chat/cmd/chat-service/internal/handler"
-	"free-chat/cmd/chat-service/internal/service"
-	"free-chat/cmd/chat-service/internal/store"
-	"free-chat/shared/config"
-	chatpb "free-chat/shared/proto/chat"
-	"free-chat/shared/registry"
+	"free-chat/config"
+	chatpb "free-chat/pkg/proto/chat"
+	"free-chat/pkg/registry"
+	"free-chat/services/chat-service/internal/application"
+	"free-chat/services/chat-service/internal/infrastructure/adapter"
+	"free-chat/services/chat-service/internal/infrastructure/mq"
+	"free-chat/services/chat-service/internal/infrastructure/persistence/cache"
+	"free-chat/services/chat-service/internal/infrastructure/persistence/repository"
+	handler "free-chat/services/chat-service/internal/interfaces"
+	"free-chat/services/chat-service/internal/store"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
+	"github.com/apache/rocketmq-client-go/v2"
+	"github.com/apache/rocketmq-client-go/v2/consumer"
+	"github.com/apache/rocketmq-client-go/v2/primitive"
+	"github.com/apache/rocketmq-client-go/v2/producer"
+	"github.com/go-redis/redis/v8"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -19,7 +31,11 @@ import (
 )
 
 func main() {
-	cfg := config.LoadConfig("chat-service")
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
+	}
+
 	serviceName := cfg.ServerName
 	grpcPort := cfg.Chat.GRPCPort
 	localIP, err := registry.GetLocalIP()
@@ -50,28 +66,109 @@ func main() {
 		log.Printf("初始化Consul客户端失败: %v", err)
 	}
 
-	// redisAddr := fmt.Sprintf("%s:%d", cfg.Redis.Address, cfg.Redis.Port)
-	// var redis *service.RedisService
-	// if redis, err = service.NewRedisService(redisAddr, cfg.Redis.Database); err != nil {
-	// 	log.Fatalf("Failed to connect to Redis: %v", err)
-	// }
-	// defer redis.Close()
-	llmClient := service.NewLLMClient(svcMgr)
+	// Initialize Redis
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:         fmt.Sprintf("%s:%d", cfg.Redis.Address, cfg.Redis.Port),
+		Password:     cfg.Redis.Password,
+		DB:           cfg.Redis.Database,
+		DialTimeout:  cfg.Redis.DialTimeout,
+		ReadTimeout:  cfg.Redis.ReadTimeout,
+		WriteTimeout: cfg.Redis.WriteTimeout,
+		PoolSize:     cfg.Redis.PoolSize,
+		MinIdleConns: cfg.Redis.MinIdleConns,
+	})
+	redisCache, err := cache.NewRedisCache(redisClient)
+	if err != nil {
+		log.Printf("Failed to initialize Redis cache: %v", err)
+	}
+	defer redisCache.Close()
+
+	// Initialize RocketMQ Producer
+	var mqProducer *mq.Producer
+	if len(cfg.RocketMQ.NameServers) > 0 {
+		p, err := rocketmq.NewProducer(
+			producer.WithNsResolver(primitive.NewPassthroughResolver(cfg.RocketMQ.NameServers)),
+			producer.WithRetry(cfg.RocketMQ.MaxRetries),
+		)
+		if err != nil {
+			log.Printf("Failed to create RocketMQ producer: %v", err)
+		} else {
+			if err := p.Start(); err != nil {
+				log.Printf("Failed to start RocketMQ producer: %v", err)
+			} else {
+				mqProducer = mq.NewProducer(p)
+				defer func() {
+					if err := p.Shutdown(); err != nil {
+						log.Printf("Failed to shutdown RocketMQ producer: %v", err)
+					}
+				}()
+			}
+		}
+	} else {
+		log.Println("RocketMQ name servers not configured, skipping producer initialization")
+	}
+
 	pgUrl := store.GetURL(&cfg.Postgres)
-	var historyRepo *store.HistoryRepository
+	var msgRepo *repository.MessageRepository
+	var sessionRepo *repository.SessionRepository
+
 	if db, err := store.NewPostgresConn(pgUrl); err != nil {
 		log.Printf("Postgres不可用，历史记录将不会持久化: %v", err)
 	} else {
 		if err := db.CreateTables(); err != nil {
 			log.Printf("数据库迁移失败，历史记录将不会持久化: %v", err)
 		} else {
-			historyRepo = store.NewHistoryRepository(db)
+			msgRepo = repository.NewMessageRepository(db.DB)
+			sessionRepo = repository.NewSessionRepository(db.DB)
 		}
 	}
-	chatHandler := handler.NewChatHandler(llmClient, historyRepo)
+
+	// Initialize RocketMQ Consumer
+	var mqConsumer *mq.Consumer
+	if len(cfg.RocketMQ.NameServers) > 0 {
+		c, err := rocketmq.NewPushConsumer(
+			consumer.WithNsResolver(primitive.NewPassthroughResolver(cfg.RocketMQ.NameServers)),
+			consumer.WithGroupName(cfg.RocketMQ.GroupName),
+			consumer.WithRetry(cfg.RocketMQ.MaxRetries),
+		)
+		if err != nil {
+			log.Printf("Failed to create RocketMQ consumer: %v", err)
+		} else {
+			mqConsumer = mq.NewConsumer(c, msgRepo, sessionRepo)
+			// Subscribe to topics
+			if err := mqConsumer.SubscribePersistence(); err != nil {
+				log.Printf("Failed to subscribe persistence topic: %v", err)
+			}
+
+			// Start consumer
+			if err := mqConsumer.Start(); err != nil {
+				log.Printf("Failed to start RocketMQ consumer: %v", err)
+			} else {
+				log.Println("✅ RocketMQ Consumer started")
+				defer func() {
+					if err := c.Shutdown(); err != nil {
+						log.Printf("Failed to shutdown RocketMQ consumer: %v", err)
+					}
+				}()
+			}
+		}
+	}
+
+	// Initialize Adapters
+	chatRepoAdapter := adapter.NewChatRepositoryAdapter(redisCache, msgRepo, sessionRepo, mqProducer, nil)
+	modelRepoAdapter := adapter.NewModelRepositoryAdapter(redisCache, svcMgr)
+	llmClient := handler.NewLLMClient()
+
+	// Initialize Application
+	chatApp := application.NewChatService(chatRepoAdapter, modelRepoAdapter)
+
+	// Initialize Handler
+	chatHandler := handler.NewChatHandler(chatApp, llmClient)
+
 	grpcServer := grpc.NewServer()
 	chatpb.RegisterChatServiceServer(grpcServer, chatHandler)
 	reflection.Register(grpcServer)
+
 	// 注册健康检查服务
 	healthServer := health.NewServer()
 	healthServer.SetServingStatus(serviceName, grpc_health_v1.HealthCheckResponse_SERVING)
@@ -87,7 +184,22 @@ func main() {
 		svcMgr.Start()
 	}
 
-	if err = grpcServer.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+	go func() {
+		if err = grpcServer.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve: %v", err)
+		}
+	}()
+
+	// Graceful Shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	if svcMgr != nil {
+		svcMgr.Stop()
 	}
+
+	grpcServer.GracefulStop()
+	log.Printf("`%s` Server exited", cfg.Chat.ServerName)
 }

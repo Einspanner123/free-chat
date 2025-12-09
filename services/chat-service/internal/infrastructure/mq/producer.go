@@ -5,43 +5,36 @@ import (
 	"encoding/json"
 	"fmt"
 	"free-chat/services/chat-service/internal/domain"
+	"free-chat/services/chat-service/internal/infrastructure/persistence/model"
 
-	"github.com/apache/rocketmq-client-go/v2"
+	rocketmq "github.com/apache/rocketmq-client-go/v2"
 	"github.com/apache/rocketmq-client-go/v2/primitive"
 )
 
-const (
-	TopicChat      = "chat_topic"
-	TagSaveMsg     = "save_message"
-	TagSaveSession = "save_session"
-)
-
-type Producer struct {
-	client rocketmq.Producer
-}
+type Producer struct{ client rocketmq.Producer }
 
 func NewProducer(client rocketmq.Producer) *Producer {
 	return &Producer{client: client}
 }
 
-func (p *Producer) SendSaveMessageEvent(msg domain.Message) error {
-	data, err := json.Marshal(msg)
+func (p *Producer) SendSaveMessageEvent(msg *domain.Message) error {
+	data, err := json.Marshal(model.ToMessageModel(msg))
 	if err != nil {
-		return fmt.Errorf("converting msg: %w", err)
+		return fmt.Errorf("converting error: %w", err)
 	}
-	newMsg := primitive.NewMessage(TopicChat, data)
-	newMsg.WithTag(TagSaveMsg)
+	newMsg := primitive.NewMessage(TopicPersistence, data)
+	newMsg.WithTag(TagSaveMessage)
 
 	_, err = p.client.SendSync(context.Background(), newMsg)
 	return err
 }
 
-func (p *Producer) SendSaveSessionEvent(session domain.Session) error {
-	data, err := json.Marshal(session)
+func (p *Producer) SendSaveSessionEvent(session *domain.Session) error {
+	data, err := json.Marshal(model.ToSessionModel(session))
 	if err != nil {
-		return fmt.Errorf("converting msg: %w", err)
+		return fmt.Errorf("converting error: %w", err)
 	}
-	msg := primitive.NewMessage(TopicChat, data)
+	msg := primitive.NewMessage(TopicPersistence, data)
 	msg.WithTag(TagSaveSession)
 
 	_, err = p.client.SendSync(context.Background(), msg)

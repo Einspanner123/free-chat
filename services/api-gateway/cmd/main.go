@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"free-chat/config"
 	"free-chat/pkg/registry"
 	"free-chat/services/api-gateway/internal/handler"
 	"free-chat/services/api-gateway/internal/middleware"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -56,6 +61,7 @@ func main() {
 		"192.168.31.0/24",
 		"172.20.0.0/16",
 	})
+	r.Use(middleware.CORS())
 	r.Use(middleware.RateLimit(redisClient, cfg.Redis.RateLimitQPS))
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -66,11 +72,13 @@ func main() {
 	})
 
 	api := r.Group("/api/v1")
+	var authHandler *handler.AuthHandler
+	var chatHandler *handler.ChatHandler
 	{
 		// 认证相关路由
 		auth := api.Group("/auth")
 		{
-			authHandler := handler.NewAuthHandler(serviceManager, cfg.Auth.ServerName)
+			authHandler = handler.NewAuthHandler(serviceManager, cfg.Auth.ServerName)
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/refresh", authHandler.RefreshToken)
@@ -80,10 +88,10 @@ func main() {
 		chat := api.Group("/chat")
 		chat.Use(middleware.JwtAuth(cfg.Auth.JwtSecret))
 		{
-			chatHandler := handler.NewChatHandler(serviceManager, cfg.Chat.ServerName, cfg.LLM.Name)
+			chatHandler = handler.NewChatHandler(serviceManager, cfg.Chat.ServerName, cfg.LLM.Name)
 			chat.POST("/sessions", chatHandler.CreateSession)
-			chat.GET("/sessions/history", chatHandler.GetHistory)
-			chat.DELETE("/sessions", chatHandler.DeleteSession)
+			chat.GET("/sessions/:sessionId/history", chatHandler.GetHistory)
+			chat.DELETE("/sessions/:sessionId", chatHandler.DeleteSession)
 			chat.POST("/sessions/messages", chatHandler.StreamChat)
 			chat.POST("/sessions/stream", chatHandler.StreamChat)
 		}
@@ -91,5 +99,41 @@ func main() {
 
 	serviceManager.Start()
 	log.Printf("网关服务启动, 监听服务 %d", cfg.Port)
-	log.Fatal(r.Run(fmt.Sprintf(":%d", servicePort)))
+
+	srv := &http.Server{
+		Addr:    fmt.Sprintf(":%d", servicePort),
+		Handler: r,
+	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
+	// 优雅关闭
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatal("Server forced to shutdown: ", err)
+	}
+
+	if authHandler != nil {
+		authHandler.Close()
+	}
+	if chatHandler != nil {
+		chatHandler.Close()
+	}
+
+	if serviceManager != nil {
+		serviceManager.Stop()
+	}
+
+	log.Println("Server exited")
 }
