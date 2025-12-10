@@ -59,7 +59,7 @@ services:
   llm-inference:
     build:
       context: .
-      dockerfile: cmd/llm-inference/Dockerfile
+      dockerfile: services/llm-inference/Dockerfile
     container_name: llm-inference
     restart: always
     depends_on:
@@ -86,7 +86,7 @@ services:
   auth-service:
     build:
       context: .
-      dockerfile: cmd/auth-service/Dockerfile
+      dockerfile: services/auth-service/Dockerfile
     container_name: auth-service
     restart: always
     depends_on:
@@ -112,7 +112,7 @@ services:
   chat-service:
     build:
       context: .
-      dockerfile: cmd/chat-service/Dockerfile
+      dockerfile: services/chat-service/Dockerfile
     container_name: chat-service
     restart: always
     depends_on:
@@ -127,11 +127,11 @@ services:
     networks:
       - app-network
 
-  gateway:
+  api-gateway:
     build:
       context: .
-      dockerfile: cmd/gateway/Dockerfile
-    container_name: gateway
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: api-gateway
     restart: always
     depends_on:
       consul:

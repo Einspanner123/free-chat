@@ -4,3 +4,8 @@
 **.venv**
 *.pyc
 **/Qwen/**
+.infra/
+api-gateway
+auth-service
+chat-cli
+chat-service

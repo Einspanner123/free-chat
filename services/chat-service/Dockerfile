@@ -16,7 +16,7 @@ ENV CGO_ENABLED=0
 ENV GOOS=linux
 
 # 构建应用
-RUN go build -o chat-service ./cmd/chat-service/main.go
+RUN go build -o chat-service ./services/chat-service/cmd/main.go
 
 # 使用Alpine作为运行时基础镜像
 FROM alpine:3.20

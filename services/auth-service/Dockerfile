@@ -18,7 +18,7 @@ ENV CGO_ENABLED=0
 ENV GOOS=linux
 
 # 构建应用
-RUN go build -o auth-service ./cmd/auth-service/main.go
+RUN go build -o auth-service ./services/auth-service/cmd/main.go
 
 # 使用Alpine作为运行时基础镜像
 FROM alpine:3.20

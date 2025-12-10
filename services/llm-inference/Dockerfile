@@ -2,10 +2,10 @@ FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
 
 # 安装Python 3.12
 RUN apt-get update && \
-#     apt-get install -y software-properties-common && \
-#     add-apt-repository ppa:deadsnakes/ppa && \
-#     apt-get update && \
-    apt-get install -y python3 python3-pip python3-dev && \
+    apt-get install -y software-properties-common && \
+    add-apt-repository ppa:deadsnakes/ppa && \
+    apt-get update && \
+    apt-get install -y python3.12 python3.12-venv python3.12-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -15,7 +15,7 @@ RUN ln -sf /usr/bin/python3.12 /usr/bin/python
 WORKDIR /app
 
 # 复制项目文件
-COPY cmd/llm-inference/ .
+COPY services/llm-inference/ .
 
 # 安装uv并使用它安装依赖
 RUN pip install uv && \
