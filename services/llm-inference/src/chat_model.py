@@ -1,7 +1,7 @@
 import os
 import json
 from pathlib import Path
-from threading import Thread
+from threading import Thread, Lock
 
 import torch
 from loguru import logger
@@ -20,11 +20,16 @@ class ChatModel:
         top_p: float = 0.7,
         top_k: float = 40,
     ):
+        self.lock = Lock()  # 显卡互斥锁
         self.max_new_tokens = max_new_tokens
         self.temperature = temperature
         self.repeat_penalty = repeat_penalty
         self.top_p = top_p
         self.top_k = top_k
+        
+        # 默认系统提示词
+        self.default_system_prompt = "You are a helpful AI assistant."
+        
         # 检查是否有可用的GPU
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info(f"Using device: {self.device}")
@@ -47,16 +52,38 @@ class ChatModel:
             # 尝试解析为JSON消息列表
             messages = json.loads(msg)
             if isinstance(messages, list):
+                # 检查是否已有系统提示，如果没有则添加默认提示
+                has_system = any(m.get('role') == 'system' for m in messages)
+                if not has_system:
+                    messages.insert(0, {"role": "system", "content": self.default_system_prompt})
+                
                 text = self.tokenizer.apply_chat_template(
                     messages,
                     tokenize=False,
                     add_generation_prompt=True
                 )
             else:
-                text = msg
+                # 纯文本模式下，尽量构造成符合模板的格式
+                messages = [
+                    {"role": "system", "content": self.default_system_prompt},
+                    {"role": "user", "content": msg}
+                ]
+                text = self.tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True
+                )
         except (json.JSONDecodeError, TypeError):
-            # 解析失败，回退到原始字符串
-            text = msg
+            # 解析失败，作为纯文本处理
+             messages = [
+                {"role": "system", "content": self.default_system_prompt},
+                {"role": "user", "content": msg}
+            ]
+             text = self.tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=True
+            )
 
         inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
         streamer = TextIteratorStreamer(
@@ -72,6 +99,11 @@ class ChatModel:
             top_k=self.top_k,
             do_sample=True,
         )
-        thread = Thread(target=self.model.generate, kwargs=gen_kwargs)
+        
+        def safe_generate():
+            with self.lock:
+                self.model.generate(**gen_kwargs)
+
+        thread = Thread(target=safe_generate)
         thread.start()
         return streamer

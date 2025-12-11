@@ -7,6 +7,8 @@ import urllib
 from concurrent import futures
 from typing import Iterator
 
+import time
+
 import grpc
 import llm_inference_pb2 as pb2
 import llm_inference_pb2_grpc as pb2_grpc
@@ -102,6 +104,7 @@ class InferencerServiceServicer(pb2_grpc.InferencerServiceServicer):
                     f"接收到消息: session_id={session_id}, message_length={len(request.message)}"
                 )
                 gen_tokens = 0
+                start_time = time.time()
                 try:
                     streamer = self.model.GetStreamer(msg=messages)
                     logger.info("start getting response.")
@@ -113,6 +116,11 @@ class InferencerServiceServicer(pb2_grpc.InferencerServiceServicer):
                             error="",
                             generated_tokens=gen_tokens,
                         )
+                    
+                    duration = time.time() - start_time
+                    tps = gen_tokens / duration if duration > 0 else 0
+                    logger.info(f"生成完成: tokens={gen_tokens}, time={duration:.2f}s, tps={tps:.2f}")
+
                     # 发送结束信号
                     yield pb2.InferenceResponse(
                         chunk="",
@@ -169,7 +177,11 @@ def serve():
     def signal_handler(sig, frame):
         logger.info("收到关闭信号，正在停止gRPC服务器...")
         deregister_consul(service_id, consul_addr)
-        server.stop(0)
+        
+        # 优雅停机，给现有请求 5 秒钟的完成时间
+        done_event = server.stop(grace=5)
+        done_event.wait(5)
+        logger.info("gRPC服务器已停止")
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)

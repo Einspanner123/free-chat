@@ -34,7 +34,7 @@ COPY services/llm-inference/ .
 # 安装uv并使用它安装依赖
 RUN python -m pip install uv -i https://pypi.tuna.tsinghua.edu.cn/simple && \
     uv venv && \
-    uv pip install --no-cache-dir -r pyproject.toml && \
+    uv pip install --no-cache-dir -r pyproject.toml --index-url https://pypi.tuna.tsinghua.edu.cn/simple && \
     # 预编译Python字节码
     uv run python -m compileall src/
 

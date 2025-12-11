@@ -1,11 +1,22 @@
-**.vscode/**
-**.trae/**
-**pycache**
-**.venv**
-*.pyc
-**/Qwen/**
+# Go
+# Binaries
+main
+*.exe
+*.test
+bin/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+.trae/
+
+# Project specific
+**/Qwen/
 .infra/
-api-gateway
-auth-service
-chat-cli
-chat-service
