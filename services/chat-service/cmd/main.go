@@ -19,10 +19,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/apache/rocketmq-client-go/v2"
-	"github.com/apache/rocketmq-client-go/v2/consumer"
-	"github.com/apache/rocketmq-client-go/v2/primitive"
-	"github.com/apache/rocketmq-client-go/v2/producer"
 	"github.com/go-redis/redis/v8"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -35,6 +31,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
+	log.Printf("Loaded RocketMQ NameServers: %v", cfg.RocketMQ.NameServers)
 
 	serviceName := cfg.ServerName
 	grpcPort := cfg.Chat.GRPCPort
@@ -84,28 +81,16 @@ func main() {
 	defer redisCache.Close()
 
 	// Initialize RocketMQ Producer
-	var mqProducer *mq.Producer
-	if len(cfg.RocketMQ.NameServers) > 0 {
-		p, err := rocketmq.NewProducer(
-			producer.WithNsResolver(primitive.NewPassthroughResolver(cfg.RocketMQ.NameServers)),
-			producer.WithRetry(cfg.RocketMQ.MaxRetries),
-		)
-		if err != nil {
-			log.Printf("Failed to create RocketMQ producer: %v", err)
-		} else {
-			if err := p.Start(); err != nil {
-				log.Printf("Failed to start RocketMQ producer: %v", err)
-			} else {
-				mqProducer = mq.NewProducer(p)
-				defer func() {
-					if err := p.Shutdown(); err != nil {
-						log.Printf("Failed to shutdown RocketMQ producer: %v", err)
-					}
-				}()
+	mqProducer, err := mq.InitProducer(cfg)
+	if err != nil {
+		log.Printf("Failed to initialize RocketMQ producer: %v", err)
+	}
+	if mqProducer != nil {
+		defer func() {
+			if err := mqProducer.Shutdown(); err != nil {
+				log.Printf("Failed to shutdown RocketMQ producer: %v", err)
 			}
-		}
-	} else {
-		log.Println("RocketMQ name servers not configured, skipping producer initialization")
+		}()
 	}
 
 	pgUrl := store.GetURL(&cfg.Postgres)
@@ -124,34 +109,16 @@ func main() {
 	}
 
 	// Initialize RocketMQ Consumer
-	var mqConsumer *mq.Consumer
-	if len(cfg.RocketMQ.NameServers) > 0 {
-		c, err := rocketmq.NewPushConsumer(
-			consumer.WithNsResolver(primitive.NewPassthroughResolver(cfg.RocketMQ.NameServers)),
-			consumer.WithGroupName(cfg.RocketMQ.GroupName),
-			consumer.WithRetry(cfg.RocketMQ.MaxRetries),
-		)
-		if err != nil {
-			log.Printf("Failed to create RocketMQ consumer: %v", err)
-		} else {
-			mqConsumer = mq.NewConsumer(c, msgRepo, sessionRepo)
-			// Subscribe to topics
-			if err := mqConsumer.SubscribePersistence(); err != nil {
-				log.Printf("Failed to subscribe persistence topic: %v", err)
+	mqConsumer, err := mq.InitConsumer(cfg, msgRepo, sessionRepo)
+	if err != nil {
+		log.Printf("Failed to initialize RocketMQ consumer: %v", err)
+	}
+	if mqConsumer != nil {
+		defer func() {
+			if err := mqConsumer.Shutdown(); err != nil {
+				log.Printf("Failed to shutdown RocketMQ consumer: %v", err)
 			}
-
-			// Start consumer
-			if err := mqConsumer.Start(); err != nil {
-				log.Printf("Failed to start RocketMQ consumer: %v", err)
-			} else {
-				log.Println("✅ RocketMQ Consumer started")
-				defer func() {
-					if err := c.Shutdown(); err != nil {
-						log.Printf("Failed to shutdown RocketMQ consumer: %v", err)
-					}
-				}()
-			}
-		}
+		}()
 	}
 
 	// Initialize Adapters

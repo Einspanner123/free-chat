@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -114,6 +115,10 @@ func LoadConfig() (*AppConfig, error) {
 
 	viper.SetConfigFile("config/config.yml")
 	viper.SetConfigType("yaml")
+
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
 	if err := viper.ReadInConfig(); err != nil {
 		return &config, err
 	}

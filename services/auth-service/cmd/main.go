@@ -56,9 +56,16 @@ func main() {
 		log.Fatalf("创建服务管理器失败: %v", err)
 	}
 	// 创建数据库连接
-	db, err := db.InitGorm(cfg.Postgres.Address)
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=Asia/Shanghai",
+		cfg.Postgres.Address,
+		cfg.Postgres.User,
+		cfg.Postgres.Password,
+		cfg.Postgres.DBName,
+		cfg.Postgres.Port,
+	)
+	db, err := db.InitGorm(dsn)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Database connection failed: %v", err)
 	}
 	// 初始化依赖 (Infrastructure Layer)
 	userRepo := persistence.NewUserRepository(db)

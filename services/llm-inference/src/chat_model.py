@@ -1,4 +1,5 @@
 import os
+import json
 from pathlib import Path
 from threading import Thread
 
@@ -22,6 +23,8 @@ class ChatModel:
         self.max_new_tokens = max_new_tokens
         self.temperature = temperature
         self.repeat_penalty = repeat_penalty
+        self.top_p = top_p
+        self.top_k = top_k
         # 检查是否有可用的GPU
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         logger.info(f"Using device: {self.device}")
@@ -40,7 +43,22 @@ class ChatModel:
         ).to(self.device)
 
     def GetStreamer(self, msg):
-        inputs = self.tokenizer(msg, return_tensors="pt").to(self.device)
+        try:
+            # 尝试解析为JSON消息列表
+            messages = json.loads(msg)
+            if isinstance(messages, list):
+                text = self.tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True
+                )
+            else:
+                text = msg
+        except (json.JSONDecodeError, TypeError):
+            # 解析失败，回退到原始字符串
+            text = msg
+
+        inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
         streamer = TextIteratorStreamer(
             tokenizer=self.tokenizer, skip_prompt=True, skip_special_tokens=True
         )
@@ -50,6 +68,8 @@ class ChatModel:
             max_new_tokens=self.max_new_tokens,
             temperature=self.temperature,
             repetition_penalty=self.repeat_penalty,
+            top_p=self.top_p,
+            top_k=self.top_k,
             do_sample=True,
         )
         thread = Thread(target=self.model.generate, kwargs=gen_kwargs)

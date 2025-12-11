@@ -55,6 +55,31 @@ services:
       timeout: 5s
       retries: 3
 
+  rmqnamesrv:
+    image: apache/rocketmq:4.9.4
+    container_name: rmqnamesrv
+    ports:
+      - 9876:9876
+    networks:
+      - app-network
+    command: sh mqnamesrv
+
+  rmqbroker:
+    image: apache/rocketmq:4.9.4
+    container_name: rmqbroker
+    ports:
+      - 10911:10911
+      - 10909:10909
+    networks:
+      - app-network
+    command: sh mqbroker -n rmqnamesrv:9876 -c /opt/rocketmq-4.9.4/conf/broker.conf
+    environment:
+      - NAMESRV_ADDR=rmqnamesrv:9876
+    depends_on:
+      - rmqnamesrv
+    volumes:
+       - ./config/rocketmq/broker.conf:/opt/rocketmq-4.9.4/conf/broker.conf
+
   # 微服务
   llm-inference:
     build:
@@ -97,13 +122,13 @@ services:
     environment:
       APP_ENV: "development"
       APP_PORT: "8082"
-      PG_ADDR: "postgres"
-      PG_PORT: "5432"
-      PG_USER: "free-chat"
-      PG_PASSWD: "free-chat-passwd"
-      PG_DBNAME: "free-chat"
+      POSTGRES_ADDRESS: "postgres"
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: "free-chat"
+      POSTGRES_PASSWORD: "free-chat-passwd"
+      POSTGRES_DB_NAME: "free-chat"
       CONSUL_ADDRESS: "consul:8500"
-      JWT_SECRET: "llm_chat_secret"
+      AUTH_JWT_SECRET: "llm_chat_secret"
     ports:
       - "8082:8082"
     networks:
@@ -122,6 +147,14 @@ services:
       APP_ENV: "development"
       APP_PORT: "8081"
       CONSUL_ADDRESS: "consul:8500"
+      POSTGRES_ADDRESS: "postgres"
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: "free-chat"
+      POSTGRES_PASSWORD: "free-chat-passwd"
+      POSTGRES_DB_NAME: "free-chat"
+      REDIS_ADDRESS: "redis"
+      REDIS_PORT: "6379"
+      ROCKETMQ_NAME_SERVERS: "rmqnamesrv:9876"
     ports:
       - "8081:8081"
     networks:
@@ -140,9 +173,10 @@ services:
         condition: service_healthy
     environment:
       APP_ENV: "development"
-      APP_PORT: "8080"
+      PORT: "8080"
+      SERVER_NAME: "api-gateway"
       CONSUL_ADDRESS: "consul:8500"
-      REDIS_ADDR: "redis"
+      REDIS_ADDRESS: "redis"
       REDIS_PORT: "6379"
     ports:
       - "8080:8080"

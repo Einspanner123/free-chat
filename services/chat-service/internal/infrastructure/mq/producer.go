@@ -17,6 +17,10 @@ func NewProducer(client rocketmq.Producer) *Producer {
 	return &Producer{client: client}
 }
 
+func (p *Producer) Shutdown() error {
+	return p.client.Shutdown()
+}
+
 func (p *Producer) SendSaveMessageEvent(msg *domain.Message) error {
 	data, err := json.Marshal(model.ToMessageModel(msg))
 	if err != nil {

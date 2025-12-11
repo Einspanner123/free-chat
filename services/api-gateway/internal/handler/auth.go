@@ -92,7 +92,7 @@ func (h *AuthHandler) getGRPCConnection() (*grpc.ClientConn, error) {
 
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req struct {
-		UserName string `json:"user_name" binding:"required"`
+		Username string `json:"username" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}
 
@@ -110,7 +110,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	client := authpb.NewAuthServiceClient(conn)
 	resp, err := client.Login(c.Request.Context(), &authpb.LoginRequest{
-		Username: req.UserName,
+		Username: req.Username,
 		Password: req.Password,
 	})
 	if err != nil {
@@ -126,7 +126,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 func (h *AuthHandler) Register(c *gin.Context) {
 	var req struct {
-		UserName string `json:"user_name" binding:"required"`
+		Username string `json:"username" binding:"required"`
 		Email    string `json:"email" binding:"required,email"`
 		Password string `json:"password" binding:"required,min=6"`
 	}
@@ -145,7 +145,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	client := authpb.NewAuthServiceClient(conn)
 	resp, err := client.Register(c.Request.Context(), &authpb.RegisterRequest{
-		Username: req.UserName,
+		Username: req.Username,
 		Email:    req.Email,
 		Password: req.Password,
 	})

@@ -25,10 +25,10 @@ func InitGorm(dsn string) (*gorm.DB, error) {
 // UserModel 数据库映射模型（与领域实体User分离，避免领域层依赖GORM）
 type UserModel struct {
 	ID        string    `gorm:"primaryKey;type:varchar(36)"`
-	Username  string    `gorm:"uniqueIndex;type:varchar(20)not null"`
-	Password  string    `gorm:"type:varchar(100)not null"` // 存储密码哈希
-	Email     string    `gorm:"uniqueIndex;type:varchar(100)not null"`
-	Status    int8      `gorm:"type:tinyint;default:1"` // 映射UserStatus
+	Username  string    `gorm:"uniqueIndex;type:varchar(20);not null"`
+	Password  string    `gorm:"type:varchar(100);not null"` // 存储密码哈希
+	Email     string    `gorm:"uniqueIndex;type:varchar(100);not null"`
+	Status    int8      `gorm:"type:smallint;default:1"` // 映射UserStatus
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime"`
 }

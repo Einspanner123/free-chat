@@ -56,11 +56,8 @@ func main() {
 	})
 
 	r := gin.Default()
-	r.SetTrustedProxies([]string{
-		"127.0.0.1/32",
-		"192.168.31.0/24",
-		"172.20.0.0/16",
-	})
+	// Trust all proxies for development
+	r.SetTrustedProxies(nil)
 	r.Use(middleware.CORS())
 	r.Use(middleware.RateLimit(redisClient, cfg.Redis.RateLimitQPS))
 	r.GET("/health", func(c *gin.Context) {

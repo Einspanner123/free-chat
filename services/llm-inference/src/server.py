@@ -72,7 +72,14 @@ class InferencerServiceServicer(pb2_grpc.InferencerServiceServicer):
     def __init__(self):
         # 这里可以初始化模型和其他资源
         logger.info(f"初始化服务，使用模型: {config.modelName}")
-        self.model = ChatModel()
+        self.model = ChatModel(
+            model_name=config.modelName,
+            max_new_tokens=config.maxTokens,
+            temperature=config.temperature,
+            repeat_penalty=config.repetitionPenalty,
+            top_p=config.topP,
+            top_k=config.topK,
+        )
 
     def StreamInference(
         self, request_iterator: Iterator[pb2.InferenceRequest], context

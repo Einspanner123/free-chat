@@ -17,7 +17,7 @@ func (s *UserService) ValidateForCreate(u *User, repo UserRepository) error {
 		return ErrInvalidUsername
 	}
 	if !regexp.
-		MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$`).
+		MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`).
 		MatchString(u.Email) {
 		return ErrInvalidEmail
 	}

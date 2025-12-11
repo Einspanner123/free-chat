@@ -23,10 +23,14 @@ RUN go build -o auth-service ./services/auth-service/cmd/main.go
 # 使用Alpine作为运行时基础镜像
 FROM alpine:3.20
 
+# 更换 apk 源为阿里云镜像
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
 WORKDIR /app
 
 # 复制构建好的二进制文件
 COPY --from=builder /app/auth-service .
+COPY --from=builder /app/config ./config
 
 # 添加时区支持
 RUN apk --no-cache add tzdata

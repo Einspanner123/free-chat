@@ -2,8 +2,8 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"free-chat/services/chat-service/internal/domain"
@@ -74,15 +74,22 @@ func (s *ChatService) GetContext(ctx context.Context, sessionID string) (string,
 		return "", nil
 	}
 
-	// 拼接消息
-	var contextStr strings.Builder
+	// 构造消息列表
+	var chatMessages []map[string]string
 	for i := len(messages) - 1; i >= 0; i-- {
 		msg := messages[i]
-		role := msg.Role.String()
-		contextStr.WriteString(fmt.Sprintf("%s: %s\n", role, msg.Content))
+		chatMessages = append(chatMessages, map[string]string{
+			"role":    msg.Role.String(),
+			"content": msg.Content,
+		})
 	}
 
-	return contextStr.String(), nil
+	jsonBytes, err := json.Marshal(chatMessages)
+	if err != nil {
+		return "", fmt.Errorf("marshal messages: %w", err)
+	}
+
+	return string(jsonBytes), nil
 }
 
 // CreateSession 创建会话

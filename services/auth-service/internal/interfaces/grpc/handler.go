@@ -4,6 +4,9 @@ import (
 	"context"
 	authpb "free-chat/pkg/proto/auth"
 	"free-chat/services/auth-service/internal/application"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type AuthHandler struct {
@@ -32,10 +35,7 @@ func (s *AuthHandler) Login(ctx context.Context, req *authpb.LoginRequest) (*aut
 	dtoReq := ToLoginDTO(req)
 	dtoResp, err := s.authSvc.Login(dtoReq)
 	if err != nil {
-		return &authpb.LoginResponse{
-			Success: false,
-			Message: err.Error(),
-		}, nil
+		return nil, status.Error(codes.Unauthenticated, err.Error())
 	}
 	return ToLoginResponseRPC(dtoResp), nil
 }
