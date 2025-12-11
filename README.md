@@ -8,7 +8,6 @@
 
 - **Microservices Architecture**: Built with scalability in mind, using Go for high-performance backend services and Python for LLM inference.
 - **Real-time Streaming**: Experience fluid conversations with token-by-token streaming responses (Server-Sent Events).
-- **Thinking Process Visualization**: Unique collapsible `<think>` tags to view or hide the LLM's internal reasoning process (Chain of Thought).
 - **User Authentication**: Secure user registration and login with JWT-based sessions.
 - **Chat History**: Persistent chat sessions and message history stored in PostgreSQL.
 - **Service Discovery**: Automated service registration and discovery using Consul.
