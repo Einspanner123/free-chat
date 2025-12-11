@@ -19,6 +19,9 @@ from loguru import logger
 
 
 def get_local_ip():
+    env_ip = os.getenv("ADVERTISE_IP")
+    if env_ip:
+        return env_ip
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("8.8.8.8", 80))

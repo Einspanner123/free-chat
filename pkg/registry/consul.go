@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"time"
 
 	"github.com/hashicorp/consul/api"
@@ -123,6 +124,10 @@ func (r *ConsulRegistry) DiscoverService(serviceName string) ([]*ServiceInstance
 
 // 获取本机IP地址
 func GetLocalIP() (string, error) {
+	// 优先读取环境变量
+	if envIP := os.Getenv("ADVERTISE_IP"); envIP != "" {
+		return envIP, nil
+	}
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
 		return "", err

@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # --- Compute Services ---
+  chat-service:
+    build:
+      context: .
+      dockerfile: services/chat-service/Dockerfile
+    container_name: chat-service
+    restart: always
+    environment:
+      APP_ENV: "production"
+      APP_PORT: "8081"
+      ADVERTISE_IP: ${ADVERTISE_IP}
+      CONSUL_ADDRESS: "${CONTROL_PLANE_IP}:8500"
+      POSTGRES_ADDRESS: ${CONTROL_PLANE_IP}
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: "free-chat"
+      POSTGRES_PASSWORD: "free-chat-passwd"
+      POSTGRES_DB_NAME: "free-chat"
+      REDIS_ADDRESS: ${CONTROL_PLANE_IP}
+      REDIS_PORT: "6379"
+      ROCKETMQ_NAME_SERVERS: "${CONTROL_PLANE_IP}:9876"
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
+
+  llm-inference:
+    build:
+      context: .
+      dockerfile: services/llm-inference/Dockerfile
+    container_name: llm-inference
+    restart: always
+    environment:
+      APP_ENV: "production"
+      GRPC_PORT: "8083"
+      ADVERTISE_IP: ${ADVERTISE_IP}
+      CONSUL_ADDRESS: "${CONTROL_PLANE_IP}:8500"
+      SERVER_NAME: "llm-inference"
+    ports:
+      - "8083:8083"
+    networks:
+      - app-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    runtime: nvidia
+
+networks:
+  app-network:
+    driver: bridge
