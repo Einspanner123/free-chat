@@ -203,11 +203,13 @@ func (h *ChatHandler) GetSessions(c *gin.Context) {
 	limit32, err := strconv.ParseInt(limit, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	offset32, err := strconv.ParseInt(offset, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	conn, err := h.getGRPCConnection()
