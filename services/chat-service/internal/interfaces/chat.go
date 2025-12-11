@@ -113,7 +113,11 @@ func (h *ChatHandler) StreamChat(req *chatpb.ChatRequest, stream chatpb.ChatServ
 }
 
 func (h *ChatHandler) CreateSession(ctx context.Context, req *chatpb.CreateSessionRequest) (*chatpb.CreateSessionResponse, error) {
-	session, err := h.app.CreateSession(ctx, req.UserId, "New Chat")
+	title := req.Title
+	if title == "" {
+		title = "New Chat"
+	}
+	session, err := h.app.CreateSession(ctx, req.UserId, title)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "create session failed: %v", err)
 	}
@@ -154,5 +158,27 @@ func (h *ChatHandler) DeleteSession(ctx context.Context, req *chatpb.DeleteSessi
 	return &chatpb.DeleteSessionResponse{
 		Success: true,
 		Message: "Session deleted successfully",
+	}, nil
+}
+
+func (h *ChatHandler) GetSessions(ctx context.Context, req *chatpb.GetSessionsRequest) (*chatpb.GetSessionsResponse, error) {
+	// Default limit/offset if not provided
+
+	sessions, err := h.app.GetSessions(ctx, req.UserId, int(req.Limit), int(req.Offset))
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get sessions failed: %v", err)
+	}
+
+	var pbSessions []*chatpb.Session
+	for _, s := range sessions {
+		pbSessions = append(pbSessions, &chatpb.Session{
+			SessionId: s.ID,
+			Title:     s.Title,
+		})
+	}
+
+	return &chatpb.GetSessionsResponse{
+		Sessions: pbSessions,
+		Total:    int32(len(pbSessions)),
 	}, nil
 }

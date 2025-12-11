@@ -121,6 +121,11 @@ func (s *ChatService) GetHistory(ctx context.Context, sessionID string, limit, o
 	return s.chatRepo.GetSessionMessages(ctx, sessionID, limit, offset)
 }
 
+// GetSessions 获取用户会话列表
+func (s *ChatService) GetSessions(ctx context.Context, userID string, limit, offset int) ([]*domain.Session, error) {
+	return s.chatRepo.GetSessions(ctx, userID, limit, offset)
+}
+
 // DeleteSession 删除会话
 func (s *ChatService) DeleteSession(ctx context.Context, sessionID, userID string) error {
 	session, err := s.chatRepo.GetSession(ctx, sessionID)

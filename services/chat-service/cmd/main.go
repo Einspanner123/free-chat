@@ -9,9 +9,9 @@ import (
 	"free-chat/services/chat-service/internal/infrastructure/adapter"
 	"free-chat/services/chat-service/internal/infrastructure/mq"
 	"free-chat/services/chat-service/internal/infrastructure/persistence/cache"
+	"free-chat/services/chat-service/internal/infrastructure/persistence/db"
 	"free-chat/services/chat-service/internal/infrastructure/persistence/repository"
 	handler "free-chat/services/chat-service/internal/interfaces"
-	"free-chat/services/chat-service/internal/store"
 	"log"
 	"net"
 	"os"
@@ -93,19 +93,18 @@ func main() {
 		}()
 	}
 
-	pgUrl := store.GetURL(&cfg.Postgres)
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=Asia/Shanghai",
+		cfg.Postgres.Address, cfg.Postgres.User, cfg.Postgres.Password, cfg.Postgres.DBName, cfg.Postgres.Port)
+
 	var msgRepo *repository.MessageRepository
 	var sessionRepo *repository.SessionRepository
 
-	if db, err := store.NewPostgresConn(pgUrl); err != nil {
+	gormDB, err := db.InitGorm(dsn)
+	if err != nil {
 		log.Printf("Postgres不可用，历史记录将不会持久化: %v", err)
 	} else {
-		if err := db.CreateTables(); err != nil {
-			log.Printf("数据库迁移失败，历史记录将不会持久化: %v", err)
-		} else {
-			msgRepo = repository.NewMessageRepository(db.DB)
-			sessionRepo = repository.NewSessionRepository(db.DB)
-		}
+		msgRepo = repository.NewMessageRepository(gormDB)
+		sessionRepo = repository.NewSessionRepository(gormDB)
 	}
 
 	// Initialize RocketMQ Consumer

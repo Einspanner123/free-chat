@@ -9,7 +9,7 @@ service ChatService {
     // History
     rpc GetChatHistory(HistoryRequest) returns (HistoryResponse);
     // Session
-    rpc GetSessions(GetSessionRequest) returns (GetSessionResponse);
+    rpc GetSessions(GetSessionsRequest) returns (GetSessionsResponse);
     rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
     rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse);
 }
@@ -53,15 +53,18 @@ message Session {
     string session_id = 1;
     string title = 2;
 }
-message GetSessionRequest {
+message GetSessionsRequest {
     string user_id = 1;
+    int32 limit = 2;
+    int32 offset = 3;
 }
-message GetSessionResponse {
+message GetSessionsResponse {
     repeated Session sessions = 1;
     int32 total = 2;
 }
 message CreateSessionRequest {
     string user_id = 1;
+    string title = 2;
 }
 message CreateSessionResponse {
     bool success = 1;

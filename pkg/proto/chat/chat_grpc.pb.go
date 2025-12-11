@@ -35,7 +35,7 @@ type ChatServiceClient interface {
 	// History
 	GetChatHistory(ctx context.Context, in *HistoryRequest, opts ...grpc.CallOption) (*HistoryResponse, error)
 	// Session
-	GetSessions(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetSessionResponse, error)
+	GetSessions(ctx context.Context, in *GetSessionsRequest, opts ...grpc.CallOption) (*GetSessionsResponse, error)
 	CreateSession(ctx context.Context, in *CreateSessionRequest, opts ...grpc.CallOption) (*CreateSessionResponse, error)
 	DeleteSession(ctx context.Context, in *DeleteSessionRequest, opts ...grpc.CallOption) (*DeleteSessionResponse, error)
 }
@@ -77,9 +77,9 @@ func (c *chatServiceClient) GetChatHistory(ctx context.Context, in *HistoryReque
 	return out, nil
 }
 
-func (c *chatServiceClient) GetSessions(ctx context.Context, in *GetSessionRequest, opts ...grpc.CallOption) (*GetSessionResponse, error) {
+func (c *chatServiceClient) GetSessions(ctx context.Context, in *GetSessionsRequest, opts ...grpc.CallOption) (*GetSessionsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetSessionResponse)
+	out := new(GetSessionsResponse)
 	err := c.cc.Invoke(ctx, ChatService_GetSessions_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -116,7 +116,7 @@ type ChatServiceServer interface {
 	// History
 	GetChatHistory(context.Context, *HistoryRequest) (*HistoryResponse, error)
 	// Session
-	GetSessions(context.Context, *GetSessionRequest) (*GetSessionResponse, error)
+	GetSessions(context.Context, *GetSessionsRequest) (*GetSessionsResponse, error)
 	CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error)
 	DeleteSession(context.Context, *DeleteSessionRequest) (*DeleteSessionResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
@@ -135,7 +135,7 @@ func (UnimplementedChatServiceServer) StreamChat(*ChatRequest, grpc.ServerStream
 func (UnimplementedChatServiceServer) GetChatHistory(context.Context, *HistoryRequest) (*HistoryResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetChatHistory not implemented")
 }
-func (UnimplementedChatServiceServer) GetSessions(context.Context, *GetSessionRequest) (*GetSessionResponse, error) {
+func (UnimplementedChatServiceServer) GetSessions(context.Context, *GetSessionsRequest) (*GetSessionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSessions not implemented")
 }
 func (UnimplementedChatServiceServer) CreateSession(context.Context, *CreateSessionRequest) (*CreateSessionResponse, error) {
@@ -195,7 +195,7 @@ func _ChatService_GetChatHistory_Handler(srv interface{}, ctx context.Context, d
 }
 
 func _ChatService_GetSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSessionRequest)
+	in := new(GetSessionsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ func _ChatService_GetSessions_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: ChatService_GetSessions_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ChatServiceServer).GetSessions(ctx, req.(*GetSessionRequest))
+		return srv.(ChatServiceServer).GetSessions(ctx, req.(*GetSessionsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

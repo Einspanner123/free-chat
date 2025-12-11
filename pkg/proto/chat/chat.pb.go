@@ -408,27 +408,29 @@ func (x *Session) GetTitle() string {
 	return ""
 }
 
-type GetSessionRequest struct {
+type GetSessionsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetSessionRequest) Reset() {
-	*x = GetSessionRequest{}
+func (x *GetSessionsRequest) Reset() {
+	*x = GetSessionsRequest{}
 	mi := &file_chat_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetSessionRequest) String() string {
+func (x *GetSessionsRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetSessionRequest) ProtoMessage() {}
+func (*GetSessionsRequest) ProtoMessage() {}
 
-func (x *GetSessionRequest) ProtoReflect() protoreflect.Message {
+func (x *GetSessionsRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_chat_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -440,19 +442,33 @@ func (x *GetSessionRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetSessionRequest.ProtoReflect.Descriptor instead.
-func (*GetSessionRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetSessionsRequest.ProtoReflect.Descriptor instead.
+func (*GetSessionsRequest) Descriptor() ([]byte, []int) {
 	return file_chat_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *GetSessionRequest) GetUserId() string {
+func (x *GetSessionsRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
 	}
 	return ""
 }
 
-type GetSessionResponse struct {
+func (x *GetSessionsRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *GetSessionsRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+type GetSessionsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Sessions      []*Session             `protobuf:"bytes,1,rep,name=sessions,proto3" json:"sessions,omitempty"`
 	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
@@ -460,20 +476,20 @@ type GetSessionResponse struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetSessionResponse) Reset() {
-	*x = GetSessionResponse{}
+func (x *GetSessionsResponse) Reset() {
+	*x = GetSessionsResponse{}
 	mi := &file_chat_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetSessionResponse) String() string {
+func (x *GetSessionsResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetSessionResponse) ProtoMessage() {}
+func (*GetSessionsResponse) ProtoMessage() {}
 
-func (x *GetSessionResponse) ProtoReflect() protoreflect.Message {
+func (x *GetSessionsResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_chat_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -485,19 +501,19 @@ func (x *GetSessionResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetSessionResponse.ProtoReflect.Descriptor instead.
-func (*GetSessionResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use GetSessionsResponse.ProtoReflect.Descriptor instead.
+func (*GetSessionsResponse) Descriptor() ([]byte, []int) {
 	return file_chat_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *GetSessionResponse) GetSessions() []*Session {
+func (x *GetSessionsResponse) GetSessions() []*Session {
 	if x != nil {
 		return x.Sessions
 	}
 	return nil
 }
 
-func (x *GetSessionResponse) GetTotal() int32 {
+func (x *GetSessionsResponse) GetTotal() int32 {
 	if x != nil {
 		return x.Total
 	}
@@ -507,6 +523,7 @@ func (x *GetSessionResponse) GetTotal() int32 {
 type CreateSessionRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -544,6 +561,13 @@ func (*CreateSessionRequest) Descriptor() ([]byte, []int) {
 func (x *CreateSessionRequest) GetUserId() string {
 	if x != nil {
 		return x.UserId
+	}
+	return ""
+}
+
+func (x *CreateSessionRequest) GetTitle() string {
+	if x != nil {
+		return x.Title
 	}
 	return ""
 }
@@ -751,14 +775,17 @@ const file_chat_proto_rawDesc = "" +
 	"\aSession\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x14\n" +
-	"\x05title\x18\x02 \x01(\tR\x05title\",\n" +
-	"\x11GetSessionRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"U\n" +
-	"\x12GetSessionResponse\x12)\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\"[\n" +
+	"\x12GetSessionsRequest\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\"V\n" +
+	"\x13GetSessionsResponse\x12)\n" +
 	"\bsessions\x18\x01 \x03(\v2\r.chat.SessionR\bsessions\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"/\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"E\n" +
 	"\x14CreateSessionRequest\x12\x17\n" +
-	"\auser_id\x18\x01 \x01(\tR\x06userId\"j\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\"j\n" +
 	"\x15CreateSessionResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x1d\n" +
 	"\n" +
@@ -770,12 +797,12 @@ const file_chat_proto_rawDesc = "" +
 	"session_id\x18\x02 \x01(\tR\tsessionId\"K\n" +
 	"\x15DeleteSessionResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage2\xd9\x02\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage2\xdb\x02\n" +
 	"\vChatService\x125\n" +
 	"\n" +
 	"StreamChat\x12\x11.chat.ChatRequest\x1a\x12.chat.ChatResponse0\x01\x12=\n" +
-	"\x0eGetChatHistory\x12\x14.chat.HistoryRequest\x1a\x15.chat.HistoryResponse\x12@\n" +
-	"\vGetSessions\x12\x17.chat.GetSessionRequest\x1a\x18.chat.GetSessionResponse\x12H\n" +
+	"\x0eGetChatHistory\x12\x14.chat.HistoryRequest\x1a\x15.chat.HistoryResponse\x12B\n" +
+	"\vGetSessions\x12\x18.chat.GetSessionsRequest\x1a\x19.chat.GetSessionsResponse\x12H\n" +
 	"\rCreateSession\x12\x1a.chat.CreateSessionRequest\x1a\x1b.chat.CreateSessionResponse\x12H\n" +
 	"\rDeleteSession\x12\x1a.chat.DeleteSessionRequest\x1a\x1b.chat.DeleteSessionResponseB\rZ\v./chat;chatb\x06proto3"
 
@@ -799,8 +826,8 @@ var file_chat_proto_goTypes = []any{
 	(*HistoryRequest)(nil),        // 3: chat.HistoryRequest
 	(*HistoryResponse)(nil),       // 4: chat.HistoryResponse
 	(*Session)(nil),               // 5: chat.Session
-	(*GetSessionRequest)(nil),     // 6: chat.GetSessionRequest
-	(*GetSessionResponse)(nil),    // 7: chat.GetSessionResponse
+	(*GetSessionsRequest)(nil),    // 6: chat.GetSessionsRequest
+	(*GetSessionsResponse)(nil),   // 7: chat.GetSessionsResponse
 	(*CreateSessionRequest)(nil),  // 8: chat.CreateSessionRequest
 	(*CreateSessionResponse)(nil), // 9: chat.CreateSessionResponse
 	(*DeleteSessionRequest)(nil),  // 10: chat.DeleteSessionRequest
@@ -808,15 +835,15 @@ var file_chat_proto_goTypes = []any{
 }
 var file_chat_proto_depIdxs = []int32{
 	0,  // 0: chat.HistoryResponse.messages:type_name -> chat.ChatMessage
-	5,  // 1: chat.GetSessionResponse.sessions:type_name -> chat.Session
+	5,  // 1: chat.GetSessionsResponse.sessions:type_name -> chat.Session
 	1,  // 2: chat.ChatService.StreamChat:input_type -> chat.ChatRequest
 	3,  // 3: chat.ChatService.GetChatHistory:input_type -> chat.HistoryRequest
-	6,  // 4: chat.ChatService.GetSessions:input_type -> chat.GetSessionRequest
+	6,  // 4: chat.ChatService.GetSessions:input_type -> chat.GetSessionsRequest
 	8,  // 5: chat.ChatService.CreateSession:input_type -> chat.CreateSessionRequest
 	10, // 6: chat.ChatService.DeleteSession:input_type -> chat.DeleteSessionRequest
 	2,  // 7: chat.ChatService.StreamChat:output_type -> chat.ChatResponse
 	4,  // 8: chat.ChatService.GetChatHistory:output_type -> chat.HistoryResponse
-	7,  // 9: chat.ChatService.GetSessions:output_type -> chat.GetSessionResponse
+	7,  // 9: chat.ChatService.GetSessions:output_type -> chat.GetSessionsResponse
 	9,  // 10: chat.ChatService.CreateSession:output_type -> chat.CreateSessionResponse
 	11, // 11: chat.ChatService.DeleteSession:output_type -> chat.DeleteSessionResponse
 	7,  // [7:12] is the sub-list for method output_type

@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Chat</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --bg-color: #f3f4f6;
+            --sidebar-bg: #1f2937;
+            --sidebar-text: #e5e7eb;
+            --chat-bg: #ffffff;
+            --user-msg-bg: #dbeafe;
+            --ai-msg-bg: #f9fafb;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            height: 100vh;
+            display: flex;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            flex-shrink: 0;
+        }
+
+        .new-chat-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            text-align: left;
+            margin-bottom: 1rem;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .new-chat-btn:hover {
+            background-color: #1d4ed8;
+        }
+
+        .session-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .session-item {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+
+        .session-item:hover,
+        .session-item.active {
+            background-color: #374151;
+        }
+
+        .session-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .session-item:hover .delete-btn {
+            opacity: 1;
+        }
+
+        .delete-btn:hover {
+            color: #ef4444;
+        }
+
+        .user-profile {
+            padding-top: 1rem;
+            border-top: 1px solid #374151;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .logout-btn:hover {
+            color: white;
+        }
+
+        /* Main Chat Area Styles */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: white;
+            position: relative;
+        }
+
+        .header {
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: #1f2937;
+        }
+
+        .status-badge {
+            font-size: 0.875rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 1rem;
+            max-width: 80%;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .message.user .avatar {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .message-content {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            background-color: var(--ai-msg-bg);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            line-height: 1.5;
+            color: #374151;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background-color: var(--user-msg-bg);
+            color: #1e40af;
+        }
+
+        .input-area {
+            padding: 1.5rem;
+            border-top: 1px solid #e5e7eb;
+            background-color: white;
+        }
+
+        .input-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            display: flex;
+            gap: 1rem;
+        }
+
+        textarea {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            resize: none;
+            height: 50px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        textarea:focus {
+            border-color: var(--primary-color);
+        }
+
+        button.send-btn {
+            padding: 0 1.5rem;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button.send-btn:hover {
+            background-color: #1d4ed8;
+        }
+
+        button.send-btn:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-content input {
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+        }
+
+        .modal-btn-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        /* Think Tag Styles */
+        .think-block {
+            background-color: #f8fafc;
+            border-radius: 0.5rem;
+            margin: 0.5rem 0;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .think-block summary {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            color: #64748b;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background-color: #f1f5f9;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .think-block summary:hover {
+            background-color: #e2e8f0;
+        }
+
+        .think-block .think-content {
+            padding: 0.75rem;
+            color: #475569;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            border-top: 1px solid #e2e8f0;
+            background-color: #f8fafc;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <button class="new-chat-btn" onclick="createNewChat()">
+            <span>+</span> 新对话
+        </button>
+        <div class="session-list" id="session-list">
+            <!-- Sessions will be loaded here -->
+        </div>
+        <div class="user-profile">
+            <span id="user-display">Guest</span>
+            <button class="logout-btn" onclick="logout()">退出</button>
+        </div>
+    </div>
+
+    <div class="main-area">
+        <div class="header">
+            <h1 id="current-chat-title">Free Chat</h1>
+            <span class="status-badge" id="status">Ready</span>
+        </div>
+
+        <div class="chat-container" id="chat-container">
+            <!-- Messages will be loaded here -->
+            <div class="message ai">
+                <div class="avatar">🤖</div>
+                <div class="message-content">你好！我是 Free Chat 助手。有什么我可以帮你的吗？</div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea id="user-input" placeholder="输入消息..."
+                    onkeydown="if(event.keyCode==13 && !event.shiftKey){event.preventDefault(); sendMessage();}"></textarea>
+                <button class="send-btn" id="send-btn" onclick="sendMessage()">发送</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin:0; text-align:center;">登录</h2>
+            <input type="text" id="username" placeholder="用户名">
+            <input type="password" id="password" placeholder="密码">
+            <div class="modal-btn-group">
+                <button class="modal-btn btn-primary" onclick="login()">登录</button>
+                <button class="modal-btn btn-secondary" onclick="register()">注册</button>
+            </div>
+            <p id="login-msg" style="color:red; font-size:0.875rem; margin:0; text-align:center;"></p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1';
+        let currentSessionId = null;
+        let isGenerating = false;
+
+        // Elements
+        const chatContainer = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const statusBadge = document.getElementById('status');
+        const loginModal = document.getElementById('login-modal');
+        const sessionList = document.getElementById('session-list');
+        const currentChatTitle = document.getElementById('current-chat-title');
+        const userDisplay = document.getElementById('user-display');
+
+        // Initial Load
+        if (!localStorage.getItem('auth_token')) {
+            showLoginModal();
+        } else {
+            initApp();
+        }
+
+        function initApp() {
+            const username = localStorage.getItem('username') || 'User';
+            userDisplay.textContent = username;
+            loadSessions();
+        }
+
+        function showLoginModal() {
+            loginModal.style.display = 'flex';
+        }
+
+        function logout() {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('username');
+            location.reload();
+        }
+
+        // Auth Functions
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const msg = document.getElementById('login-msg');
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await res.json();
+                if (res.ok) {
+                    localStorage.setItem('auth_token', data.access_token);
+                    localStorage.setItem('username', username);
+                    loginModal.style.display = 'none';
+                    initApp();
+                } else {
+                    msg.textContent = data.error || '登录失败';
+                }
+            } catch (e) {
+                msg.textContent = '网络错误';
+            }
+        }
+
+        async function register() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const msg = document.getElementById('login-msg');
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, email: username + '@example.com' })
+                });
+
+                if (res.ok) {
+                    msg.style.color = 'green';
+                    msg.textContent = '注册成功，请登录';
+                } else {
+                    const data = await res.json();
+                    msg.style.color = 'red';
+                    msg.textContent = data.error || '注册失败';
+                }
+            } catch (e) {
+                msg.style.color = 'red';
+                msg.textContent = '网络错误';
+            }
+        }
+
+        // Session Functions
+        async function loadSessions() {
+            try {
+                const res = await fetch(`${API_BASE}/chat/sessions`, {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth_token') }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    renderSessionList(data.sessions || []);
+                } else if (res.status === 401) {
+                    showLoginModal();
+                }
+            } catch (e) {
+                console.error('Failed to load sessions:', e);
+            }
+        }
+
+        function renderSessionList(sessions) {
+            sessionList.innerHTML = '';
+            sessions.forEach(session => {
+                const div = document.createElement('div');
+                div.className = `session-item ${session.session_id === currentSessionId ? 'active' : ''}`;
+                div.onclick = (e) => {
+                    // Prevent click when deleting
+                    if (e.target.classList.contains('delete-btn')) return;
+                    selectSession(session.session_id, session.title);
+                };
+                div.innerHTML = `
+                    <span class="session-title">${session.title || 'New Chat'}</span>
+                    <button class="delete-btn" onclick="deleteSession('${session.session_id}')">×</button>
+                `;
+                sessionList.appendChild(div);
+            });
+        }
+
+        async function selectSession(sessionId, title) {
+            if (currentSessionId === sessionId) return;
+            currentSessionId = sessionId;
+            currentChatTitle.textContent = title || 'Chat';
+
+            // Update UI active state
+            document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
+            // Note: Re-rendering list is better but simple toggle works for now if we don't rebuild list
+            loadSessions(); // Re-render to update active state
+
+            // Load history
+            chatContainer.innerHTML = '';
+            try {
+                const res = await fetch(`${API_BASE}/chat/sessions/${sessionId}/history`, {
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth_token') }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    (data.messages || []).forEach(msg => {
+                        appendMessage(msg.role, msg.content);
+                    });
+                }
+            } catch (e) {
+                console.error('Failed to load history:', e);
+            }
+        }
+
+        function createNewChat() {
+            currentSessionId = null;
+            currentChatTitle.textContent = 'New Chat';
+            chatContainer.innerHTML = `
+                <div class="message ai">
+                    <div class="avatar">🤖</div>
+                    <div class="message-content">你好！我是 Free Chat 助手。有什么我可以帮你的吗？</div>
+                </div>
+            `;
+            document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
+        }
+
+        async function deleteSession(sessionId) {
+            if (!confirm('确定要删除这个对话吗？')) return;
+
+            try {
+                const res = await fetch(`${API_BASE}/chat/sessions/${sessionId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + localStorage.getItem('auth_token') }
+                });
+                if (res.ok) {
+                    if (currentSessionId === sessionId) {
+                        createNewChat();
+                    }
+                    loadSessions();
+                }
+            } catch (e) {
+                console.error('Failed to delete session:', e);
+            }
+        }
+
+        function renderMessageContent(text, role) {
+            let safeText = text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+
+            // Only parse think tags for non-user messages
+            if (role !== 'user') {
+                safeText = safeText.replace(/&lt;think&gt;([\s\S]*?)&lt;\/think&gt;/g, (match, content) => {
+                    return `<details class="think-block"><summary>Thinking Process</summary><div class="think-content">${content}</div></details>`;
+                });
+
+                safeText = safeText.replace(/&lt;think&gt;([\s\S]*)$/, (match, content) => {
+                    return `<details class="think-block" open><summary>Thinking Process (Generating...)</summary><div class="think-content">${content}</div></details>`;
+                });
+            }
+
+            return safeText;
+        }
+
+        // Chat Functions
+        async function sendMessage() {
+            const text = userInput.value.trim();
+            if (!text || isGenerating) return;
+
+            // Add user message
+            appendMessage('user', text);
+            userInput.value = '';
+
+            // Lock input
+            isGenerating = true;
+            sendBtn.disabled = true;
+            statusBadge.textContent = 'Thinking...';
+            statusBadge.style.backgroundColor = '#fef3c7';
+            statusBadge.style.color = '#92400e';
+
+            try {
+                // Create session if needed
+                if (!currentSessionId) {
+                    const sessionRes = await fetch(`${API_BASE}/chat/sessions`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + localStorage.getItem('auth_token')
+                        },
+                        body: JSON.stringify({ title: text.substring(0, 20) })
+                    });
+                    if (sessionRes.ok) {
+                        const sessionData = await sessionRes.json();
+                        currentSessionId = sessionData.session_id;
+                        loadSessions(); // Refresh list to show new session
+                    } else {
+                        throw new Error('Failed to create session');
+                    }
+                }
+
+                // Create AI message placeholder
+                const aiMsgContent = appendMessage('ai', '');
+
+                // Send message and stream response
+                const response = await fetch(`${API_BASE}/chat/sessions/stream`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('auth_token')
+                    },
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        message: text
+                    })
+                });
+
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullResponse = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data:')) {
+                            try {
+                                const data = JSON.parse(line.substring(5));
+                                if (data.content) {
+                                    fullResponse += data.content;
+                                    aiMsgContent.innerHTML = renderMessageContent(fullResponse, 'ai');
+                                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                                }
+                                if (data.error) {
+                                    fullResponse += ` [Error: ${data.error}]`;
+                                    aiMsgContent.innerHTML = renderMessageContent(fullResponse, 'ai');
+                                }
+                            } catch (e) {
+                                // Ignore parse errors for partial chunks
+                            }
+                        }
+                    }
+                }
+
+            } catch (error) {
+                appendMessage('ai', 'Error: ' + error.message);
+            } finally {
+                isGenerating = false;
+                sendBtn.disabled = false;
+                statusBadge.textContent = 'Ready';
+                statusBadge.style.backgroundColor = '#d1fae5';
+                statusBadge.style.color = '#065f46';
+                userInput.focus();
+            }
+        }
+
+        function appendMessage(role, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${role}`;
+
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.textContent = role === 'user' ? '👤' : '🤖';
+
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            content.innerHTML = renderMessageContent(text, role);
+
+            msgDiv.appendChild(avatar);
+            msgDiv.appendChild(content);
+            chatContainer.appendChild(msgDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            return content;
+        }
+    </script>
+</body>
+
+</html>

@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"sync"
 
 	chatpb "free-chat/pkg/proto/chat"
@@ -116,6 +117,7 @@ func (h *ChatHandler) CreateSession(c *gin.Context) {
 		c.Request.Context(),
 		&chatpb.CreateSessionRequest{
 			UserId: userID,
+			Title:  req.Title,
 		})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session"})
@@ -191,6 +193,52 @@ func (h *ChatHandler) DeleteSession(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": resp.Success,
 		"message": resp.Message,
+	})
+}
+
+func (h *ChatHandler) GetSessions(c *gin.Context) {
+	userID := c.GetString("user_id")
+	limit := c.Query("limit")
+	offset := c.Query("offset")
+	limit32, err := strconv.ParseInt(limit, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	offset32, err := strconv.ParseInt(offset, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}
+
+	conn, err := h.getGRPCConnection()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Chat service unavailable"})
+		return
+	}
+
+	client := chatpb.NewChatServiceClient(conn)
+	resp, err := client.GetSessions(c.Request.Context(), &chatpb.GetSessionsRequest{
+		UserId: userID,
+		Limit:  int32(limit32),
+		Offset: int32(offset32),
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get sessions"})
+		return
+	}
+
+	sessions := make([]gin.H, len(resp.Sessions))
+	for i, s := range resp.Sessions {
+		sessions[i] = gin.H{
+			"session_id": s.SessionId,
+			"title":      s.Title,
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"sessions": sessions,
+		"total":    resp.Total,
 	})
 }
 

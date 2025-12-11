@@ -87,6 +87,7 @@ func main() {
 		{
 			chatHandler = handler.NewChatHandler(serviceManager, cfg.Chat.ServerName, cfg.LLM.Name)
 			chat.POST("/sessions", chatHandler.CreateSession)
+			chat.GET("/sessions", chatHandler.GetSessions)
 			chat.GET("/sessions/:sessionId/history", chatHandler.GetHistory)
 			chat.DELETE("/sessions/:sessionId", chatHandler.DeleteSession)
 			chat.POST("/sessions/messages", chatHandler.StreamChat)
