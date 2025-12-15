@@ -1,87 +1,124 @@
 # Free Chat
 
+**基于微服务的 LLM 聊天平台。**
+Go 后端，Python 推理，支持分布式部署。
+
 [English](README.md) | [中文](README_CN.md)
-
-**Free Chat** 是一个现代化的、基于微服务架构的 LLM（大语言模型）聊天应用。它提供了一个全栈解决方案，用于托管和与开源 LLM 进行交互，具有整洁的 Web 界面、实时流式响应和稳健的后端架构。
-
-## ✨ 特性
-
-- **微服务架构**：以可扩展性为核心构建，使用 Go 语言开发高性能后端服务，Python 处理 LLM 推理。
-- **实时流式响应**：通过 Server-Sent Events (SSE) 实现逐字流式响应，体验流畅的对话。
-- **用户认证**：基于 JWT 的安全用户注册和登录机制。
-- **聊天记录**：聊天会话和消息历史记录持久化存储在 PostgreSQL 中。
-- **服务发现**：使用 Consul 实现自动化的服务注册与发现。
-- **消息队列**：使用 RocketMQ 进行异步处理和解耦。
-- **Docker化**：完全容器化的设置，便于部署和开发。
 
 ## 🏗 架构
 
-本项目包含以下服务：
+标准微服务模式。没有魔法，只有硬核工程。
 
-| 服务 | 语言 | 描述 |
-|---------|----------|-------------|
-| **Web UI** | HTML/JS | 由 Nginx 服务的响应式单页应用 (SPA) 前端。 |
-| **API Gateway** | Go | 所有客户端请求的入口点，处理路由和认证中间件。 |
-| **Auth Service** | Go | 管理用户注册、登录和令牌生成 (JWT)。 |
-| **Chat Service** | Go | 处理聊天会话和消息管理的核心业务逻辑。 |
-| **LLM Inference** | Python | 托管 LLM（例如 Qwen/Qwen3-0.6B）并通过 gRPC 接口提供推理服务。 |
+```mermaid
+graph TD
+    User((用户)) -->|HTTP/SSE| Nginx[Web UI / Nginx]
+    Nginx -->|REST| Gateway[API Gateway]
+    
+    subgraph "控制平面 (Control Plane)"
+        Gateway -->|gRPC| Auth[Auth Service]
+        Gateway -->|gRPC| Chat[Chat Service]
+        Auth --> DB[(PostgreSQL)]
+        Chat --> DB
+        Chat --> Redis[(Redis)]
+        Chat --> MQ[RocketMQ]
+    end
+    
+    subgraph "计算平面 (Compute Plane)"
+        MQ -->|Consume| LLM[LLM Inference Service]
+        LLM -->|Produce| MQ
+    end
+    
+    Consul[Consul 服务注册] -.->|Register/Discover| Gateway
+    Consul -.->|Register| Auth
+    Consul -.->|Register| Chat
+    Consul -.->|Register| LLM
+```
 
-**基础设施组件：**
-- **PostgreSQL**：用于存储用户和聊天数据的主数据库。
-- **Redis**：缓存和速率限制。
-- **Consul**：服务注册和健康检查。
-- **RocketMQ**：用于异步通信的事件总线。
+## 🔄 数据流
+
+聊天消息的请求路径。纯 SSE 流式传输。
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant G as API Gateway
+    participant C as Chat Service
+    participant M as RocketMQ
+    participant L as LLM Service
+    
+    U->>G: POST /chat/message
+    G->>C: gRPC SendMessage
+    C->>M: 发布 "chat-request"
+    M->>L: 消费消息
+    
+    loop Token 生成
+        L->>L: 推理 (Inference)
+        L->>M: 发布 "chat-stream"
+    end
+    
+    M->>C: 消费流
+    C->>G: gRPC 流式响应
+    G->>U: SSE 事件 (Token)
+```
 
 ## 🚀 快速开始
 
-### 前置条件
+### 1. 单节点 (开发)
+经典方式。在本地机器上运行所有内容。
 
-- 已安装 [Docker](https://www.docker.com/) 和 [Docker Compose](https://docs.docker.com/compose/)。
+```bash
+# 克隆项目
+git clone https://github.com/einspanner/free-chat.git
+cd free-chat
 
-### 快速启动（本地开发）
+# 运行
+docker compose up -d --build
+```
 
-1.  **克隆仓库**：
-    ```bash
-    git clone https://github.com/yourusername/free-chat.git
-    cd free-chat
-    ```
+访问地址: `http://localhost:3000`
 
-2.  **启动应用**：
-    运行以下命令构建并启动所有服务：
-    ```bash
-    docker compose up -d --build
-    ```
-    *注意：首次运行可能需要几分钟时间来下载 LLM 模型和 Docker 镜像。*
+### 2. 分布式部署 (生产就绪)
+将大脑（控制平面）与肌肉（GPU 计算）分离。
 
-3.  **访问应用**：
-    - **Web UI**：在浏览器中打开 [http://localhost:3000](http://localhost:3000)。
-    - **API Gateway**：地址为 [http://localhost:8080](http://localhost:8080)。
-    - **Consul UI**：在 [http://localhost:8500](http://localhost:8500) 监控服务状态。
+**服务器 A (控制平面):**
+运行 Gateway, Auth, DB, MQ, Consul。
+```bash
+export ADVERTISE_IP=100.100.1.1  # 服务器 A 的 Tailscale/局域网 IP
+docker-compose -f docker-compose-control.yml up -d
+```
 
-### 使用方法
+**服务器 B (GPU 计算):**
+运行 Chat Service, LLM Inference。
+```bash
+export ADVERTISE_IP=100.100.1.2  # 服务器 B 的 Tailscale/局域网 IP
+export CONTROL_PLANE_IP=100.100.1.1 # 连接到服务器 A
+docker-compose -f docker-compose-compute.yml up -d
+```
 
-1.  打开 Web UI。
-2.  注册新账号（如果已有账号则直接登录）。
-3.  点击 "**+ 新对话**" 开始聊天。
-4.  输入消息并发送。
-5.  实时观看 AI 回复！如果模型支持思维链（Chain of Thought），点击 "Thinking Process" 即可展开查看推理步骤。
+### 3. 运行 Qwen-3B (高性能)
+如果你有显存，别凑合用 0.6B 小模型。
 
-## ☁️ 部署
+**方法 A：环境变量 (推荐)**
+修改 `docker-compose.yml` 或在 export 命令中指定：
+```bash
+export MODEL_NAME="Qwen/Qwen2.5-3B-Instruct"
+```
 
-### Hugging Face Spaces
+**方法 B：Docker Compose 覆盖**
+```yaml
+  llm-inference:
+    environment:
+      - MODEL_NAME=Qwen/Qwen2.5-3B-Instruct
+```
+*注意：运行 3B 模型确保你的 GPU 至少有 8GB 显存。*
 
-本项目已配置为支持轻松部署到 Hugging Face Spaces（使用 Docker SDK）。
-
-详细说明请参阅 [deploy/hf-space/README.md](deploy/hf-space/README.md)。
-
-## 🛠 配置
-
-主要配置文件位于 `config/config.yml`。它处理以下设置：
-- 数据库连接（Postgres, Redis）
-- 服务端口（gRPC, HTTP）
-- LLM 模型选择和参数
-- JWT 密钥
-- RocketMQ 主题
+## 🛠 技术栈
+- **Go**: 高并发服务 (Gateway, Auth, Chat)。
+- **Python**: PyTorch/HuggingFace 推理。
+- **gRPC**: 低延迟服务间通信。
+- **RocketMQ**: 解耦聊天逻辑与推理。
+- **Consul**: 动态服务发现。
+- **Tailscale**: 分布式节点的安全网状网络。
 
 ## 📂 项目结构
 
@@ -91,15 +128,11 @@
 ├── config/             # 全局配置文件
 ├── deploy/             # 部署配置 (例如 HF Spaces)
 ├── pkg/                # 共享 Go 包 (Proto, Utils)
-├── services/           # 微服务源代码
+├── services/           # 微服务源码
 │   ├── api-gateway/    # HTTP 网关
 │   ├── auth-service/   # 认证服务
 │   ├── chat-service/   # 聊天业务逻辑
 │   ├── llm-inference/  # Python LLM 服务
 │   └── web-ui/         # 前端静态文件
-└── docker-compose.yml  # 本地开发编排文件
+└── docker-compose.yml  # 本地开发编排
 ```
-
-## 📜 许可证
-
-[MIT License](LICENSE)

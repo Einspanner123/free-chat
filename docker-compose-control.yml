@@ -1,0 +1,164 @@
+version: '3.8'
+
+services:
+  # 基础设施服务
+  postgres:
+    image: postgres:14.11-alpine
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: free-chat
+      POSTGRES_PASSWORD: free-chat-passwd
+      POSTGRES_DB: free-chat
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U free-chat -d free-chat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: redis
+    restart: always
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  consul:
+    image: consul:1.15
+    container_name: consul
+    restart: always
+    command: >
+      agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+    volumes:
+      - consul_data:/consul/data
+    ports:
+      - "8500:8500"  # HTTP API
+      - "8600:8600"  # DNS
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "consul", "members", "-status=alive"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  rmqnamesrv:
+    image: apache/rocketmq:4.9.4
+    container_name: rmqnamesrv
+    ports:
+      - 9876:9876
+    networks:
+      - app-network
+    command: sh mqnamesrv
+
+  rmqbroker:
+    image: apache/rocketmq:4.9.4
+    container_name: rmqbroker
+    ports:
+      - 10911:10911
+      - 10909:10909
+    networks:
+      - app-network
+    command: sh mqbroker -n rmqnamesrv:9876 -c /opt/rocketmq-4.9.4/conf/broker.conf
+    environment:
+      - NAMESRV_ADDR=rmqnamesrv:9876
+    depends_on:
+      - rmqnamesrv
+    volumes:
+       - ./config/rocketmq/broker.conf:/opt/rocketmq-4.9.4/conf/broker.conf
+
+  # 微服务 (控制平面)
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: auth-service
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
+    environment:
+      APP_ENV: "production"
+      APP_PORT: "8082"
+      # 使用环境变量 ADVERTISE_IP (如果设置)
+      ADVERTISE_IP: ${ADVERTISE_IP}
+      POSTGRES_ADDRESS: "postgres"
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: "free-chat"
+      POSTGRES_PASSWORD: "free-chat-passwd"
+      POSTGRES_DB_NAME: "free-chat"
+      CONSUL_ADDRESS: "consul:8500"
+      AUTH_JWT_SECRET: "llm_chat_secret"
+    ports:
+      - "8082:8082"
+    networks:
+      - app-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: api-gateway
+    restart: always
+    depends_on:
+      consul:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_ENV: "production"
+      PORT: "8080"
+      SERVER_NAME: "api-gateway"
+      # 使用环境变量 ADVERTISE_IP (如果设置)
+      ADVERTISE_IP: ${ADVERTISE_IP}
+      CONSUL_ADDRESS: "consul:8500"
+      REDIS_ADDRESS: "redis"
+      REDIS_PORT: "6379"
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+  # Web UI
+  web-ui:
+    build:
+      context: services/web-ui
+      dockerfile: Dockerfile
+    container_name: web-ui
+    restart: always
+    ports:
+      - "3000:80"
+    networks:
+      - app-network
+
+# 网络配置
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+# 数据持久化
+volumes:
+  postgres_data:
+  redis_data:
+  consul_data:

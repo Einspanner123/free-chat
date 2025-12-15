@@ -1,87 +1,124 @@
 # Free Chat
 
+**Microservices-based LLM chat platform.**
+Go backend, Python inference, distributed-ready.
+
 [English](README.md) | [中文](README_CN.md)
-
-**Free Chat** is a modern, microservices-based LLM (Large Language Model) chat application. It provides a full-stack solution for hosting and interacting with open-source LLMs, featuring a clean web interface, real-time streaming responses, and a robust backend architecture.
-
-## ✨ Features
-
-- **Microservices Architecture**: Built with scalability in mind, using Go for high-performance backend services and Python for LLM inference.
-- **Real-time Streaming**: Experience fluid conversations with token-by-token streaming responses (Server-Sent Events).
-- **User Authentication**: Secure user registration and login with JWT-based sessions.
-- **Chat History**: Persistent chat sessions and message history stored in PostgreSQL.
-- **Service Discovery**: Automated service registration and discovery using Consul.
-- **Message Queuing**: Asynchronous processing and decoupling using RocketMQ.
-- **Dockerized**: Fully containerized setup for easy deployment and development.
 
 ## 🏗 Architecture
 
-The project is organized into the following services:
+Standard microservices pattern. No magic, just solid engineering.
 
-| Service | Language | Description |
-|---------|----------|-------------|
-| **Web UI** | HTML/JS | A responsive, single-page application (SPA) frontend served by Nginx. |
-| **API Gateway** | Go | The entry point for all client requests, handling routing and authentication middleware. |
-| **Auth Service** | Go | Manages user registration, login, and token generation (JWT). |
-| **Chat Service** | Go | Core business logic for chat sessions and message management. |
-| **LLM Inference** | Python | Hosts the LLM (e.g., Qwen/Qwen3-0.6B) and exposes a gRPC interface for inference. |
+```mermaid
+graph TD
+    User((User)) -->|HTTP/SSE| Nginx[Web UI / Nginx]
+    Nginx -->|REST| Gateway[API Gateway]
+    
+    subgraph "Control Plane"
+        Gateway -->|gRPC| Auth[Auth Service]
+        Gateway -->|gRPC| Chat[Chat Service]
+        Auth --> DB[(PostgreSQL)]
+        Chat --> DB
+        Chat --> Redis[(Redis)]
+        Chat --> MQ[RocketMQ]
+    end
+    
+    subgraph "Compute Plane"
+        MQ -->|Consume| LLM[LLM Inference Service]
+        LLM -->|Produce| MQ
+    end
+    
+    Consul[Consul Service Registry] -.->|Register/Discover| Gateway
+    Consul -.->|Register| Auth
+    Consul -.->|Register| Chat
+    Consul -.->|Register| LLM
+```
 
-**Infrastructure Components:**
-- **PostgreSQL**: Primary database for user and chat data.
-- **Redis**: Caching and rate limiting.
-- **Consul**: Service registry and health checking.
-- **RocketMQ**: Event bus for asynchronous communication.
+## 🔄 Data Flow
 
-## 🚀 Getting Started
+Request path for a chat message. Pure streaming via SSE.
 
-### Prerequisites
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant G as API Gateway
+    participant C as Chat Service
+    participant M as RocketMQ
+    participant L as LLM Service
+    
+    U->>G: POST /chat/message
+    G->>C: gRPC SendMessage
+    C->>M: Publish "chat-request"
+    M->>L: Consume Message
+    
+    loop Token Generation
+        L->>L: Inference
+        L->>M: Publish "chat-stream"
+    end
+    
+    M->>C: Consume Stream
+    C->>G: gRPC Stream Response
+    G->>U: SSE Event (Token)
+```
 
-- [Docker](https://www.docker.com/) and [Docker Compose](https://docs.docker.com/compose/) installed.
+## 🚀 Quick Start
 
-### Quick Start (Local Development)
+### 1. Single Node (Development)
+The classic way. Runs everything on your local machine.
 
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/yourusername/free-chat.git
-    cd free-chat
-    ```
+```bash
+# Clone
+git clone https://github.com/einspanner/free-chat.git
+cd free-chat
 
-2.  **Start the application**:
-    Run the following command to build and start all services:
-    ```bash
-    docker compose up -d --build
-    ```
-    *Note: The first run may take a few minutes to download the LLM model and Docker images.*
+# Run
+docker compose up -d --build
+```
 
-3.  **Access the application**:
-    - **Web UI**: Open [http://localhost:3000](http://localhost:3000) in your browser.
-    - **API Gateway**: Accessible at [http://localhost:8080](http://localhost:8080).
-    - **Consul UI**: Monitor services at [http://localhost:8500](http://localhost:8500).
+Access: `http://localhost:3000`
 
-### Usage
+### 2. Distributed Deployment (Production-Ready)
+Split the brain (Control Plane) from the muscle (GPU Compute).
 
-1.  Open the Web UI.
-2.  Register a new account (or login if you already have one).
-3.  Click "**+ New Chat**" to start a conversation.
-4.  Type your message and press Send.
-5.  Watch the AI reply in real-time! If the model supports Chain of Thought, click "Thinking Process" to expand the reasoning steps.
+**Server A (Control Plane):**
+Runs Gateway, Auth, DB, MQ, Consul.
+```bash
+export ADVERTISE_IP=100.100.1.1  # Server A's Tailscale/LAN IP
+docker-compose -f docker-compose-control.yml up -d
+```
 
-## ☁️ Deployment
+**Server B (GPU Compute):**
+Runs Chat Service, LLM Inference.
+```bash
+export ADVERTISE_IP=100.100.1.2  # Server B's Tailscale/LAN IP
+export CONTROL_PLANE_IP=100.100.1.1 # Connect to Server A
+docker-compose -f docker-compose-compute.yml up -d
+```
 
-### Hugging Face Spaces
+### 3. Run with Qwen-3B (High Performance)
+Don't settle for the tiny 0.6B model if you have the VRAM.
 
-This project is configured for easy deployment to Hugging Face Spaces (using the Docker SDK).
+**Method A: Environment Variable (Recommended)**
+Modify `docker-compose.yml` or your export command:
+```bash
+export MODEL_NAME="Qwen/Qwen2.5-3B-Instruct"
+```
 
-See [deploy/hf-space/README.md](deploy/hf-space/README.md) for detailed instructions.
+**Method B: Docker Compose Override**
+```yaml
+  llm-inference:
+    environment:
+      - MODEL_NAME=Qwen/Qwen2.5-3B-Instruct
+```
+*Note: Ensure your GPU has at least 8GB VRAM for 3B models.*
 
-## 🛠 Configuration
-
-The main configuration file is located at `config/config.yml`. It handles settings for:
-- Database connections (Postgres, Redis)
-- Service ports (gRPC, HTTP)
-- LLM model selection and parameters
-- JWT secrets
-- RocketMQ topics
+## 🛠 Tech Stack
+- **Go**: High-concurrency services (Gateway, Auth, Chat).
+- **Python**: PyTorch/HuggingFace inference.
+- **gRPC**: Low-latency inter-service communication.
+- **RocketMQ**: Decoupling chat logic from inference.
+- **Consul**: Dynamic service discovery.
+- **Tailscale**: Secure mesh networking for distributed nodes.
 
 ## 📂 Project Structure
 
@@ -99,7 +136,3 @@ The main configuration file is located at `config/config.yml`. It handles settin
 │   └── web-ui/         # Frontend Static Files
 └── docker-compose.yml  # Local development orchestration
 ```
-
-## 📜 License
-
-[MIT License](LICENSE)
