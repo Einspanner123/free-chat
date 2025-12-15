@@ -1,6 +1,6 @@
 # Free Chat
 
-**Microservices-based LLM chat platform.**
+**No-nonsense, microservices-based LLM chat platform.**
 Go backend, Python inference, distributed-ready.
 
 [English](README.md) | [中文](README_CN.md)
@@ -11,8 +11,8 @@ Standard microservices pattern. No magic, just solid engineering.
 
 ```mermaid
 graph TD
-    User((User)) -->|HTTP/SSE| Nginx[Web UI / Nginx]
-    Nginx -->|REST| Gateway[API Gateway]
+    User((User)) -->|HTTP| WebUI[Web UI / Nginx]
+    User -->|REST| Gateway[API Gateway]
     
     subgraph "Control Plane"
         Gateway -->|gRPC| Auth[Auth Service]
@@ -24,8 +24,7 @@ graph TD
     end
     
     subgraph "Compute Plane"
-        MQ -->|Consume| LLM[LLM Inference Service]
-        LLM -->|Produce| MQ
+        Chat -->|gRPC| LLM[LLM Inference Service]
     end
     
     Consul[Consul Service Registry] -.->|Register/Discover| Gateway
@@ -43,22 +42,27 @@ sequenceDiagram
     participant U as User
     participant G as API Gateway
     participant C as Chat Service
-    participant M as RocketMQ
     participant L as LLM Service
+    participant M as RocketMQ
     
     U->>G: POST /chat/message
     G->>C: gRPC SendMessage
-    C->>M: Publish "chat-request"
-    M->>L: Consume Message
     
-    loop Token Generation
-        L->>L: Inference
-        L->>M: Publish "chat-stream"
+    %% Async Persistence
+    par Async Persistence
+        C->>M: Publish "save-message"
+    and Real-time Inference
+        C->>L: gRPC StreamInference
+        
+        loop Token Generation
+            L->>C: Stream Response (Token)
+            C->>G: gRPC Stream Response
+            G->>U: SSE Event (Token)
+        end
     end
     
-    M->>C: Consume Stream
-    C->>G: gRPC Stream Response
-    G->>U: SSE Event (Token)
+    %% Final Save
+    C->>M: Publish "save-assistant-message"
 ```
 
 ## 🚀 Quick Start
@@ -116,7 +120,7 @@ export MODEL_NAME="Qwen/Qwen2.5-3B-Instruct"
 - **Go**: High-concurrency services (Gateway, Auth, Chat).
 - **Python**: PyTorch/HuggingFace inference.
 - **gRPC**: Low-latency inter-service communication.
-- **RocketMQ**: Decoupling chat logic from inference.
+- **RocketMQ**: Asynchronous message persistence.
 - **Consul**: Dynamic service discovery.
 - **Tailscale**: Secure mesh networking for distributed nodes.
 

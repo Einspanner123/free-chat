@@ -1,6 +1,6 @@
 # Free Chat
 
-**基于微服务的 LLM 聊天平台。**
+**拒绝废话，基于微服务的 LLM 聊天平台。**
 Go 后端，Python 推理，支持分布式部署。
 
 [English](README.md) | [中文](README_CN.md)
@@ -11,8 +11,8 @@ Go 后端，Python 推理，支持分布式部署。
 
 ```mermaid
 graph TD
-    User((用户)) -->|HTTP/SSE| Nginx[Web UI / Nginx]
-    Nginx -->|REST| Gateway[API Gateway]
+    User((用户)) -->|HTTP| WebUI[Web UI / Nginx]
+    User -->|REST| Gateway[API Gateway]
     
     subgraph "控制平面 (Control Plane)"
         Gateway -->|gRPC| Auth[Auth Service]
@@ -24,8 +24,7 @@ graph TD
     end
     
     subgraph "计算平面 (Compute Plane)"
-        MQ -->|Consume| LLM[LLM Inference Service]
-        LLM -->|Produce| MQ
+        Chat -->|gRPC| LLM[LLM Inference Service]
     end
     
     Consul[Consul 服务注册] -.->|Register/Discover| Gateway
@@ -43,22 +42,27 @@ sequenceDiagram
     participant U as User
     participant G as API Gateway
     participant C as Chat Service
-    participant M as RocketMQ
     participant L as LLM Service
+    participant M as RocketMQ
     
     U->>G: POST /chat/message
     G->>C: gRPC SendMessage
-    C->>M: 发布 "chat-request"
-    M->>L: 消费消息
     
-    loop Token 生成
-        L->>L: 推理 (Inference)
-        L->>M: 发布 "chat-stream"
+    %% Async Persistence
+    par 异步持久化
+        C->>M: 发布 "save-message"
+    and 实时推理
+        C->>L: gRPC StreamInference
+        
+        loop Token 生成
+            L->>C: 流式响应 (Token)
+            C->>G: gRPC 流式响应
+            G->>U: SSE 事件 (Token)
+        end
     end
     
-    M->>C: 消费流
-    C->>G: gRPC 流式响应
-    G->>U: SSE 事件 (Token)
+    %% Final Save
+    C->>M: 发布 "save-assistant-message"
 ```
 
 ## 🚀 快速开始
@@ -116,7 +120,7 @@ export MODEL_NAME="Qwen/Qwen2.5-3B-Instruct"
 - **Go**: 高并发服务 (Gateway, Auth, Chat)。
 - **Python**: PyTorch/HuggingFace 推理。
 - **gRPC**: 低延迟服务间通信。
-- **RocketMQ**: 解耦聊天逻辑与推理。
+- **RocketMQ**: 异步消息持久化。
 - **Consul**: 动态服务发现。
 - **Tailscale**: 分布式节点的安全网状网络。
 
@@ -127,7 +131,7 @@ export MODEL_NAME="Qwen/Qwen2.5-3B-Instruct"
 ├── cmd/                # 共享命令行工具
 ├── config/             # 全局配置文件
 ├── deploy/             # 部署配置 (例如 HF Spaces)
-├── pkg/                # 共享 Go 包 (Proto, Utils)
+├── pkg/                # Shared Go packages (Proto, Utils)
 ├── services/           # 微服务源码
 │   ├── api-gateway/    # HTTP 网关
 │   ├── auth-service/   # 认证服务
