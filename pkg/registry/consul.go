@@ -37,13 +37,13 @@ func NewConsulRegistry(config *ConsulConfig) (*ConsulRegistry, error) {
 
 	client, err := api.NewClient(consulConfig)
 	if err != nil {
-		return nil, fmt.Errorf("创建Consul客户端失败: %w", err)
+		return nil, fmt.Errorf("failed to create Consul client: %w", err)
 	}
 	_, err = client.Status().Leader()
 	if err != nil {
-		return nil, fmt.Errorf("连接Consul失败: %w", err)
+		return nil, fmt.Errorf("failed to connect to Consul: %w", err)
 	}
-	log.Printf("✅ Consul连接成功: %s", config.Address)
+	log.Printf("Consul connected: %s", config.Address)
 	return &ConsulRegistry{
 		client: client,
 	}, nil
@@ -80,10 +80,10 @@ func (r *ConsulRegistry) RegisterService(config *ServiceConfig) error {
 	// 注册服务
 	err := r.client.Agent().ServiceRegister(registration)
 	if err != nil {
-		return fmt.Errorf("服务注册失败: %w", err)
+		return fmt.Errorf("failed to register service: %w", err)
 	}
 
-	log.Printf("✅ 服务注册成功: %s (ID: %s)", config.Name, config.ID)
+	log.Printf("Service registered: %s (ID: %s)", config.Name, config.ID)
 	return nil
 }
 
@@ -91,10 +91,10 @@ func (r *ConsulRegistry) RegisterService(config *ServiceConfig) error {
 func (r *ConsulRegistry) DeregisterService(serviceID string) error {
 	err := r.client.Agent().ServiceDeregister(serviceID)
 	if err != nil {
-		return fmt.Errorf("服务注销失败: %w", err)
+		return fmt.Errorf("failed to deregister service: %w", err)
 	}
 
-	log.Printf("✅ 服务注销成功: %s", serviceID)
+	log.Printf("Service deregistered: %s", serviceID)
 	return nil
 }
 
@@ -103,7 +103,7 @@ func (r *ConsulRegistry) DiscoverService(serviceName string) ([]*ServiceInstance
 	// 查询健康的服务实例
 	services, _, err := r.client.Health().Service(serviceName, "", true, nil)
 	if err != nil {
-		return nil, fmt.Errorf("服务发现失败: %w", err)
+		return nil, fmt.Errorf("failed to discover service: %w", err)
 	}
 
 	var instances []*ServiceInstance

@@ -37,7 +37,7 @@ func main() {
 	grpcPort := cfg.Chat.GRPCPort
 	localIP, err := registry.ResolveAdvertiseIP(cfg.AdvertiseIP)
 	if err != nil {
-		log.Fatalf("获取本机IP失败: %v", err)
+		log.Fatalf("failed to get local IP: %v", err)
 	}
 	consulCfg := &registry.ConsulConfig{
 		Address:    cfg.Consul.Address,
@@ -60,7 +60,7 @@ func main() {
 	}
 	var svcMgr *registry.ServiceManager
 	if svcMgr, err = registry.NewServiceManager(consulCfg, serviceCfg); err != nil {
-		log.Printf("初始化Consul客户端失败: %v", err)
+		log.Printf("failed to initialize Consul client: %v", err)
 	}
 
 	// Initialize Redis
@@ -101,7 +101,7 @@ func main() {
 
 	gormDB, err := db.InitGorm(dsn)
 	if err != nil {
-		log.Printf("Postgres不可用，历史记录将不会持久化: %v", err)
+		log.Printf("PostgreSQL unavailable, history will not be persisted: %v", err)
 	} else {
 		msgRepo = repository.NewMessageRepository(gormDB)
 		sessionRepo = repository.NewSessionRepository(gormDB)

@@ -27,7 +27,7 @@ func main() {
 	serverEndpoint := fmt.Sprintf("%s:%d", serviceName, grpcPort)
 	localIP, err := registry.ResolveAdvertiseIP(cfg.AdvertiseIP)
 	if err != nil {
-		log.Fatalf("获取本机IP失败: %v", err)
+		log.Fatalf("failed to get local IP: %v", err)
 	}
 	// Consul配置
 	consulCfg := &registry.ConsulConfig{
@@ -53,7 +53,7 @@ func main() {
 	//
 	sm, err := registry.NewServiceManager(consulCfg, serviceCfg)
 	if err != nil {
-		log.Fatalf("创建服务管理器失败: %v", err)
+		log.Fatalf("failed to create service manager: %v", err)
 	}
 	// 创建数据库连接
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=disable TimeZone=Asia/Shanghai",
@@ -88,7 +88,7 @@ func main() {
 
 	// 启动 gRPC 服务
 	go func() {
-		log.Printf("Auth gRPC 服务启动: %d", grpcPort)
+		log.Printf("auth gRPC service starting on port %d", grpcPort)
 		if err = authServer.Serve(grpcPort); err != nil {
 			log.Fatal(err)
 		}

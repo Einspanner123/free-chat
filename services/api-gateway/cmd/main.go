@@ -27,7 +27,7 @@ func main() {
 	servicePort := cfg.Port
 	localIP, err := registry.ResolveAdvertiseIP(cfg.AdvertiseIP)
 	if err != nil {
-		log.Fatalf("获取本机IP失败: %v", err)
+		log.Fatalf("failed to get local IP: %v", err)
 	}
 	consulCfg := &registry.ConsulConfig{
 		Address:    cfg.Consul.Address,
@@ -49,7 +49,7 @@ func main() {
 	}
 	serviceManager, err := registry.NewServiceManager(consulCfg, serviceCfg)
 	if err != nil {
-		log.Fatalf("初始化Consul客户端失败: %v", err)
+		log.Fatalf("failed to initialize Consul client: %v", err)
 	}
 	redisClient := redis.NewClient(&redis.Options{
 		Addr: fmt.Sprintf("%s:%d", cfg.Redis.Address, cfg.Redis.Port),
@@ -96,7 +96,7 @@ func main() {
 	}
 
 	serviceManager.Start()
-	log.Printf("网关服务启动, 监听服务 %d", cfg.Port)
+	log.Printf("gateway service listening on port %d", cfg.Port)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", servicePort),

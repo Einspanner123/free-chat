@@ -97,13 +97,13 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效请求参数：" + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request parameters: " + err.Error()})
 		return
 	}
 	// 连接到认证服务
 	conn, err := h.getGRPCConnection()
 	if err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "连接认证服务失败：" + err.Error()})
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "failed to connect to auth service: " + err.Error()})
 		return
 	}
 	// Do not close pooled connection
@@ -114,7 +114,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Password: req.Password,
 	})
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "未授权: " + err.Error()})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized: " + err.Error()})
 		return
 	}
 

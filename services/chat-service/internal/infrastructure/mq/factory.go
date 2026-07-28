@@ -75,7 +75,7 @@ func InitConsumer(cfg *config.AppConfig, msgRepo *repository.MessageRepository, 
 		return nil, fmt.Errorf("failed to start RocketMQ consumer: %w", err)
 	}
 
-	log.Println("✅ RocketMQ Consumer started")
+	log.Println("RocketMQ consumer started")
 	return mqConsumer, nil
 }
 

@@ -61,11 +61,11 @@ func NewServiceManager(consulConfig *ConsulConfig, serviceConfig *ServiceConfig)
 func (sm *ServiceManager) Start() error {
 	// 注册服务
 	if err := sm.registry.RegisterService(sm.serviceConfig); err != nil {
-		return fmt.Errorf("服务注册失败: %v", err)
+		return fmt.Errorf("service registration failed: %v", err)
 	}
 	serviceName := sm.serviceConfig.Name
 
-	log.Printf("🎯 %s 服务启动成功", serviceName)
+	log.Printf("%s started", serviceName)
 	return nil
 }
 
@@ -73,7 +73,7 @@ func (sm *ServiceManager) Start() error {
 func (sm *ServiceManager) Stop() {
 	// 注销服务
 	if err := sm.registry.DeregisterService(sm.serviceConfig.ID); err != nil {
-		log.Printf("❌ 服务注销失败: %v", err)
+		log.Printf("service deregistration failed: %v", err)
 	}
 }
 

@@ -93,7 +93,7 @@ func RateLimit(redisClient *redis.Client, qps int) gin.HandlerFunc {
 			c.Header("X-RateLimit-Limit", strconv.Itoa(capacity))
 			c.Header("Retry-After", strconv.Itoa(retryAfter))
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error": "请求过于频繁，请稍后再试",
+				"error": "too many requests, please try again later",
 			})
 			c.Abort()
 			return
