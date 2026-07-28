@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"math/rand"
@@ -249,6 +250,7 @@ func (h *ChatHandler) StreamChat(c *gin.Context) {
 		Message   string `json:"message" binding:"required"`
 		SessionId string `json:"session_id" binding:"required"`
 		Model     string `json:"model"`
+		TopicID   int    `json:"topic_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Printf("req binding error: %v", err)
@@ -277,11 +279,23 @@ func (h *ChatHandler) StreamChat(c *gin.Context) {
 		model = h.llmService
 	}
 
+	// 如果指定了 topic_id，打包到 message 中
+	messagePayload := req.Message
+	if req.TopicID > 0 {
+		msgMap := map[string]interface{}{
+			"message":  req.Message,
+			"topic_id": req.TopicID,
+		}
+		if payloadBytes, jsonErr := json.Marshal(msgMap); jsonErr == nil {
+			messagePayload = string(payloadBytes)
+		}
+	}
+
 	// 创建流式聊天请求
 	stream, err := client.StreamChat(c.Request.Context(), &chatpb.ChatRequest{
 		SessionId: req.SessionId,
 		UserId:    userID,
-		Message:   req.Message,
+		Message:   messagePayload,
 		ModelName: model,
 	})
 	if err != nil {
@@ -295,33 +309,53 @@ func (h *ChatHandler) StreamChat(c *gin.Context) {
 	c.Header("Connection", "keep-alive")
 
 	// 流式响应
-	flushCounter := 0
-	for {
-		resp, err := stream.Recv()
+	// 第一个响应可能是 topic_select 事件
+	resp, err := stream.Recv()
+	if err != nil {
 		if err == io.EOF {
 			c.Writer.Flush()
-			break
+			return
 		}
-		if err != nil {
-			// 处理stream错误
-			if grpcStatus, ok := status.FromError(err); ok {
-				c.SSEvent("error", gin.H{
-					"message": grpcStatus.Message(),
-					"code":    grpcStatus.Code(),
-				})
-			} else {
-				c.SSEvent("error", gin.H{
-					"message": "Unknown error occurred",
-				})
+		c.SSEvent("error", gin.H{"message": "Stream error"})
+		c.Writer.Flush()
+		return
+	}
+
+	// 检查是否是 topic_select 事件
+	if resp.Content == "__TOPIC_SELECT__" {
+		c.SSEvent("topic_select", gin.H{"topics": resp.SessionId})
+		c.Writer.Flush()
+
+		// 读取后续的流式响应
+		for {
+			resp, err = stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				break
+			}
+			if resp.Error != "" {
+				c.SSEvent("error", gin.H{"message": resp.Error})
+				c.Writer.Flush()
+				break
+			}
+			c.SSEvent("message", gin.H{"content": resp.Content, "finished": resp.IsFinished, "sessionId": resp.SessionId})
+			if resp.IsFinished {
+				c.Writer.Flush()
+				break
 			}
 			c.Writer.Flush()
-			break
 		}
-		// 处理后端错误
+		c.Writer.Flush()
+		return
+	}
+
+	// 普通流式响应（无 topic_select）
+	flushCounter := 0
+	for {
 		if resp.Error != "" {
-			c.SSEvent("error", gin.H{
-				"message": resp.Error,
-			})
+			c.SSEvent("error", gin.H{"message": resp.Error})
 			c.Writer.Flush()
 			break
 		}
@@ -331,12 +365,26 @@ func (h *ChatHandler) StreamChat(c *gin.Context) {
 			"sessionId": resp.SessionId,
 		})
 		flushCounter++
-		if resp.IsFinished || flushCounter >= 5 { // 硬编码，后续优化
+		if resp.IsFinished || flushCounter >= 5 {
 			c.Writer.Flush()
 			flushCounter = 0
 		}
-
 		if resp.IsFinished {
+			break
+		}
+
+		resp, err = stream.Recv()
+		if err == io.EOF {
+			c.Writer.Flush()
+			break
+		}
+		if err != nil {
+			if grpcStatus, ok := status.FromError(err); ok {
+				c.SSEvent("error", gin.H{"message": grpcStatus.Message(), "code": grpcStatus.Code()})
+			} else {
+				c.SSEvent("error", gin.H{"message": "Unknown error occurred"})
+			}
+			c.Writer.Flush()
 			break
 		}
 	}

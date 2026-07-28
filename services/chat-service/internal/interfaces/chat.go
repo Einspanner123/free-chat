@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"strings"
 	"time"
 
 	chatpb "free-chat/pkg/proto/chat"
@@ -40,7 +41,22 @@ func (h *ChatHandler) StreamChat(req *chatpb.ChatRequest, stream chatpb.ChatServ
 	}
 
 	// 2. Save User Message
-	if err := h.app.SaveMessage(ctx, sessionID, req.UserId, domain.RoleUser, req.Message); err != nil {
+	// 检查 message 是否包含 topic_id（从 API Gateway 传递）
+	userMessage := req.Message
+	var topicID int
+	if strings.HasPrefix(req.Message, `{"message":`) {
+		var msgPayload struct {
+			Message string `json:"message"`
+			TopicID int    `json:"topic_id"`
+		}
+		if err := json.Unmarshal([]byte(req.Message), &msgPayload); err == nil && msgPayload.Message != "" {
+			userMessage = msgPayload.Message
+			topicID = msgPayload.TopicID
+		}
+	}
+	_ = topicID // 后续用于过滤话题上下文
+
+	if err := h.app.SaveMessage(ctx, sessionID, req.UserId, domain.RoleUser, userMessage); err != nil {
 		log.Printf("[WARN] save user message failed: %v", err)
 		return status.Errorf(codes.Internal, "save message failed: %v", err)
 	}
@@ -51,7 +67,7 @@ func (h *ChatHandler) StreamChat(req *chatpb.ChatRequest, stream chatpb.ChatServ
 	if histErr != nil {
 		log.Printf("[WARN] get history failed: %v", histErr)
 	}
-	builtCtx, err := h.ctxBuilder.Build(ctx, history, req.Message, 32768)
+	builtCtx, err := h.ctxBuilder.Build(ctx, history, userMessage, 32768)
 	if err != nil {
 		log.Printf("[WARN] context build failed, falling back to plain message: %v", err)
 		contextJSON = ""
@@ -67,6 +83,20 @@ func (h *ChatHandler) StreamChat(req *chatpb.ChatRequest, stream chatpb.ChatServ
 		// Log compression stats for monitoring
 		if builtCtx.Strategy != "full" {
 			log.Printf("[INFO] context strategy=%s ratio=%.2f", builtCtx.Strategy, builtCtx.Compression["ratio"])
+		}
+
+		// If topics were identified, send topic_select event as first response
+		if len(builtCtx.Topics) > 0 {
+			topicsJSON, marshalErr := json.Marshal(builtCtx.Topics)
+			if marshalErr == nil {
+				if sendErr := stream.Send(&chatpb.ChatResponse{
+					SessionId:  string(topicsJSON),
+					Content:    "__TOPIC_SELECT__",
+					IsFinished: false,
+				}); sendErr != nil {
+					log.Printf("[WARN] failed to send topic_select: %v", sendErr)
+				}
+			}
 		}
 	}
 
@@ -88,7 +118,7 @@ func (h *ChatHandler) StreamChat(req *chatpb.ChatRequest, stream chatpb.ChatServ
 	inferenceReq := &domain.InferenceRequest{
 		SessionID: sessionID,
 		UserID:    req.UserId,
-		Request:   req.Message,
+		Request:   userMessage,
 		Model:     targetAddr,
 	}
 
