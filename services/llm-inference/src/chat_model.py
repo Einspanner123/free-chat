@@ -29,6 +29,7 @@ class ChatModel:
         
         # 默认系统提示词
         self.default_system_prompt = "You are a helpful AI assistant."
+        self._last_input_tokens = 0
         
         # 检查是否有可用的GPU
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -47,6 +48,10 @@ class ChatModel:
             dtype="auto",  # 自动选择数据类型
         ).to(self.device)
 
+    def count_tokens(self, text: str) -> int:
+        """精确计算文本的 token 数"""
+        return len(self.tokenizer.encode(text, add_special_tokens=False))
+
     def GetStreamer(self, msg):
         try:
             # 尝试解析为JSON消息列表
@@ -56,7 +61,7 @@ class ChatModel:
                 has_system = any(m.get('role') == 'system' for m in messages)
                 if not has_system:
                     messages.insert(0, {"role": "system", "content": self.default_system_prompt})
-                
+
                 text = self.tokenizer.apply_chat_template(
                     messages,
                     tokenize=False,
@@ -85,6 +90,7 @@ class ChatModel:
                 add_generation_prompt=True
             )
 
+        self._last_input_tokens = self.count_tokens(text)
         inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
         streamer = TextIteratorStreamer(
             tokenizer=self.tokenizer, skip_prompt=True, skip_special_tokens=True
@@ -99,7 +105,7 @@ class ChatModel:
             top_k=self.top_k,
             do_sample=True,
         )
-        
+
         def safe_generate():
             with self.lock:
                 self.model.generate(**gen_kwargs)
