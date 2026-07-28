@@ -12,10 +12,10 @@ import (
 
 type AppConfig struct {
 	ServerName  string         `mapstructure:"server_name" yaml:"server_name"`
+	AdvertiseIP string         `mapstructure:"advertise_ip" yaml:"advertise_ip"`
 	Version     string         `mapstructure:"version" yaml:"version"`
 	Environment string         `mapstructure:"environment" yaml:"environment"`
 	Port        int            `mapstructure:"port" yaml:"port"`
-	Mysql       MysqlConfig    `mapstructure:"mysql" yaml:"mysql"`
 	Redis       RedisConfig    `mapstructure:"redis" yaml:"redis"`
 	Consul      ConsulConfig   `mapstructure:"consul" yaml:"consul"`
 	Postgres    PostgresConfig `mapstructure:"postgres" yaml:"postgres"`
@@ -23,17 +23,6 @@ type AppConfig struct {
 	Auth        AuthConfig     `mapstructure:"auth" yaml:"auth"`
 	LLM         LLMConfig      `mapstructure:"llm" yaml:"llm"`
 	RocketMQ    RocketMQConfig `mapstructure:"rocketmq" yaml:"rocketmq"`
-}
-
-type MysqlConfig struct {
-	Host     string        `mapstructure:"host" yaml:"host"`
-	Port     int           `mapstructure:"port" yaml:"port"`
-	Username string        `mapstructure:"username" yaml:"username"`
-	Password string        `mapstructure:"password" yaml:"password"`
-	Database string        `mapstructure:"database" yaml:"database"`
-	MaxIdle  int           `mapstructure:"max_idle" yaml:"max_idle"`
-	MaxOpen  int           `mapstructure:"max_open" yaml:"max_open"`
-	MaxLife  time.Duration `mapstructure:"max_life" yaml:"max_life"`
 }
 
 type RedisConfig struct {

@@ -25,7 +25,7 @@ func main() {
 	}
 	serviceName := cfg.ServerName
 	servicePort := cfg.Port
-	localIP, err := registry.GetLocalIP()
+	localIP, err := registry.ResolveAdvertiseIP(cfg.AdvertiseIP)
 	if err != nil {
 		log.Fatalf("获取本机IP失败: %v", err)
 	}

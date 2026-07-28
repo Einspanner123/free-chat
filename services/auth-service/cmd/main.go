@@ -25,7 +25,7 @@ func main() {
 	serviceName := cfg.Auth.ServerName
 	grpcPort := cfg.Auth.GRPCPort
 	serverEndpoint := fmt.Sprintf("%s:%d", serviceName, grpcPort)
-	localIP, err := registry.GetLocalIP()
+	localIP, err := registry.ResolveAdvertiseIP(cfg.AdvertiseIP)
 	if err != nil {
 		log.Fatalf("获取本机IP失败: %v", err)
 	}

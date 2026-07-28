@@ -133,6 +133,14 @@ func GetLocalIP() (string, error) {
 	return localAddr.IP.String(), nil
 }
 
+// ResolveAdvertiseIP 返回指定的 IP，如果为空则自动检测本机 IP
+func ResolveAdvertiseIP(advertiseIP string) (string, error) {
+	if advertiseIP != "" {
+		return advertiseIP, nil
+	}
+	return GetLocalIP()
+}
+
 // 生成服务ID
 func GenerateServiceID(serviceName string, port int) string {
 	ip, _ := GetLocalIP()
