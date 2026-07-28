@@ -110,3 +110,60 @@ func TestBuiltContextContainsCompressionMetadata(t *testing.T) {
 		t.Error("compression metadata should be accessible")
 	}
 }
+
+func TestCompressorKeepsRecentVerbatim(t *testing.T) {
+	messages := make([]*domain.Message, 10)
+	for i := 0; i < 10; i++ {
+		messages[i] = &domain.Message{Role: domain.RoleUser, Content: "msg", TokenCount: 2, CreatedAt: time.Now()}
+	}
+
+	compressor := NewDefaultCompressor()
+	segments, err := compressor.Compress(context.Background(), "s1", messages, 1000)
+	if err != nil {
+		t.Fatalf("Compress failed: %v", err)
+	}
+
+	// Last 5 should be verbatim, first 5 should be compressed or discarded
+	for _, seg := range segments {
+		if seg.Level == CompressLevelNone && seg.OriginalTokens != seg.CompressedTokens {
+			t.Errorf("verbatim segment should have OriginalTokens == CompressedTokens, got %d vs %d", seg.OriginalTokens, seg.CompressedTokens)
+		}
+	}
+}
+
+func TestCompressorReturnsRoleString(t *testing.T) {
+	messages := []*domain.Message{
+		{Role: domain.RoleUser, Content: "hello", TokenCount: 1, CreatedAt: time.Now()},
+	}
+	compressor := NewDefaultCompressor()
+	segments, err := compressor.Compress(context.Background(), "s1", messages, 100)
+	if err != nil {
+		t.Fatalf("Compress failed: %v", err)
+	}
+	if len(segments) != 1 {
+		t.Fatalf("expected 1 segment, got %d", len(segments))
+	}
+	if segments[0].Role != "user" {
+		t.Errorf("expected role 'user', got %s", segments[0].Role)
+	}
+}
+
+func TestCompressorDiscardsOldest(t *testing.T) {
+	messages := make([]*domain.Message, 25)
+	for i := 0; i < 25; i++ {
+		messages[i] = &domain.Message{Role: domain.RoleUser, Content: "test", TokenCount: 1, CreatedAt: time.Now()}
+	}
+
+	compressor := NewDefaultCompressor()
+	segments, err := compressor.Compress(context.Background(), "s1", messages, 1000)
+	if err != nil {
+		t.Fatalf("Compress failed: %v", err)
+	}
+
+	// 25 messages, last 5 verbatim, messages 6-20 heavy-compressed, messages 21-24 discarded
+	// Total segments: 5 (verbatim) + 15 (heavy) = 20 (not 25)
+	if len(segments) > 20 {
+		t.Errorf("expected at most 20 segments after compression (5 verbatim + 15 heavy), got %d", len(segments))
+	}
+}
+
