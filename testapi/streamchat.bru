@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: http://localhost:8080/api/v1/chat/sessions/1/stream
+  url: {{base_url}}/api/v1/chat/sessions/stream
   body: json
   auth: bearer
 }
@@ -15,16 +15,17 @@ headers {
 }
 
 auth:bearer {
-  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJ1c2VybmFtZSI6InRlc3R1c2VyIiwic3ViIjoiYWNjZXNzIiwiZXhwIjoxNzYzOTU5MTI0LCJuYmYiOjE3NjM5NTU1MjQsImlhdCI6MTc2Mzk1NTUyNH0.SiRPcltyU_YlTeDANeipxi87n8RJgS8LDH89HPP4oFI
+  token: {{jwt_token}}
 }
 
 body:json {
   {
-    "user_id": "1",
-    "message": "你好"
+    "session_id": "{{session_id}}",
+    "message": "你好，请介绍一下你自己"
   }
 }
 
 docs {
-  This request retrieves a list of users from the JSONPlaceholder API.
+  Stream chat with LLM. Obtain jwt_token via login first,
+  then create a session to get session_id.
 }

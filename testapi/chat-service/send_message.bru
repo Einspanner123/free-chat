@@ -1,11 +1,11 @@
 meta {
-  name: create_session
+  name: send_message
   type: http
-  seq: 1
+  seq: 5
 }
 
 post {
-  url: {{base_url}}/api/v1/chat/sessions
+  url: {{base_url}}/api/v1/chat/sessions/messages
   body: json
   auth: bearer
 }
@@ -20,11 +20,12 @@ auth:bearer {
 
 body:json {
   {
-    "title": "New Chat Session"
+    "session_id": "{{session_id}}",
+    "message": "请用中文回答：什么是微服务架构？"
   }
 }
 
 settings {
   encodeUrl: true
-  timeout: 0
+  timeout: 30
 }

@@ -1,12 +1,12 @@
 meta {
-  name: create_session
+  name: get_history
   type: http
-  seq: 1
+  seq: 3
 }
 
-post {
-  url: {{base_url}}/api/v1/chat/sessions
-  body: json
+get {
+  url: {{base_url}}/api/v1/chat/sessions/{{session_id}}/history?limit=50&offset=0
+  body: none
   auth: bearer
 }
 
@@ -16,12 +16,6 @@ headers {
 
 auth:bearer {
   token: {{jwt_token}}
-}
-
-body:json {
-  {
-    "title": "New Chat Session"
-  }
 }
 
 settings {
