@@ -87,16 +87,7 @@ type LLMConfig struct {
 type RocketMQConfig struct {
 	NameServers   []string `mapstructure:"name_servers" yaml:"name_servers"`
 	MaxRetries    int      `mapstructure:"max_retries" yaml:"max_retries"`
-	GroupName     string   `mapstructure:"group_name" yaml:"group_name"`
 	ConsumerGroup string   `mapstructure:"consumer_group" yaml:"consumer_group"`
-	MessageModel  string   `mapstructure:"message_model" yaml:"message_model"`
-	Topics        struct {
-		LLMRequest  string `mapstructure:"llm_request" yaml:"llm_request"`
-		LLMResponse string `mapstructure:"llm_response" yaml:"llm_response"`
-
-		UserEvent string `mapstructure:"user_event" yaml:"user_event"`
-		SystemLog string `mapstructure:"system_log" yaml:"system_log"`
-	} `mapstructure:"topics" yaml:"topics"`
 }
 
 func LoadConfig() (*AppConfig, error) {

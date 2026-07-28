@@ -45,10 +45,4 @@ rocketmq:
   name_servers: ["localhost:9876"]
   max_retries: 3
   consumer_group: "chat-consumer"
-  message_model: "clustering"   # clustering | broadcasting
-  topics:
-    llm_request: "prod-chat-llm-req"
-    llm_response: "prod-chat-llm-resp"
-    user_event: "prod-user-events"
-    system_log: "prod-system-logs"
   
