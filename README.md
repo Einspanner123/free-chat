@@ -1,13 +1,12 @@
 # Free Chat
 
-**No-nonsense, microservices-based LLM chat platform.**
-Go backend, Python inference, distributed-ready.
+Microservices-based LLM chat platform with Go backend, Python inference, and distributed deployment support.
 
 [English](README.md) | [中文](README_CN.md)
 
-## 🏗 Architecture
+## Architecture
 
-Standard microservices pattern. No magic, just solid engineering.
+Standard microservices pattern with control plane and compute plane separation.
 
 ```mermaid
 graph TD
@@ -33,9 +32,9 @@ graph TD
     Consul -.->|Register| LLM
 ```
 
-## 🔄 Data Flow
+## Data Flow
 
-Request path for a chat message. Pure streaming via SSE.
+Request path for a chat message with SSE streaming and async persistence via RocketMQ.
 
 ```mermaid
 sequenceDiagram
@@ -65,34 +64,34 @@ sequenceDiagram
     C->>M: Publish "save-assistant-message"
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Single Node (Development)
-The classic way. Runs everything on your local machine.
+
+Run all services on a single machine using Docker Compose.
 
 ```bash
-# Clone
 git clone https://github.com/einspanner/free-chat.git
 cd free-chat
 
-# Run
 docker compose up -d --build
 ```
 
 Access: `http://localhost:3000`
 
 ### 2. Distributed Deployment (Production-Ready)
-Split the brain (Control Plane) from the muscle (GPU Compute).
 
-**Server A (Control Plane):**
-Runs Gateway, Auth, DB, MQ, Consul.
+Separate control plane services from GPU compute services across two machines.
+
+**Server A (Control Plane):** Runs Gateway, Auth, DB, MQ, Consul.
+
 ```bash
 export ADVERTISE_IP=100.100.1.1  # Server A's Tailscale/LAN IP
 docker-compose -f docker-compose-control.yml up -d
 ```
 
-**Server B (GPU Compute):**
-Runs Chat Service, LLM Inference.
+**Server B (GPU Compute):** Runs Chat Service, LLM Inference.
+
 ```bash
 export ADVERTISE_IP=100.100.1.2  # Server B's Tailscale/LAN IP
 export CONTROL_PLANE_IP=100.100.1.1 # Connect to Server A
@@ -100,31 +99,33 @@ docker-compose -f docker-compose-compute.yml up -d
 ```
 
 ### 3. Run with Qwen-3B (High Performance)
-Don't settle for the tiny 0.6B model if you have the VRAM.
+
+The default model is small (0.6B). For better quality, use Qwen-3B, which requires at least 8GB VRAM.
 
 **Method A: Environment Variable (Recommended)**
-Modify `docker-compose.yml` or your export command:
+
 ```bash
 export MODEL_NAME="Qwen/Qwen2.5-3B-Instruct"
 ```
 
 **Method B: Docker Compose Override**
+
 ```yaml
   llm-inference:
     environment:
       - MODEL_NAME=Qwen/Qwen2.5-3B-Instruct
 ```
-*Note: Ensure your GPU has at least 8GB VRAM for 3B models.*
 
-## 🛠 Tech Stack
-- **Go**: High-concurrency services (Gateway, Auth, Chat).
-- **Python**: PyTorch/HuggingFace inference.
-- **gRPC**: Low-latency inter-service communication.
-- **RocketMQ**: Asynchronous message persistence.
-- **Consul**: Dynamic service discovery.
-- **Tailscale**: Secure mesh networking for distributed nodes.
+## Tech Stack
 
-## 📂 Project Structure
+- **Go**: High-concurrency services (Gateway, Auth, Chat)
+- **Python**: PyTorch/HuggingFace inference
+- **gRPC**: Low-latency inter-service communication
+- **RocketMQ**: Asynchronous message persistence
+- **Consul**: Dynamic service discovery
+- **Tailscale**: Secure mesh networking for distributed nodes
+
+## Project Structure
 
 ```text
 .
