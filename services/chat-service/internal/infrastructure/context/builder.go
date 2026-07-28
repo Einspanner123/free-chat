@@ -50,7 +50,7 @@ type BuiltContext struct {
 
 // Topic represents a conversation topic for user selection.
 type Topic struct {
-	ID      string `json:"id"`
+	ID      int    `json:"id"`
 	Label   string `json:"label"`
 	Summary string `json:"summary"`
 }
