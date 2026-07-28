@@ -17,11 +17,12 @@ const (
 )
 
 type Message struct {
-	ID        string
-	SessionID string
-	UserID    string
+	ID         string
+	SessionID  string
+	UserID     string
 	Role      Role
 	Content   string
+	TokenCount int
 	CreatedAt time.Time
 }
 
