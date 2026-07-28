@@ -36,10 +36,13 @@ func NewJWTService(secretKey string, expirationAccess, expirationRefresh int) *J
 
 func (j *JWTService) GenerateAccessToken(userID string, userName string) (*domain.Token, error) {
 	token, expiresAt, err := j.generate(userID, userName, TypeAccess)
+	if err != nil {
+		return nil, err
+	}
 	return &domain.Token{
 		Token:     *token,
 		ExpiresAt: *expiresAt,
-	}, err
+	}, nil
 }
 
 func (j *JWTService) GenerateRefreshToken(userID string, userName string) (*domain.Token, error) {
@@ -99,11 +102,15 @@ func (j *JWTService) RefreshToken(tokenStr string) (*domain.Token, *domain.Token
 }
 
 func (j *JWTService) generate(userID, username, tokenType string) (*string, *time.Time, error) {
+	expiration := j.accessExpiration
+	if tokenType == TypeRefresh {
+		expiration = j.refreshExpiration
+	}
 	claims := &Claims{
 		UserID:   userID,
 		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.refreshExpiration)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiration)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 			Subject:   tokenType,
