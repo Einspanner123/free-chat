@@ -5,9 +5,9 @@ services:
     container_name: postgres
     restart: always
     environment:
-      POSTGRES_USER: free-chat
-      POSTGRES_PASSWORD: free-chat-passwd
-      POSTGRES_DB: free-chat
+      POSTGRES_USER: "${POSTGRES_USER:-free-chat}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-free-chat-passwd}"
+      POSTGRES_DB: "${POSTGRES_DB_NAME:-free-chat}"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -125,10 +125,10 @@ services:
       POSTGRES_ADDRESS: "postgres"
       POSTGRES_PORT: "5432"
       POSTGRES_USER: "free-chat"
-      POSTGRES_PASSWORD: "free-chat-passwd"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-free-chat-passwd}"
       POSTGRES_DB_NAME: "free-chat"
       CONSUL_ADDRESS: "consul:8500"
-      AUTH_JWT_SECRET: "llm_chat_secret"
+      AUTH_JWT_SECRET: "${AUTH_JWT_SECRET:-llm_chat_secret}"
     ports:
       - "8082:8082"
     networks:
@@ -150,7 +150,7 @@ services:
       POSTGRES_ADDRESS: "postgres"
       POSTGRES_PORT: "5432"
       POSTGRES_USER: "free-chat"
-      POSTGRES_PASSWORD: "free-chat-passwd"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-free-chat-passwd}"
       POSTGRES_DB_NAME: "free-chat"
       REDIS_ADDRESS: "redis"
       REDIS_PORT: "6379"

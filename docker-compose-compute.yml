@@ -44,7 +44,7 @@ services:
       POSTGRES_ADDRESS: "${CONTROL_PLANE_IP}"
       POSTGRES_PORT: "5432"
       POSTGRES_USER: "free-chat"
-      POSTGRES_PASSWORD: "free-chat-passwd"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-free-chat-passwd}"
       POSTGRES_DB_NAME: "free-chat"
       REDIS_ADDRESS: "${CONTROL_PLANE_IP}"
       REDIS_PORT: "6379"
