@@ -7,10 +7,12 @@ import (
 	"free-chat/pkg/registry"
 	"free-chat/services/chat-service/internal/application"
 	"free-chat/services/chat-service/internal/infrastructure/adapter"
+	"free-chat/services/chat-service/internal/infrastructure/context"
 	"free-chat/services/chat-service/internal/infrastructure/mq"
 	"free-chat/services/chat-service/internal/infrastructure/persistence/cache"
 	"free-chat/services/chat-service/internal/infrastructure/persistence/db"
 	"free-chat/services/chat-service/internal/infrastructure/persistence/repository"
+	"free-chat/services/chat-service/internal/infrastructure/tokenizer"
 	handler "free-chat/services/chat-service/internal/interfaces"
 	"log"
 	"net"
@@ -128,8 +130,21 @@ func main() {
 	// Initialize Application
 	chatApp := application.NewChatService(chatRepoAdapter, modelRepoAdapter)
 
+	// Initialize Tokenizer and ContextBuilder
+	modelName := cfg.LLM.Name
+	if modelName == "" {
+		modelName = "qwen"
+	}
+	tk, err := tokenizer.NewTokenizer(modelName)
+	if err != nil {
+		log.Printf("[WARN] tokenizer init failed, fallback to approximate: %v", err)
+		tk = nil
+	}
+	compressor := context.NewDefaultCompressor()
+	ctxBuilder := context.NewDefaultBuilder(compressor, tk)
+
 	// Initialize Handler
-	chatHandler := handler.NewChatHandler(chatApp, llmClient)
+	chatHandler := handler.NewChatHandler(chatApp, llmClient, ctxBuilder)
 
 	grpcServer := grpc.NewServer()
 	chatpb.RegisterChatServiceServer(grpcServer, chatHandler)

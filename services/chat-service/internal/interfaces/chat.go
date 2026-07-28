@@ -2,12 +2,14 @@ package interfaces
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"time"
 
 	chatpb "free-chat/pkg/proto/chat"
 	"free-chat/services/chat-service/internal/application"
 	"free-chat/services/chat-service/internal/domain"
+	ctxbld "free-chat/services/chat-service/internal/infrastructure/context"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,14 +17,16 @@ import (
 
 type ChatHandler struct {
 	chatpb.UnimplementedChatServiceServer
-	app *application.ChatService
-	llm *LLMClient
+	app        *application.ChatService
+	llm        *LLMClient
+	ctxBuilder ctxbld.ContextBuilder
 }
 
-func NewChatHandler(app *application.ChatService, llm *LLMClient) *ChatHandler {
+func NewChatHandler(app *application.ChatService, llm *LLMClient, ctxBuilder ctxbld.ContextBuilder) *ChatHandler {
 	return &ChatHandler{
-		app: app,
-		llm: llm,
+		app:        app,
+		llm:        llm,
+		ctxBuilder: ctxBuilder,
 	}
 }
 
@@ -41,14 +45,32 @@ func (h *ChatHandler) StreamChat(req *chatpb.ChatRequest, stream chatpb.ChatServ
 		return status.Errorf(codes.Internal, "save message failed: %v", err)
 	}
 
-	// 3. Call LLM Service
-	// Get full context including the message just saved
-	contextStr, err := h.app.GetContext(ctx, sessionID)
+	// 3. Build context with token management
+	var contextJSON string
+	history, histErr := h.app.GetHistory(ctx, sessionID, 10, 0)
+	if histErr != nil {
+		log.Printf("[WARN] get history failed: %v", histErr)
+	}
+	builtCtx, err := h.ctxBuilder.Build(ctx, history, req.Message, 32768)
 	if err != nil {
-		log.Printf("[WARN] get context failed: %v", err)
+		log.Printf("[WARN] context build failed, falling back to plain message: %v", err)
+		contextJSON = ""
+	} else {
+		jsonBytes, marshalErr := json.Marshal(builtCtx.Messages)
+		if marshalErr != nil {
+			log.Printf("[WARN] context marshal failed: %v", marshalErr)
+			contextJSON = ""
+		} else {
+			contextJSON = string(jsonBytes)
+		}
+
+		// Log compression stats for monitoring
+		if builtCtx.Strategy != "full" {
+			log.Printf("[INFO] context strategy=%s ratio=%.2f", builtCtx.Strategy, builtCtx.Compression["ratio"])
+		}
 	}
 
-	// Select Best Model Instance (Atomic Select & Increment)
+	// 4. Select Best Model Instance (Atomic Select & Increment)
 	targetAddr, err := h.app.SelectBestModel(ctx, req.ModelName)
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "select model instance failed: %v", err)
@@ -70,8 +92,8 @@ func (h *ChatHandler) StreamChat(req *chatpb.ChatRequest, stream chatpb.ChatServ
 		Model:     targetAddr,
 	}
 
-	if contextStr != "" {
-		inferenceReq.Request = contextStr
+	if contextJSON != "" {
+		inferenceReq.Request = contextJSON
 	}
 
 	tokenChan, err := h.llm.GetGeneratedToken(ctx, inferenceReq)

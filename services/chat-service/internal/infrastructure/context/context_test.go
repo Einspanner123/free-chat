@@ -61,10 +61,10 @@ func TestBudgetWatermark(t *testing.T) {
 }
 
 func TestContextBuilderBuildReturnsMessages(t *testing.T) {
-	builder := NewDefaultBuilder()
+	builder := NewDefaultBuilder(nil, nil)
 
 	ctx := context.Background()
-	built, err := builder.Build(ctx, "session-1", "user-1", "你好")
+	built, err := builder.Build(ctx, nil, "你好", 32768)
 	if err != nil {
 		t.Fatalf("Build failed: %v", err)
 	}
@@ -80,13 +80,12 @@ func TestContextBuilderBuildReturnsMessages(t *testing.T) {
 }
 
 func TestContextBuilderBudgetExhaustedTriggersStrategy(t *testing.T) {
-	builder := NewDefaultBuilder()
-	_ = builder
+	builder := NewDefaultBuilder(nil, nil)
 
 	// When budget is exhausted, strategy should be set to "compressed" or "topic_select"
 	// This test defines the expected contract
 	ctx := context.Background()
-	built, err := builder.Build(ctx, "session-1", "user-1", "test message")
+	built, err := builder.Build(ctx, nil, "test message", 4096)
 	if err != nil {
 		t.Fatalf("Build failed: %v", err)
 	}
