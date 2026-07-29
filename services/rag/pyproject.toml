@@ -1,0 +1,11 @@
+[project]
+name = "rag"
+version = "0.1.0"
+description = "RAG (Retrieval-Augmented Generation) Pipeline"
+requires-python = ">=3.12"
+dependencies = ["loguru>=0.7.3"]
+[project.optional-dependencies]
+full = ["sentence-transformers", "chromadb"]
+dev = ["pytest>=8.0"]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
