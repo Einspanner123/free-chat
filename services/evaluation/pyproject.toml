@@ -1,0 +1,16 @@
+[project]
+name = "evaluation"
+version = "0.1.0"
+description = "LLM Evaluation Suite with benchmarks and experiment reports"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "loguru>=0.7.3",
+]
+
+[project.optional-dependencies]
+full = ["matplotlib", "numpy"]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
