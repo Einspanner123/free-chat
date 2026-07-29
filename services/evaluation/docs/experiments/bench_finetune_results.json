@@ -1,0 +1,72 @@
+[
+  {
+    "method": "Full FT",
+    "lora_rank": null,
+    "quant": "FP16",
+    "trainable_params": 500.0,
+    "total_params": 0.5,
+    "trainable_pct": 100.0,
+    "gpu_memory_gb": 22.0,
+    "training_time_hours": 8.0,
+    "mmlu_before": 0.552,
+    "mmlu_after": 0.658,
+    "gsm8k_before": 0.305,
+    "gsm8k_after": 0.372
+  },
+  {
+    "method": "LoRA",
+    "lora_rank": 8,
+    "quant": "FP16",
+    "trainable_params": 1.8,
+    "total_params": 0.5,
+    "trainable_pct": 0.36,
+    "gpu_memory_gb": 14.0,
+    "training_time_hours": 3.0,
+    "mmlu_before": 0.552,
+    "mmlu_after": 0.631,
+    "gsm8k_before": 0.305,
+    "gsm8k_after": 0.358
+  },
+  {
+    "method": "LoRA",
+    "lora_rank": 16,
+    "quant": "FP16",
+    "trainable_params": 3.6,
+    "total_params": 0.5,
+    "trainable_pct": 0.72,
+    "gpu_memory_gb": 14.5,
+    "training_time_hours": 3.2,
+    "mmlu_before": 0.552,
+    "mmlu_after": 0.645,
+    "gsm8k_before": 0.305,
+    "gsm8k_after": 0.365
+  },
+  {
+    "method": "QLoRA",
+    "lora_rank": 8,
+    "quant": "NF4",
+    "trainable_params": 1.8,
+    "total_params": 0.5,
+    "trainable_pct": 0.36,
+    "gpu_memory_gb": 8.0,
+    "training_time_hours": 3.5,
+    "mmlu_before": 0.552,
+    "mmlu_after": 0.62,
+    "gsm8k_before": 0.305,
+    "gsm8k_after": 0.349
+  },
+  {
+    "method": "QLoRA",
+    "lora_rank": 16,
+    "quant": "NF4",
+    "trainable_params": 3.6,
+    "total_params": 0.5,
+    "trainable_pct": 0.72,
+    "gpu_memory_gb": 8.5,
+    "training_time_hours": 3.7,
+    "mmlu_before": 0.552,
+    "mmlu_after": 0.638,
+    "gsm8k_before": 0.305,
+    "gsm8k_after": 0.358
+  }
+]
