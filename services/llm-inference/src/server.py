@@ -1,3 +1,10 @@
+"""
+gRPC server for LLM inference.
+
+Uses the engine abstraction layer to support multiple backends
+(vLLM, HuggingFace) with optional quantization (AWQ, GPTQ).
+"""
+
 import json
 import os
 import signal
@@ -12,10 +19,11 @@ import time
 import grpc
 import llm_inference_pb2 as pb2
 import llm_inference_pb2_grpc as pb2_grpc
-from chat_model import ChatModel
 from config import config
 from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 from loguru import logger
+
+from engine_factory import EngineFactory, EngineType
 
 
 def get_local_ip():
@@ -50,10 +58,10 @@ def register_consul(service_id, name, address, port, consul_addr):
     )
     try:
         with urllib.request.urlopen(req, timeout=5) as _:
-            logger.info(f"{name}注册成功")
+            logger.info(f"{name} registration successful")
             return True
     except Exception as e:
-        logger.error(f"{name}注册失败: {e}")
+        logger.error(f"{name} registration failed: {e}")
         return False
 
 
@@ -62,98 +70,130 @@ def deregister_consul(service_id, consul_addr):
     req = urllib.request.Request(url, method="PUT")
     try:
         urllib.request.urlopen(req, timeout=5).close()
-        logger.info("Consul注销成功")
+        logger.info("Consul deregistration successful")
         return True
     except Exception as e:
-        logger.error(f"Consul注销失败: {e}")
+        logger.error(f"Consul deregistration failed: {e}")
         return False
 
 
-# 实现 gRPC 服务类
 class InferencerServiceServicer(pb2_grpc.InferencerServiceServicer):
     def __init__(self):
-        # 这里可以初始化模型和其他资源
-        logger.info(f"初始化服务，使用模型: {config.modelName}")
-        self.model = ChatModel(
-            model_name=config.modelName,
-            max_new_tokens=config.maxTokens,
+        logger.info(
+            f"Initializing engine: type={config.engineType}, "
+            f"model={config.modelName}, "
+            f"quantization={config.quantization}"
+        )
+
+        # Resolve engine type
+        engine_type = EngineType.AUTO
+        if config.engineType.lower() == "vllm":
+            engine_type = EngineType.VLLM
+        elif config.engineType.lower() == "hf":
+            engine_type = EngineType.HF
+
+        # Create engine via factory
+        self._engine = EngineFactory.create(
+            engine_type=engine_type,
+            model_path=config.modelName,
+            quantization=config.quantization,
+            max_tokens=config.maxTokens,
             temperature=config.temperature,
-            repeat_penalty=config.repetitionPenalty,
             top_p=config.topP,
             top_k=config.topK,
+            repetition_penalty=config.repetitionPenalty,
+            gpu_memory_utilization=config.gpuMemoryUtilization,
+            tensor_parallel_size=config.tensorParallelSize,
+            max_model_len=config.maxModelLen,
         )
+
+        engine_info = self._engine.info()
+        logger.info(f"Engine started: {engine_info}")
 
     def StreamInference(
         self, request_iterator: Iterator[pb2.InferenceRequest], context
     ) -> Iterator[pb2.InferenceResponse]:
-        """实现流式推理方法"""
-        logger.info("接收到流式推理请求")
+        logger.info("Received streaming inference request")
 
         try:
-            # 收集请求信息
             session_id = None
             messages: str = ""
-            temperature = config.temperature
             for request in request_iterator:
                 session_id = request.session_id
                 if request.message:
                     messages += str(request.message)
-                else:
-                    continue
-                logger.info(
-                    f"接收到消息: session_id={session_id}, message_length={len(request.message)}"
-                )
-                gen_tokens = 0
-                start_time = time.time()
-                try:
-                    streamer = self.model.GetStreamer(msg=messages)
-                    logger.info("start getting response.")
-                    for chunk in streamer:
-                        gen_tokens += len(self.model.tokenizer.tokenize(chunk))
-                        yield pb2.InferenceResponse(
-                            chunk=chunk,
-                            is_finished=False,
-                            error="",
-                            generated_tokens=gen_tokens,
-                        )
-                    
-                    duration = time.time() - start_time
-                    tps = gen_tokens / duration if duration > 0 else 0
-                    logger.info(f"生成完成: tokens={gen_tokens}, time={duration:.2f}s, tps={tps:.2f}")
 
-                    # 发送结束信号
+            logger.info(
+                f"Processing: session_id={session_id}, "
+                f"message_length={len(messages)}"
+            )
+
+            # Parse messages from JSON or create simple user message
+            try:
+                parsed_messages = json.loads(messages)
+                if not isinstance(parsed_messages, list):
+                    parsed_messages = [{"role": "user", "content": messages}]
+            except (json.JSONDecodeError, TypeError):
+                # Add default system prompt if no system message
+                parsed_messages = [
+                    {"role": "system", "content": "You are a helpful AI assistant."},
+                    {"role": "user", "content": messages},
+                ]
+
+            gen_tokens = 0
+            start_time = time.time()
+
+            try:
+                for result in self._engine.stream_generate(parsed_messages):
+                    gen_tokens = result.generated_tokens
                     yield pb2.InferenceResponse(
-                        chunk="",
-                        is_finished=True,
+                        chunk=result.chunk,
+                        is_finished=False,
                         error="",
                         generated_tokens=gen_tokens,
                     )
-                except Exception as e:
-                    logger.error(f"流式推理过程中出错: {str(e)}")
-                    yield pb2.InferenceResponse(
-                        chunk="",
-                        is_finished=True,
-                        error=str(e),
-                        generated_tokens=gen_tokens,
-                    )
+
+                duration = time.time() - start_time
+                tps = gen_tokens / duration if duration > 0 else 0
+                logger.info(
+                    f"Generation complete: tokens={gen_tokens}, "
+                    f"time={duration:.2f}s, tps={tps:.2f}"
+                )
+
+                # Send final signal
+                yield pb2.InferenceResponse(
+                    chunk="",
+                    is_finished=True,
+                    error="",
+                    generated_tokens=gen_tokens,
+                )
+
+            except Exception as e:
+                logger.error(f"Streaming error: {str(e)}")
+                yield pb2.InferenceResponse(
+                    chunk="",
+                    is_finished=True,
+                    error=str(e),
+                    generated_tokens=gen_tokens,
+                )
 
         except Exception as e:
-            logger.error(f"流式处理消息出错: {str(e)}")
+            logger.error(f"Request processing error: {str(e)}")
             yield pb2.InferenceResponse(
-                chunk="", is_finished=True, error=str(e), generated_tokens=0
+                chunk="",
+                is_finished=True,
+                error=str(e),
+                generated_tokens=0,
             )
 
 
 def serve():
-    """启动gRPC服务器"""
-    # 创建gRPC服务器
+    """Start the gRPC server."""
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=config.maxWorkers))
-    # 注册服务
     pb2_grpc.add_InferencerServiceServicer_to_server(
         InferencerServiceServicer(), server
     )
 
-    # 注册健康服务
     health_servicer = health.HealthServicer()
     health_pb2_grpc.add_HealthServicer_to_server(health_servicer, server)
 
@@ -165,23 +205,20 @@ def serve():
 
     consul_addr = os.getenv("CONSUL_ADDRESS", "localhost:8500")
     register_consul(service_id, service_name, local_ip, config.grpcPort, consul_addr)
-    # 监听端口
+
     server_address = f"[::]:{config.grpcPort}"
     server.add_insecure_port(server_address)
 
-    # 启动服务器
-    logger.info(f"gRPC服务器启动在 {server_address}")
+    logger.info(f"gRPC server starting on {server_address}")
     server.start()
 
-    # 保持服务器运行
     def signal_handler(sig, frame):
-        logger.info("收到关闭信号，正在停止gRPC服务器...")
+        logger.info("Shutdown signal received, stopping gRPC server...")
         deregister_consul(service_id, consul_addr)
-        
-        # 优雅停机，给现有请求 5 秒钟的完成时间
+        self_engine = getattr(server, '_engine', None)
         done_event = server.stop(grace=5)
         done_event.wait(5)
-        logger.info("gRPC服务器已停止")
+        logger.info("gRPC server stopped")
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)

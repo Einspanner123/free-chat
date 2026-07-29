@@ -1,7 +1,7 @@
 [project]
 name = "llm-inference"
 version = "0.1.0"
-description = "Add your description here"
+description = "LLM Inference Service with pluggable engines (HF, vLLM) and quantization"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -13,3 +13,11 @@ dependencies = [
     "torch>=2.9.1",
     "transformers>=4.57.1",
 ]
+
+[project.optional-dependencies]
+vllm = ["vllm>=0.6.0"]
+dev = ["pytest>=8.0", "pytest-cov>=5.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
