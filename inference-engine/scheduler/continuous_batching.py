@@ -56,11 +56,24 @@ class ContinuousBatchingScheduler:
     
     At each step, the scheduler decides which requests to include in the batch.
     Requests can enter/leave at every decoding iteration, not just at batch boundaries.
+    
+    When kv_cache_manager is provided, each step triggers:
+      - allocate blocks for new requests (prompt tokens)
+      - grow blocks for running requests (generated tokens)
+      - free blocks for finished requests
     """
 
-    def __init__(self, config: SchedulerConfig, model_max_seq_len: int = 2048):
+    def __init__(
+        self,
+        config: SchedulerConfig,
+        model_max_seq_len: int = 2048,
+        kv_cache_manager=None,
+        blocks_per_token: float = 0.25,
+    ):
         self.config = config
         self.model_max_seq_len = model_max_seq_len
+        self.kv_cache_manager = kv_cache_manager
+        self.blocks_per_token = blocks_per_token  # blocks allocated per generated token
         self.pending_queue: deque = deque()
         self.running_batch: List[Request] = []
         self.finished: List[Request] = []
@@ -80,33 +93,46 @@ class ContinuousBatchingScheduler:
         """
         Execute one scheduling step.
         
-        1. Remove finished requests from running batch.
-        2. Add new requests from pending queue (if capacity allows).
-        3. Run one decoding iteration on the batch.
+        1. Free blocks for finished requests.
+        2. Allocate blocks for newly admitted requests.
+        3. Grow KV cache blocks for running requests.
+        4. Advance token generation.
         
         Returns:
             The current batch of active requests after this step.
         """
         self.total_steps += 1
 
-        # Remove finished requests
+        # 1. Remove finished requests → free KV cache blocks
         still_running = []
         for req in self.running_batch:
             if req.status == RequestStatus.FINISHED:
+                if self.kv_cache_manager:
+                    self.kv_cache_manager.free(req.id)
                 self.finished.append(req)
             else:
                 still_running.append(req)
         self.running_batch = still_running
 
-        # Add new requests up to capacity
+        # 2. Admit new requests → allocate KV cache blocks for their prompt
         while self.pending_queue and self._can_add():
             req = self.pending_queue.popleft()
             req.status = RequestStatus.RUNNING
             self.running_batch.append(req)
+            if self.kv_cache_manager:
+                # Allocate blocks proportional to prompt length
+                blocks_for_prompt = max(1, int(req.prompt_tokens * self.blocks_per_token))
+                self.kv_cache_manager.allocate(req.id, blocks_for_prompt)
 
-        # Simulate one decoding step for the batch
+        # 3. Grow KV cache for each running request (one token per step)
+        if self.kv_cache_manager:
+            for req in self.running_batch:
+                self.kv_cache_manager.allocate(req.id, 1)
+
+        # 4. Advance token generation
         for req in self.running_batch:
             req.generated_tokens += 1
+            # Check token limit
             if req.generated_tokens >= req.max_tokens:
                 req.status = RequestStatus.FINISHED
 
@@ -123,8 +149,16 @@ class ContinuousBatchingScheduler:
         Returns:
             List of finished requests.
         """
-        while self.pending_queue or self.running_batch:
+        max_steps = 100000  # safety limit
+        steps = 0
+        while (self.pending_queue or self.running_batch) and steps < max_steps:
+            steps += 1
+            before = len(self.running_batch)
             self.step()
+            after = len(self.running_batch)
+            # If nothing running and nothing can be added, break
+            if after == 0 and before == 0:
+                break
         return self.finished
 
     def _can_add(self) -> bool:
@@ -132,11 +166,20 @@ class ContinuousBatchingScheduler:
         if len(self.running_batch) >= self.config.max_batch_size:
             return False
         
+        # Token budget check
         current_tokens = sum(r.total_tokens for r in self.running_batch)
         next_req = self.pending_queue[0]
         would_add = current_tokens + next_req.prompt_tokens
+        if would_add > self.config.max_total_tokens:
+            return False
         
-        return would_add <= self.config.max_total_tokens
+        # KV cache block check
+        if self.kv_cache_manager:
+            needed = max(1, int(next_req.prompt_tokens * self.blocks_per_token))
+            if self.kv_cache_manager.free_blocks < needed:
+                return False
+        
+        return True
 
     def stats(self) -> dict:
         """Return scheduling statistics."""
@@ -146,7 +189,7 @@ class ContinuousBatchingScheduler:
         total_time = max(r.arrival_time for r in self.finished) - min(r.arrival_time for r in self.finished)
         total_tokens = sum(r.generated_tokens for r in self.finished)
         
-        return {
+        stats = {
             "total_requests": len(self.finished),
             "total_time_sec": round(total_time, 3),
             "total_generated_tokens": total_tokens,
@@ -156,6 +199,11 @@ class ContinuousBatchingScheduler:
             ),
             "scheduling_steps": self.total_steps,
         }
+        
+        if self.kv_cache_manager:
+            stats["kv_cache"] = self.kv_cache_manager.stats()
+        
+        return stats
 
 
 # =============================================================================
