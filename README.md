@@ -133,11 +133,23 @@ Self-instruct, evol-question, and EDA-based data generation.
 ## Project Structure
 
 ```
-inference-engine/                    # Optimization experiments
-├── scheduler/continuous_batching.py  # Iteration-level scheduling
-└── benchmark/
-    ├── kv_cache_profiling.py         # KV cache memory scaling
-    └── quantization_bench.py         # Quantization comparison
+inference-engine/                      # Inference optimization experiments
+├── design.md                          # Full design document
+├── scheduler/
+│   └── continuous_batching.py         # Iteration-level scheduling + KVCache integration
+├── memory-manager/
+│   ├── kv_cache_manager.py            # BlockPool + 3 eviction policies + PrefixCache
+│   └── engine_cache_adapter.py        # Adapter for engine injection
+├── benchmark/
+│   ├── benchmark_runner.py            # BenchResult, BenchmarkSuite, output formats
+│   ├── latency_bench.py               # TTFT, TPOT estimation
+│   ├── throughput_bench.py            # Tokens/sec under concurrency
+│   ├── memory_bench.py                # Memory scaling + GPU fit analysis
+│   ├── quality_bench.py               # Accuracy impact reference
+│   ├── kv_cache_profiling.py          # KV cache memory scaling
+│   ├── quantization_bench.py          # Quantization comparison tables
+│   └── quantization_pipeline.py       # GPU/CI dual-mode benchmark
+└── tests/                             # 68 tests
 
 services/
 ├── api-gateway/                     # HTTP gateway (Go)
@@ -172,25 +184,44 @@ docker compose up -d --build
 
 Run benchmarks:
 ```bash
+# Continuous batching + KV cache integration demo
 python3 inference-engine/scheduler/continuous_batching.py
+
+# KV cache memory profiling across model sizes
 python3 inference-engine/benchmark/kv_cache_profiling.py
+
+# Quantization comparison tables
 python3 inference-engine/benchmark/quantization_bench.py
+
+# Quantization pipeline (CI mode with reference data)
+python3 inference-engine/benchmark/quantization_pipeline.py
+
+# Add --gpu to run on real hardware:
+# python3 inference-engine/benchmark/quantization_pipeline.py --gpu --model Qwen/Qwen2.5-7B
+
+# Latency, throughput, memory, quality benchmarks
 python3 services/experiments/bench_inference.py
 python3 services/experiments/bench_finetune.py
+```
+
+Run all inference-engine tests:
+```bash
+python3 -m pytest inference-engine/tests/
 ```
 
 ---
 
 ## Test Coverage
 
-| Module | Tests |
-|--------|-------|
-| llm-inference | 145 |
-| finetune | 110 |
-| evaluation | 90 |
-| rag | 51 |
-| alignment | 50 |
-| synthetic-data | 38 |
-| rlhf | 21 |
+| Module | Tests | Scope |
+|--------|-------|-------|
+| inference-engine (optimizations) | 68 | KV cache, scheduler, benchmarks, quantization pipeline |
+| llm-inference | 145 | Engine switching, KV cache, speculative decoding, quantization |
+| finetune | 110 | LoRA/QLoRA training, data format merging |
+| evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval, metrics |
+| rag | 51 | Retrieval strategies, chunking |
+| alignment | 50 | DPO loss, preference data |
+| synthetic-data | 38 | Generation, filtering, EDA |
+| rlhf | 21 | PPO loss, GAE estimation |
 
-Total: 505 tests.
+Total: **573 tests**.
