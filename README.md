@@ -1,10 +1,29 @@
-# Free Chat
+# Free Chat — LLM Training, Alignment and Efficient Inference Platform
 
-A microservices-based LLM chat platform. Go backend for business logic, Python for model inference. Supports distributed deployment with separate control and compute planes.
+<a href="https://github.com/Einspanner123/free-chat"><img src="https://img.shields.io/badge/GitHub-Free%20Chat-blue?logo=github"></a>
 
-## Architecture
+**Free Chat** is a distributed platform covering the full lifecycle of large language model (LLM) applications: **inference serving, parameter-efficient fine-tuning, preference alignment, retrieval-augmented generation, and systematic evaluation**. It adopts a Go + Python microservice architecture to decouple the control plane from the compute plane.
 
-The system separates control-plane services (user auth, session management, API gateway) from compute-plane services (LLM inference, model fine-tuning). They communicate via gRPC and are independently deployable.
+---
+
+## Table of Contents
+
+- [Architecture Overview](#architecture-overview)
+- [High-Performance LLM Inference](#high-performance-llm-inference)
+- [Long-Context Dialogue Management](#long-context-dialogue-management)
+- [Parameter-Efficient Fine-Tuning \& Alignment](#parameter-efficient-fine-tuning--alignment)
+- [RAG-Augmented Generation](#rag-augmented-generation)
+- [Evaluation Suite](#evaluation-suite)
+- [Distributed Deployment](#distributed-deployment)
+- [Project Structure](#project-structure)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+
+---
+
+## Architecture Overview
+
+The platform separates the **control plane** (user auth, session management, API gateway, message queue) from the **compute plane** (LLM inference, model fine-tuning, evaluation). They communicate via gRPC and can be independently deployed and scaled.
 
 ```mermaid
 graph TD
@@ -22,38 +41,245 @@ graph TD
     
     subgraph "Compute Plane"
         Chat -->|gRPC| LLM[LLM Inference Service]
-        LLM -.-> Finetune[Fine-tuning]
-        LLM -.-> Evaluation[Evaluation]
+        LLM -.-> Finetune[Fine-tuning<br/>LoRA / QLoRA]
+        LLM -.-> Alignment[Alignment<br/>DPO / RLHF]
+        LLM -.-> RAG[RAG Pipeline<br/>Retrieval-Augmented Gen]
+        LLM -.-> Evaluation[Evaluation<br/>MMLU / C-Eval / GSM8K]
     end
     
-    Consul[Consul] -.->|Service Registry| Gateway
-    Consul -.->|Service Registry| Auth
-    Consul -.->|Service Registry| Chat
-    Consul -.->|Service Registry| LLM
+    Consul[Consul Service Discovery] -.->|Register / Discover| Gateway
+    Consul -.->|Register| Auth
+    Consul -.->|Register| Chat
+    Consul -.->|Register| LLM
 ```
 
-**Why separate planes**: Control plane runs on cost-effective CPU instances. Compute plane requires GPUs. They scale independently—control plane scales with user concurrency, compute plane scales with inference queue depth.
+**Design rationale**: The control plane runs on commodity CPU instances and scales with user concurrency. The compute plane requires GPU resources and scales with inference queue depth and training workload. Decoupling them allows independent scaling and reduces operational cost—GPU instances are allocated only for what needs them.
 
-## Services Overview
+---
 
-Free Chat provides tools across the LLM lifecycle:
+## High-Performance LLM Inference
 
-| Service | Function | Directory |
-|---------|----------|-----------|
-| api-gateway | HTTP gateway, JWT auth, rate limiting | `services/api-gateway/` |
-| auth-service | User registration, login, token management | `services/auth-service/` |
-| chat-service | Conversation logic, context window management | `services/chat-service/` |
-| llm-inference | Model inference (HF, vLLM), quantization | `services/llm-inference/` |
-| finetune | LoRA/QLoRA fine-tuning pipeline | `services/finetune/` |
-| alignment | DPO/RLHF preference alignment | `services/alignment/` |
-| evaluation | Benchmarks: MMLU, C-Eval, GSM8K, HumanEval | `services/evaluation/` |
-| rag | Retrieval-augmented generation pipeline | `services/rag/` |
-| synthetic-data | Self-instruct, data augmentation | `services/synthetic-data/` |
-| rlhf | PPO-based RLHF training | `services/rlhf/` |
+The inference service provides a pluggable engine abstraction with multiple backends and optimization strategies.
 
-## Data Flow
+### Pluggable Engine Architecture
 
-A chat request follows this path:
+| Engine | Use Case | Notes |
+|--------|----------|-------|
+| HuggingFace Transformers | Development, debugging | No extra dependencies |
+| vLLM | Production serving | PagedAttention, continuous batching |
+
+The `BaseEngine` interface defines `generate`, `stream_generate`, `count_tokens`, and `get_metrics`. The `EngineFactory` auto-selects vLLM when available, falling back to HuggingFace.
+
+### Quantization
+
+| Method | Bits | VRAM Reduction | Accuracy Retention |
+|--------|------|----------------|--------------------|
+| AWQ | 4-bit | ~60% | ~99.4% of FP16 |
+| GPTQ | 4-bit | ~58% | ~98.9% of FP16 |
+| SqueezeLLM | 4-bit | ~62% | ~98.0% of FP16 |
+
+Quantization is configured via the `QUANTIZATION` environment variable.
+
+### Inference Optimizations
+
+- **KV Cache**: LRU-evicted cache for key-value tensors, avoiding recomputation for shared prefixes across requests.
+- **Prefix Cache**: Matches new prompts against cached prefixes for partial KV cache reuse.
+- **Speculative Decoding**: A small draft model generates γ candidate tokens; the target model verifies them in a single forward pass. Expected speedup: `1 / (1 - α + α/γ)` where α is the token acceptance rate and γ is the draft length.
+
+---
+
+## Long-Context Dialogue Management
+
+The chat service manages the LLM context window with a tiered compression pipeline, reducing long-sequence inference cost while preserving conversation quality.
+
+### Pipeline
+
+```
+User Message → SaveMessage (token_count)
+            → GetHistory (last 10 messages)
+            → ContextBuilder.Build()
+                 ├─ Budget check (tiktoken-go estimation)
+                 ├─ Under budget?  → Full context
+                 ├─ Over budget?   → Compressor (level-based)
+                 └─ Severely over? → TopicAnalyzer → SSE topic_select
+            → JSON → LLM Inference (Python)
+```
+
+### Token Estimation
+
+| Layer | Method | Accuracy | Purpose |
+|-------|--------|----------|---------|
+| Python | `tokenizer.encode(text)` | Exact | Input/output metrics |
+| Go | `tiktoken-go` + model map | ±3-5% | Real-time budget decisions |
+| Go (fallback) | `len(text)/2` | Rough | Unknown model support |
+
+### Hierarchical Context Compression
+
+When the token budget is insufficient, messages are compressed by recency:
+
+| Level | Range | Treatment |
+|-------|-------|-----------|
+| 0 (verbatim) | Last 5 turns | Full content preserved |
+| 1 (light) | Turns 6-20 | Truncated to first 100 chars |
+| 2 (medium) | Turns 21-50 | Truncated to first 50 chars |
+| 3 (heavy) | Turns 51+ | Replaced with "[compressed]" |
+| 4 (discard) | Beyond budget | Removed from context |
+
+### Topic-Aware Context Reconstruction
+
+When compression alone is insufficient and the conversation exceeds 3 turns, the system performs topic analysis:
+
+1. Chat service sends conversation history to the LLM with an analysis prompt
+2. LLM returns structured JSON with identified topics
+3. An SSE event carries `event: topic_select` with topic options
+4. User selects a topic via `topic_id` in the next request
+5. Context is rebuilt using only the selected topic's history
+
+### Attention Sink Mitigation
+
+Context messages are structured to reduce positional bias in attention:
+
+```
+Position 0:  "\n\n"                          ← Sink token (absorbs excess attention)
+Position 1:  System: global instruction       ← Primacy effect
+Position N:  History (chronological)          ← Conversation turns
+Position N+1: System: instruction repeat      ← Recency effect  
+Position N+2: User: current input             ← Current query
+```
+
+---
+
+## Parameter-Efficient Fine-Tuning & Alignment
+
+### LoRA / QLoRA Fine-Tuning
+
+The fine-tuning pipeline supports three data formats:
+
+| Format | Structure | Source |
+|--------|-----------|--------|
+| ShareGPT | `{"conversations": [{"from": "human", "value": "..."}, ...]}` | Open-source datasets |
+| Alpaca | `{"instruction": "...", "input": "...", "output": "..."}` | Stanford Alpaca |
+| ChatML | `{"messages": [{"role": "...", "content": "..."}, ...]}` | OpenAI-compatible |
+
+Key training parameters:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| LoRA rank (r) | 8 | Lower rank = fewer trainable parameters |
+| LoRA alpha | 16 | Scaling factor |
+| Target modules | q_proj, k_proj, v_proj, o_proj | Attention projections |
+| Learning rate | 2e-4 | Typically higher than full fine-tuning |
+| Per-device batch size | 4 | Per GPU |
+| Gradient accumulation steps | 4 | Effective batch size = 4 × 4 = 16 |
+| Max sequence length | 2048 | Sequences beyond this are truncated |
+| QLoRA 4-bit NF4 | Enabled by default | Reduces VRAM from ~22GB to ~8GB |
+
+### DPO (Direct Preference Optimization)
+
+Implements DPO which replaces the two-step RLHF process with a single loss function:
+
+$$ \mathcal{L}_{\text{DPO}}(\pi_\theta; \pi_{\text{ref}}) = -\mathbb{E}_{(x,y_w,y_l) \sim \mathcal{D}} \left[ \log \sigma \left( \beta \log \frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)} \right) \right] $$
+
+- **β**: Temperature parameter controlling the preference margin
+- **loss_type**: Supports "sigmoid" (standard DPO), "ipo" (MSE-based), "kto_pair"
+- **label_smoothing**: Prevents overfitting to preference labels
+
+### PPO-Based RLHF
+
+The RLHF pipeline implements the classic two-step approach:
+
+1. **Reward Model**: A base LM with a linear head that outputs a scalar reward score
+2. **PPO Training**: Policy optimization using PPO-Clip with Generalized Advantage Estimation (GAE)
+
+$$ L^{\text{PPO}} = -\mathbb{E}\left[\min\left(r(\theta) \cdot A,\ \text{clip}(r(\theta), 1-\varepsilon, 1+\varepsilon) \cdot A\right)\right] + c_1 (V - R)^2 - c_2 \cdot \text{KL}(\pi_\theta \parallel \pi_{\text{ref}}) $$
+
+- **GAE(γ, λ)**: Computes advantages as a weighted sum of TD residuals
+- **Adaptive KL penalty**: Adjusts the KL coefficient based on the current KL vs. target KL ratio
+
+### Synthetic Data Generation
+
+To support fine-tuning data creation, the platform includes:
+
+- **Self-Instruct**: Generate tasks from seed topics, then generate responses
+- **Evol-Question**: Deepen (add constraints) or broaden (expand scope) existing questions
+- **Quality Filtering**: Length checks, deduplication, HTML removal, repetition detection
+- **EDA Augmentation**: Synonym replacement, random insertion/swap/deletion
+
+---
+
+## RAG-Augmented Generation
+
+The RAG pipeline implements document chunking, dense retrieval, BM25 sparse retrieval, and hybrid retrieval fusion.
+
+### Chunking Strategies
+
+| Strategy | Method | Use Case |
+|----------|--------|----------|
+| Recursive | Split by separator priority list | General text |
+| Semantic (sentence) | Split on sentence boundaries | Well-punctuated prose |
+| Semantic (paragraph) | Split on double newlines | Structured documents |
+| Semantic (topic) | Split on Markdown headings | Technical documentation |
+
+### Retrieval Strategies
+
+| Strategy | Method | Matching |
+|----------|--------|----------|
+| Dense | Embedding cosine similarity | Semantic similarity |
+| Sparse | BM25 (Okapi variant) | Term overlap |
+| Hybrid | Score normalization + weighted fusion | Both semantic and lexical |
+
+### Pipeline Flow
+
+```
+ingest(text) → chunk → embed → index (vector store + BM25)
+                                             ↓
+query(text) → retrieve (dense/sparse/hybrid) → build_prompt → generate
+```
+
+---
+
+## Evaluation Suite
+
+The evaluation module runs standardized benchmarks against any model implementing the engine interface:
+
+| Benchmark | Metric | Few-Shot | Description |
+|-----------|--------|----------|-------------|
+| MMLU | Accuracy | 5-shot | 57 subjects, multiple-choice |
+| C-Eval | Accuracy | 5-shot | Chinese, 20 subjects |
+| GSM8K | Accuracy | 8-shot | Grade-school math reasoning |
+| HumanEval | pass@1 | 0-shot | Python function completion |
+
+**Metrics**: Exact Match, token-level F1 score, ROUGE-1/ROUGE-L, pass@k, confidence intervals.
+
+---
+
+## Distributed Deployment
+
+### Development (Single Node)
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+Access at `http://localhost:3000`.
+
+### Production (Separate Control & Compute Planes)
+
+**Server A — Control Plane** (CPU instances):
+```bash
+export ADVERTISE_IP=100.100.1.1
+docker-compose -f docker-compose-control.yml up -d
+```
+
+**Server B — Compute Plane** (GPU instances):
+```bash
+export ADVERTISE_IP=100.100.1.2
+export CONTROL_PLANE_IP=100.100.1.1
+docker-compose -f docker-compose-compute.yml up -d
+```
+
+### Request Flow
 
 ```mermaid
 sequenceDiagram
@@ -81,279 +307,92 @@ sequenceDiagram
     C->>M: Publish "save-assistant-message"
 ```
 
-Two things happen in parallel: the message is queued to RocketMQ for async persistence, and the LLM starts streaming its response via gRPC bidirectional streaming. The Go chat service forwards tokens as SSE events to the frontend. This means the user sees the response incrementally rather than waiting for the full generation + database write to complete.
+The message is queued to RocketMQ for asynchronous persistence while the LLM begins streaming its response. Tokens are forwarded via gRPC bidirectional stream to the Go chat service, then as SSE events to the frontend.
 
-## Context Management
-
-The chat service manages the LLM context window with a tiered strategy:
-
-### Pipeline
-
-```
-User Message → SaveMessage (token_count)
-            → GetHistory (last 10 messages)
-            → ContextBuilder.Build()
-                 ├─ Budget check (tiktoken-go estimation)
-                 ├─ Under budget?  → Full context
-                 ├─ Over budget?   → Compressor (level-based)
-                 └─ Severely over? → TopicAnalyzer → SSE topic_select
-            → JSON → LLM Inference (Python)
-```
-
-### Token Counting
-
-| Layer | Method | Accuracy | Use |
-|-------|--------|----------|-----|
-| Python | `tokenizer.encode(text)` | Exact | Input/output metrics |
-| Go | `tiktoken-go` + model map | ±3-5% | Real-time budget decisions |
-| Go (fallback) | `len(text)/2` | Rough | Unknown model support |
-
-### Compression Strategy
-
-When the token budget is insufficient, messages are compressed by age:
-
-| Level | Range | Treatment |
-|-------|-------|-----------|
-| 0 (verbatim) | Last 5 turns | Full content preserved |
-| 1 (light) | Turns 6-20 | Truncated to first 100 chars |
-| 2 (medium) | Turns 21-50 | Truncated to first 50 chars |
-| 3 (heavy) | Turns 51+ | Replaced with "[compressed]" |
-| 4 (discard) | Beyond budget | Removed from context |
-
-### Topic Analysis
-
-When compression is insufficient and the conversation exceeds 3 turns, the system analyzes the conversation topics:
-
-1. Chat Service sends history to the LLM with an analysis prompt
-2. LLM returns structured JSON with identified topics
-3. An SSE event carries `event: topic_select` with topic options
-4. User selects a topic via `topic_id` in the next request
-5. Context is rebuilt using only the selected topic's history
-
-### Attention Sink Optimization
-
-Context messages are structured to reduce attention sink distortion:
-
-```
-Position 0:  "\n\n"                          ← Sink token
-Position 1:  System: global instruction       ← Primacy effect
-Position N:  History (chronological)          ← Conversation turns
-Position N+1: System: instruction repeat      ← Recency effect  
-Position N+2: User: current input             ← Current query
-```
-
-## Inference Engine
-
-`services/llm-inference/` provides a pluggable engine abstraction with two backends:
-
-| Engine | Use Case | Notes |
-|--------|----------|-------|
-| HuggingFace (HF) | Development, debugging | Direct transformers, no extra deps |
-| vLLM | Production | PagedAttention reduces VRAM fragmentation; continuous batching improves throughput |
-
-### Quantization
-
-Supported methods: AWQ, GPTQ, SqueezeLLM. Controlled via the `QUANTIZATION` env var.
-
-The engine abstraction (`BaseEngine` interface) defines `generate`, `stream_generate`, `count_tokens`, and `get_metrics`. The `EngineFactory` auto-selects vLLM when available, falling back to HF.
-
-### Inference Optimizations
-
-**Speculative Decoding**: A small draft model generates γ candidate tokens; the target model verifies them in one forward pass. Accepted tokens are kept; rejected ones trigger a correction step. Expected speedup: 1 / (1 - α + α/γ) where α is the acceptance rate.
-
-**KV Cache**: LRU-evicted cache for KV tensors, avoiding recomputation for shared prefixes across requests. `PrefixCache` matches new prompts against cached prefixes for partial reuse.
-
-## Fine-tuning
-
-`services/finetune/` implements LoRA and QLoRA fine-tuning.
-
-### Supported Data Formats
-
-| Format | Structure | Source |
-|--------|-----------|--------|
-| ShareGPT | `{"conversations": [{"from": "human", "value": "..."}, ...]}` | Common in open-source datasets |
-| Alpaca | `{"instruction": "...", "input": "...", "output": "..."}` | Stanford Alpaca |
-| ChatML | `{"messages": [{"role": "...", "content": "..."}, ...]}` | OpenAI-compatible |
-
-### Training Parameters
-
-| Parameter | Default | Notes |
-|-----------|---------|-------|
-| LoRA rank | 8 | Lower rank = fewer trainable params |
-| LoRA alpha | 16 | Scaling factor |
-| Target modules | q_proj, k_proj, v_proj, o_proj | Attention layers |
-| Learning rate | 2e-4 | Higher than full fine-tuning typical |
-| Batch size | 4 | Per-device |
-| Gradient accumulation | 4 | Effective batch = batch * accumulation |
-| Max sequence length | 2048 | Truncates longer sequences |
-
-## Preference Alignment
-
-Two alignment methods are available:
-
-### DPO (Direct Preference Optimization)
-
-`services/alignment/` implements DPO, which replaces the two-step RLHF process (reward model + PPO) with a single loss function:
-
-```
-L_DPO = -E[log σ(β(log πθ(y_w|x)/πref(y_w|x) - log πθ(y_l|x)/πref(y_l|x)))]
-```
-
-Parameters:
-- **β**: Controls how strongly the model separates chosen vs. rejected responses
-- **loss_type**: "sigmoid" (standard DPO), "ipo" (MSE-based), "kto_pair"
-- **label_smoothing**: Prevents overfitting to the preference labels
-
-### PPO (Proximal Policy Optimization)
-
-`services/rlhf/` implements the classic two-step RLHF pipeline:
-1. Train a reward model (base LM + linear head that outputs a scalar reward)
-2. Optimize the policy using PPO-Clip with GAE (Generalized Advantage Estimation)
-
-The PPO loss clips the importance sampling ratio to stabilize training:
-
-```
-L_PPO = -E[min(r(θ)·A, clip(r(θ), 1-ε, 1+ε)·A)] + c1·(V-R)² - c2·KL(πθ||πref)
-```
-
-## Evaluation
-
-`services/evaluation/` runs benchmarks against any model implementing the engine interface:
-
-| Benchmark | Metric | Few-shot | Description |
-|-----------|--------|----------|-------------|
-| MMLU | Accuracy | 5-shot | 57 subjects, multi-choice |
-| C-Eval | Accuracy | 5-shot | Chinese, 20 subjects |
-| GSM8K | Accuracy | 8-shot | Grade-school math |
-| HumanEval | pass@1 | - | Python code generation |
-
-Metrics: exact match, token-level F1, ROUGE-1/L, pass@k, confidence intervals.
-
-## RAG (Retrieval-Augmented Generation)
-
-`services/rag/` implements a full RAG pipeline:
-
-**Chunking**: Recursive chunker (by separator priority), semantic chunker (sentence/paragraph/topic).
-
-**Retrieval strategies**:
-- **Dense**: Embedding similarity with configurable vector store (in-memory for dev, ChromaDB for production)
-- **Sparse**: BM25 Okapi variant (tf-idf-like)
-- **Hybrid**: Score normalization + weighted fusion of dense and sparse results
-
-**Pipeline**: `ingest() → chunk → embed → index → retrieve() → build_prompt() → generate()`
-
-## Synthetic Data
-
-`services/synthetic-data/` generates training data:
-
-**Generators**:
-- **Self-Instruct**: Generate tasks from seed topics, then generate responses
-- **Evol-Question**: Deepen (add constraints) or broaden (expand scope) existing questions
-- **Back-Translation**: Paraphrase via round-trip translation
-
-**Quality Filtering**: Length checks, deduplication, HTML removal, repetition detection, instruction-output overlap check.
-
-**EDA Augmentation**: Synonym replacement, random insertion/swap/deletion, back-translation.
-
-## Deployment
-
-### Single Node (Development)
-
-```bash
-cp .env.example .env
-docker compose up -d --build
-```
-
-Access: `http://localhost:3000`
-
-### Distributed (Production)
-
-**Server A (Control Plane)**:
-```bash
-export ADVERTISE_IP=100.100.1.1
-docker-compose -f docker-compose-control.yml up -d
-```
-
-**Server B (GPU Compute)**:
-```bash
-export ADVERTISE_IP=100.100.1.2
-export CONTROL_PLANE_IP=100.100.1.1
-docker-compose -f docker-compose-compute.yml up -d
-```
-
-### Configuration
-
-All configuration is centralized in `.env`. Key variables:
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `ADVERTISE_IP` | IP for Consul registration (distributed) | auto-detect |
-| `ENGINE_TYPE` | Inference engine: auto, vllm, hf | auto |
-| `QUANTIZATION` | Quantization: awq, gptq, squeezellm, or empty for FP16 | (none) |
-| `LLM_MODEL_NAME` | HuggingFace model path | `Qwen/Qwen2.5-0.5B-Instruct` |
-| `CONTROL_PLANE_IP` | Control plane address for compute nodes | (required in distributed) |
+---
 
 ## Project Structure
 
 ```
 .
 ├── .env.example
-├── config/
-│   ├── config.go
-│   └── config.yml
-├── pkg/
-│   ├── proto/
-│   └── registry/
+├── config/                          # Global configuration
+│   ├── config.go                    # Viper-based config loader
+│   └── config.yml                   # Default configuration
+├── pkg/                             # Shared packages
+│   ├── proto/                       # gRPC proto definitions
+│   └── registry/                    # Consul service discovery
 ├── services/
-│   ├── api-gateway/
-│   ├── auth-service/
-│   ├── chat-service/
+│   ├── api-gateway/                 # HTTP gateway (Gin, JWT, rate limiting)
+│   ├── auth-service/                # User auth, registration, token management
+│   ├── chat-service/                # Conversation logic, context management
 │   │   └── internal/
-│   │       ├── application/
-│   │       ├── domain/
+│   │       ├── domain/              # Entities, repository interfaces
+│   │       ├── application/         # Use cases
 │   │       └── infrastructure/
-│   │           ├── context/       # ContextBuilder, Budget, Compressor, TopicAnalyzer
-│   │           ├── mq/            # RocketMQ
-│   │           ├── persistence/   # Redis cache + PostgreSQL (GORM)
-│   │           └── tokenizer/     # tiktoken-go
-│   ├── llm-inference/             # Python inference service
-│   │   └── optimization/          # Speculative decoding, KV cache
-│   ├── finetune/                  # LoRA/QLoRA
-│   ├── alignment/                 # DPO
-│   ├── evaluation/                # Benchmarks
-│   ├── rag/                       # RAG pipeline
-│   ├── synthetic-data/            # Data generation
-│   └── rlhf/                      # PPO training
-├── testapi/                       # Bruno API collection
-├── docker-compose.yml
-├── docker-compose-control.yml
-└── docker-compute.yml
+│   │           ├── context/         # ContextBuilder, Budget, Compressor, TopicAnalyzer
+│   │           ├── mq/              # RocketMQ producer/consumer
+│   │           ├── persistence/     # Redis cache + PostgreSQL (GORM)
+│   │           └── tokenizer/       # tiktoken-go token counting
+│   ├── llm-inference/               # Python inference service
+│   │   ├── src/
+│   │   │   ├── engine_base.py       # Engine abstraction interface
+│   │   │   ├── vllm_engine.py       # vLLM backend
+│   │   │   ├── hf_engine.py         # HuggingFace backend
+│   │   │   ├── quantization.py      # AWQ/GPTQ/SqueezeLLM config
+│   │   │   └── optimization/        # Speculative decoding, KV cache
+│   │   └── tests/                   # 145 tests
+│   ├── finetune/                    # LoRA/QLoRA fine-tuning (110 tests)
+│   ├── alignment/                   # DPO preference alignment (50 tests)
+│   ├── evaluation/                  # MMLU, C-Eval, GSM8K, HumanEval (90 tests)
+│   ├── rag/                         # RAG pipeline (51 tests)
+│   ├── synthetic-data/              # Self-instruct, EDA augmentation (38 tests)
+│   └── rlhf/                        # PPO-based RLHF (21 tests)
+├── testapi/                         # Bruno API collection
+├── docker-compose.yml               # Single-node orchestration
+├── docker-compose-control.yml       # Control plane (distributed)
+└── docker-compose-compute.yml       # Compute plane (distributed)
 ```
 
-## Tech Stack
+---
 
-| Component | Choice | Reason |
-|-----------|--------|--------|
-| Backend | Go | Goroutine efficiency for I/O-bound services |
-| Inference | Python (PyTorch) | LLM ecosystem standard |
-| Inter-service | gRPC | Bidirectional streaming, protobuf contracts |
-| Inference engine | vLLM / HF | vLLM for production, HF for fallback |
-| Fine-tuning | PEFT + TRL | Community standard for LoRA/DPO |
-| Vector store | ChromaDB / In-memory | ChromaDB for prod, in-memory for dev |
-| Message queue | RocketMQ | Transactional messages for async persistence |
-| Service discovery | Consul | Health checks + distributed KV |
-| Networking | Tailscale | Zero-config VPN for cross-machine deployment |
+## Configuration
+
+All configuration is centralized in the `.env` file. Key variables:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ADVERTISE_IP` | IP for Consul registration (distributed mode) | auto-detect |
+| `ENGINE_TYPE` | Inference engine selection: auto, vllm, hf | auto |
+| `QUANTIZATION` | Quantization: awq, gptq, squeezellm, or empty | (FP16) |
+| `LLM_MODEL_NAME` | HuggingFace model path | `Qwen/Qwen2.5-0.5B-Instruct` |
+| `CONTROL_PLANE_IP` | Control plane address (compute plane) | (required in distributed) |
+
+---
+
+## Quick Start
+
+```bash
+git clone https://github.com/Einspanner123/free-chat.git
+cd free-chat
+cp .env.example .env
+docker compose up -d --build
+```
+
+Access at `http://localhost:3000`.
+
+---
 
 ## Test Coverage
 
-| Module | Tests |
-|--------|-------|
-| llm-inference | 145 |
-| finetune | 110 |
-| evaluation | 90 |
-| rag | 51 |
-| alignment | 50 |
-| synthetic-data | 38 |
-| rlhf | 21 |
+| Module | Tests | Coverage Scope |
+|--------|-------|----------------|
+| llm-inference | 145 | Engine switching, quantization, inference optimizations |
+| finetune | 110 | LoRA/QLoRA training, data format loading, weight merging |
+| alignment | 50 | DPO loss, preference data validation |
+| evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval, metric computation |
+| rag | 51 | Chunking, retrieval strategies, pipeline integration |
+| synthetic-data | 38 | Data generation, quality filtering, EDA reproducibility |
+| rlhf | 21 | PPO loss, GAE advantage estimation, KL adaptation |
 
-Total: 505 tests.
+**Total**: 505 tests.
