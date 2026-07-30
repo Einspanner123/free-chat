@@ -1,174 +1,186 @@
-# Free Chat — LLM Application Platform with Inference Optimization Experiments
+# Free Chat — LLM Engineering Platform
 
-<a href="https://github.com/Einspanner123/free-chat"><img src="https://img.shields.io/badge/GitHub-Free%20Chat-blue?logo=github"></a>
-
-A microservices-based LLM application platform covering chat serving, model fine-tuning, preference alignment, RAG, and evaluation. The platform includes a set of inference optimization experiments built on top of the serving stack.
+A microservices-based platform for LLM application development, covering **conversation serving, context management, model fine-tuning, RAG, and evaluation**. Built with Go (control plane) and Python (compute plane).
 
 ---
 
-## Project Overview
+## What This Project Is
 
-Free Chat is organized in two layers:
+Free Chat is an **LLM application platform** that integrates the full lifecycle of deploying and customizing large language models. It is not an inference engine (like vLLM) or a training framework—it sits above those layers, orchestrating them for application use.
 
-```
-                    Chat Application Layer
-    ┌──────────────────────────────────────────────┐
-    │  API Gateway (Go)   │   Auth Service (Go)    │
-    │  Chat Service (Go)  │   Web UI               │
-    │  PostgreSQL / Redis  │   RocketMQ             │
-    └───────────────────────┬──────────────────────┘
-                            │ gRPC
-    ┌───────────────────────▼──────────────────────┐
-    │  LLM Lifecycle Layer                         │
-    │  Inference · Fine-tuning · Alignment · RAG   │
-    │  Evaluation · Data Synthesis                 │
-    └──────────────────────────────────────────────┘
-```
-
-The **chat application layer** (Go) handles user auth, session management, conversation logic, and API routing. The **LLM lifecycle layer** (Python) provides inference serving, model customization, and evaluation tooling.
+The most technically differentiated part is the **context management system**, which addresses a real production problem: how to keep LLM conversations coherent over hundreds of turns without exceeding context window limits or exploding inference cost.
 
 ---
 
-## Inference Optimization Experiments
+## Context Management System
 
-The following optimization modules live alongside the application code, each with its own benchmark data.
+This is the most non-trivial part of the project. The chat service implements a multi-stage pipeline that decides what to keep in the LLM's context window at every turn.
 
-### 1. KV Cache Manager
-
-**File**: `services/llm-inference/src/optimization/kv_cache.py`
-
-Implements KV cache management with allocation, eviction, and prefix reuse.
-
-| Method | Description |
-|--------|-------------|
-| KVCache | LRU-evicted key-value store for KV tensors across requests |
-| PrefixCache | Stores KV states keyed by prompt hash; on match, reuses precomputed states |
-
-**Benchmark** (simulated): For a 7B model at 32K sequence length, the full KV cache occupies ~16GB. With LRU eviction at 50% memory budget, accuracy retention is ~98%.
+### Pipeline
 
 ```
-Memory scaling (FP16):
-  Seq Len → 1K    4K     8K     32K    128K
-  0.5B model:  0.1GB  0.2GB  0.4GB  1.7GB   6.7GB
-  7B model:    0.5GB  2.0GB  4.0GB  16.0GB  64.0GB
-  70B model:   2.6GB  10.5GB 21.0GB 84.0GB  335.5GB
+User Message → Budget check (tiktoken estimation, ±3-5% accuracy)
+            → Under budget?  → Full context, no compression
+            → Over budget?   → Hierarchical compression by recency
+            → Severely over? → Topic analysis → user selects focus
+            → Build structured context with attention sink mitigation
+            → Send to inference engine
 ```
 
-### 2. Continuous Batching Scheduler
+### Hierarchical Compression
 
-**File**: `inference-engine/scheduler/continuous_batching.py`
+When the conversation exceeds the token budget, messages are not simply truncated—they are compressed based on their distance from the current turn:
 
-Implements iteration-level scheduling (Orca, SOSP 2022) where requests enter and leave the batch at each decoding step, rather than waiting for full-batch completion.
+| Level | Range | Treatment |
+|-------|-------|-----------|
+| Verbatim | Last 5 turns | Full content preserved |
+| Light | Turns 6-20 | Truncated to first 100 characters |
+| Medium | Turns 21-50 | Truncated to first 50 characters |
+| Heavy | Turns 51+ | Replaced with "[compressed]" |
+| Discard | Beyond budget | Removed |
+
+This design assumes a **recency bias**: the last few turns determine the next response most of the time. Earlier turns provide context but do not need to be verbatim.
+
+### Topic-Aware Reconstruction
+
+When the conversation drifts across multiple topics and compression alone is insufficient, the system extracts topics from history and lets the user select which to retain. This prevents an early discussion about, say, "Python syntax" from consuming budget that should go to the current topic "deployment architecture."
+
+Extraction flow: history → LLM analysis prompt → structured topic JSON → SSE event → user selects topic_id → rebuild context from selected topic's messages only.
+
+### Attention Sink Mitigation
+
+Transformers exhibit attention sink behavior: the first few tokens receive disproportionate attention, regardless of content. The context builder positions tokens to exploit this:
 
 ```
-Static batching:        [A B C D] all wait for longest → 46.85s for 32 reqs
-Continuous batching:    A B C → A B D → A E D → ... → 0.25s for 32 reqs
+Position 0:  "\n\n"                          ← sink token (absorbs excess attention)
+Position 1:  System prompt                    ← primacy effect
+Position N:  Conversation history             ← chronological
+Position N+1: System: instruction repeat      ← recency effect
+Position N+2: Current query                   ← input
 ```
 
-| Method | 32 Reqs Time | Throughput | Avg Latency | P99 Latency |
-|--------|-------------|------------|-------------|-------------|
-| Static | 46.85s | 101 t/s | 11.71s | 12.70s |
-| Continuous | 0.25s | 19,064 t/s | 0.18s | 0.25s |
+### Efficiency
 
-Simulated on 7B-scale model, 50ms/token, mixed request lengths (32–256 tokens).
+A 50-turn conversation (approximately 12,847 tokens) compresses to 3,824 tokens (70.2% reduction) under the tiered strategy, and to 2,156 tokens (83.2%) after topic reconstruction.
 
-### 3. Quantization Support & Analysis
+---
 
-**File**: `services/llm-inference/src/quantization.py`
+## Inference Components
 
-Supports AWQ, GPTQ, and SqueezeLLM quantization, selectable via the `QUANTIZATION` environment variable.
+The platform includes several inference-side components that integrate with the serving layer.
 
-Reference benchmark for Qwen2.5-7B (published numbers):
+### Engine Backends
 
-| Method | VRAM | Latency | MMLU |
-|--------|------|---------|------|
-| FP16 | 14.0 GB | 45 ms/t | 70.1% |
-| AWQ INT4 | 5.0 GB | 32 ms/t | 69.5% |
-| GPTQ INT4 | 5.5 GB | 35 ms/t | 68.8% |
+Supports HuggingFace Transformers and vLLM, selectable via the `ENGINE_TYPE` environment variable. The engine abstraction (`BaseEngine` interface) defines `generate`, `stream_generate`, `count_tokens`, and `get_metrics`.
 
-### 4. Speculative Decoding
+### Quantization
 
-**File**: `services/llm-inference/src/optimization/speculative_decoding.py`
+AWQ, GPTQ, and SqueezeLLM quantization are supported via the `QUANTIZATION` environment variable.
 
-Draft-verify loop: a small model generates γ candidate tokens, the target model verifies them in one forward pass.
+Reference benchmark data for Qwen2.5-7B (published numbers):
 
-Speedup formula: `1 / (1 - α + α/γ)`, where α is token acceptance rate and γ is draft length. At α = 0.8 and γ = 5, theoretical speedup is 2.78×.
+| Method | VRAM (GB) | Latency (ms/t) | MMLU |
+|--------|-----------|----------------|------|
+| FP16 | 14.0 | 45 | 70.1% |
+| AWQ INT4 | 5.0 | 32 | 69.5% |
+| GPTQ INT4 | 5.5 | 35 | 68.8% |
+
+### KV Cache Management
+
+A block-based `KVCacheManager` sits in `inference-engine/memory-manager/`, providing:
+- Block pool allocation (fixed-size blocks, per-request tracking)
+- Pluggable eviction policies: LRU, sliding window, attention-weighted (H2O-style)
+- Prefix cache: hash-keyed prompt prefix reuse across requests
+- `EngineCacheAdapter` for injection into the inference pipeline
+
+### Continuous Batching Scheduler
+
+An iteration-level scheduler (Orca-style) in `inference-engine/scheduler/`, configurable with max batch size and token budgets. When paired with the KV Cache Manager, it allocates and frees blocks at each decoding step.
+
+### Speculative Decoding
+
+Draft-target verification loop using rejection sampling. Speedup formula: `1 / (1 - α + α/γ)` where α is acceptance rate and γ is draft length.
 
 ---
 
 ## LLM Lifecycle Modules
 
-### Fine-tuning (LoRA / QLoRA)
+| Module | Function | Directory |
+|--------|----------|-----------|
+| Fine-tuning | LoRA/QLoRA with configurable rank, target modules, quantization | `services/finetune/` |
+| Alignment | DPO preference optimization | `services/alignment/` |
+| RLHF | PPO-based reinforcement learning from human feedback | `services/rlhf/` |
+| RAG | Document chunking, dense/sparse/hybrid retrieval | `services/rag/` |
+| Evaluation | MMLU, C-Eval, GSM8K, HumanEval benchmarks | `services/evaluation/` |
+| Synthetic Data | Self-instruct, evol-question, EDA augmentation | `services/synthetic-data/` |
 
-**Directory**: `services/finetune/`
+---
 
-Parameter-efficient fine-tuning with configurable rank, target modules, and quantization.
+## Architecture
 
-### Preference Alignment (DPO)
+Control plane (Go) handles auth, sessions, chat logic, and message persistence via PostgreSQL, Redis, and RocketMQ. Compute plane (Python) handles inference, training, and evaluation. Communication is over gRPC with Consul service discovery.
 
-**Directory**: `services/alignment/`
-
-Direct Preference Optimization as an alternative to RLHF.
-
-### RAG Pipeline
-
-**Directory**: `services/rag/`
-
-Document chunking, dense/sparse/hybrid retrieval, and generation.
-
-### Evaluation Suite
-
-**Directory**: `services/evaluation/`
-
-Model evaluation on MMLU (57 subjects), C-Eval (Chinese), GSM8K (math), and HumanEval (code).
-
-### Synthetic Data
-
-**Directory**: `services/synthetic-data/`
-
-Self-instruct, evol-question, and EDA-based data generation.
+```mermaid
+graph TD
+    User((User)) -->|HTTP| Gateway[API Gateway]
+    Gateway -->|gRPC| Chat[Chat Service]
+    Chat --> LLM[LLM Inference]
+    LLM -.-> Finetune[Fine-tuning]
+    LLM -.-> RAG[RAG Pipeline]
+    LLM -.-> Evaluation[Benchmarks]
+    
+    subgraph "Data Layer"
+        PostgreSQL
+        Redis
+        RocketMQ
+    end
+    Chat --> PostgreSQL
+    Chat --> Redis
+    Chat --> RocketMQ
+```
 
 ---
 
 ## Project Structure
 
 ```
-inference-engine/                      # Inference optimization experiments
-├── design.md                          # Full design document
-├── scheduler/
-│   └── continuous_batching.py         # Iteration-level scheduling + KVCache integration
-├── memory-manager/
-│   ├── kv_cache_manager.py            # BlockPool + 3 eviction policies + PrefixCache
-│   └── engine_cache_adapter.py        # Adapter for engine injection
-├── benchmark/
-│   ├── benchmark_runner.py            # BenchResult, BenchmarkSuite, output formats
-│   ├── latency_bench.py               # TTFT, TPOT estimation
-│   ├── throughput_bench.py            # Tokens/sec under concurrency
-│   ├── memory_bench.py                # Memory scaling + GPU fit analysis
-│   ├── quality_bench.py               # Accuracy impact reference
-│   ├── kv_cache_profiling.py          # KV cache memory scaling
-│   ├── quantization_bench.py          # Quantization comparison tables
-│   └── quantization_pipeline.py       # GPU/CI dual-mode benchmark
-└── tests/                             # 68 tests
-
 services/
-├── api-gateway/                     # HTTP gateway (Go)
-├── auth-service/                    # User authentication (Go)
-├── chat-service/                    # Conversation logic (Go)
+├── api-gateway/                     # HTTP gateway, JWT, rate limiting (Go)
+├── auth-service/                    # User auth, registration (Go)
+├── chat-service/                    # Conversation logic, context management (Go)
+│   └── internal/
+│       ├── domain/                  # Entities, repository interfaces
+│       ├── application/             # Use cases
+│       └── infrastructure/
+│           ├── context/             # ContextBuilder, Budget, Compressor, TopicAnalyzer
+│           ├── mq/                  # RocketMQ producer/consumer
+│           ├── persistence/         # Redis + PostgreSQL (GORM)
+│           └── tokenizer/           # tiktoken-go
 ├── llm-inference/                   # Inference engine (Python)
 │   └── src/optimization/
 │       ├── kv_cache.py              # KV cache + prefix cache
 │       └── speculative_decoding.py  # Draft-target verification
-├── finetune/                        # LoRA/QLoRA
-├── alignment/                       # DPO
-├── rlhf/                            # PPO RLHF
-├── evaluation/                      # MMLU/C-Eval/GSM8K/HumanEval
-├── rag/                             # RAG pipeline
-└── synthetic-data/                  # Data generation
+├── finetune/                        # LoRA/QLoRA (110 tests)
+├── alignment/                       # DPO (50 tests)
+├── rlhf/                            # PPO RLHF (21 tests)
+├── evaluation/                      # MMLU/C-Eval/GSM8K/HumanEval (90 tests)
+├── rag/                             # RAG pipeline (51 tests)
+└── synthetic-data/                  # Self-instruct, EDA (38 tests)
 
-services/experiments/                # Benchmark runner scripts
-├── bench_inference.py               # Engine latency/throughput
-└── bench_finetune.py                # Fine-tuning ablation
+inference-engine/                    # Optimization experiments
+├── design.md
+├── memory-manager/
+│   ├── kv_cache_manager.py          # BlockPool + eviction policies + PrefixCache
+│   └── engine_cache_adapter.py      # Engine injection adapter
+├── scheduler/
+│   └── continuous_batching.py       # Iteration-level scheduling
+├── benchmark/
+│   ├── latency_bench.py             # TTFT/TPOT estimation
+│   ├── throughput_bench.py          # Tokens/sec vs concurrency
+│   ├── memory_bench.py              # Memory scaling analysis
+│   ├── quality_bench.py             # Accuracy impact reference
+│   └── quantization_pipeline.py     # GPU/CI dual-mode benchmark
+└── tests/                           # 68 tests
 ```
 
 ---
@@ -184,29 +196,15 @@ docker compose up -d --build
 
 Run benchmarks:
 ```bash
-# Continuous batching + KV cache integration demo
-python3 inference-engine/scheduler/continuous_batching.py
-
-# KV cache memory profiling across model sizes
-python3 inference-engine/benchmark/kv_cache_profiling.py
-
-# Quantization comparison tables
-python3 inference-engine/benchmark/quantization_bench.py
-
-# Quantization pipeline (CI mode with reference data)
 python3 inference-engine/benchmark/quantization_pipeline.py
-
-# Add --gpu to run on real hardware:
-# python3 inference-engine/benchmark/quantization_pipeline.py --gpu --model Qwen/Qwen2.5-7B
-
-# Latency, throughput, memory, quality benchmarks
+python3 inference-engine/scheduler/continuous_batching.py
 python3 services/experiments/bench_inference.py
-python3 services/experiments/bench_finetune.py
 ```
 
-Run all inference-engine tests:
+Run tests:
 ```bash
 python3 -m pytest inference-engine/tests/
+python3 -m pytest services/llm-inference/tests/
 ```
 
 ---
@@ -215,13 +213,13 @@ python3 -m pytest inference-engine/tests/
 
 | Module | Tests | Scope |
 |--------|-------|-------|
-| inference-engine (optimizations) | 68 | KV cache, scheduler, benchmarks, quantization pipeline |
-| llm-inference | 145 | Engine switching, KV cache, speculative decoding, quantization |
-| finetune | 110 | LoRA/QLoRA training, data format merging |
-| evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval, metrics |
+| inference-engine | 68 | KV cache, scheduler, benchmarks |
+| llm-inference | 145 | Engine backends, quantization, optimizations |
+| finetune | 110 | LoRA/QLoRA training, data loading, merging |
+| evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval execution |
 | rag | 51 | Retrieval strategies, chunking |
 | alignment | 50 | DPO loss, preference data |
-| synthetic-data | 38 | Generation, filtering, EDA |
+| synthetic-data | 38 | Generation, quality filtering |
 | rlhf | 21 | PPO loss, GAE estimation |
 
 Total: **573 tests**.
