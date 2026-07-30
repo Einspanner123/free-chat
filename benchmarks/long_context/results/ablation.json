@@ -1,0 +1,474 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "context_length": 4096,
+    "budgets": [
+      512,
+      1024,
+      2048
+    ],
+    "num_needles": 6
+  },
+  "strategies": [
+    {
+      "strategy": "Full Context",
+      "budget": 4318,
+      "compressed_tokens": 1079,
+      "compression_ratio": 0.0,
+      "recall": 0.8333333333333334,
+      "avg_latency": 0.391,
+      "results": [
+        {
+          "position": 0.143,
+          "correct": false,
+          "needle": "CODE000",
+          "response": "CODE001"
+        },
+        {
+          "position": 0.286,
+          "correct": true,
+          "needle": "CODE001",
+          "response": "CODE001"
+        },
+        {
+          "position": 0.429,
+          "correct": true,
+          "needle": "CODE002",
+          "response": "CODE002"
+        },
+        {
+          "position": 0.571,
+          "correct": true,
+          "needle": "CODE003",
+          "response": "CODE003"
+        },
+        {
+          "position": 0.714,
+          "correct": true,
+          "needle": "CODE004",
+          "response": "CODE004"
+        },
+        {
+          "position": 0.857,
+          "correct": true,
+          "needle": "CODE005",
+          "response": "CODE005"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "budget": 512,
+      "compressed_tokens": 128,
+      "compression_ratio": 0.0,
+      "recall": 0.0,
+      "avg_latency": 0.128,
+      "results": [
+        {
+          "position": 0.143,
+          "correct": false,
+          "needle": "CODE000",
+          "response": "CODE123"
+        },
+        {
+          "position": 0.286,
+          "correct": false,
+          "needle": "CODE001",
+          "response": "CODE002"
+        },
+        {
+          "position": 0.429,
+          "correct": false,
+          "needle": "CODE002",
+          "response": "CODE123"
+        },
+        {
+          "position": 0.571,
+          "correct": false,
+          "needle": "CODE003",
+          "response": "CODE004"
+        },
+        {
+          "position": 0.714,
+          "correct": false,
+          "needle": "CODE004",
+          "response": "CODE005"
+        },
+        {
+          "position": 0.857,
+          "correct": false,
+          "needle": "CODE005",
+          "response": "CODE006"
+        }
+      ]
+    },
+    {
+      "strategy": "Hierarchical Compression",
+      "budget": 512,
+      "compressed_tokens": 132,
+      "compression_ratio": 0.0,
+      "recall": 0.16666666666666666,
+      "avg_latency": 0.118,
+      "results": [
+        {
+          "position": 0.143,
+          "correct": false,
+          "needle": "CODE000",
+          "response": "CODE001"
+        },
+        {
+          "position": 0.286,
+          "correct": true,
+          "needle": "CODE001",
+          "response": "CODE001"
+        },
+        {
+          "position": 0.429,
+          "correct": false,
+          "needle": "CODE002",
+          "response": "CODE003"
+        },
+        {
+          "position": 0.571,
+          "correct": false,
+          "needle": "CODE003",
+          "response": "CODE004"
+        },
+        {
+          "position": 0.714,
+          "correct": false,
+          "needle": "CODE004",
+          "response": "CODE005"
+        },
+        {
+          "position": 0.857,
+          "correct": false,
+          "needle": "CODE005",
+          "response": "CODE007"
+        }
+      ]
+    },
+    {
+      "strategy": "Hierarchy + Topic",
+      "budget": 512,
+      "compressed_tokens": 120,
+      "compression_ratio": 0.0,
+      "recall": 0.3333333333333333,
+      "avg_latency": 0.117,
+      "results": [
+        {
+          "position": 0.143,
+          "correct": false,
+          "needle": "CODE000",
+          "response": "CODE001"
+        },
+        {
+          "position": 0.286,
+          "correct": false,
+          "needle": "CODE001",
+          "response": "CODE002"
+        },
+        {
+          "position": 0.429,
+          "correct": true,
+          "needle": "CODE002",
+          "response": "CODE002"
+        },
+        {
+          "position": 0.571,
+          "correct": true,
+          "needle": "CODE003",
+          "response": "CODE003"
+        },
+        {
+          "position": 0.714,
+          "correct": false,
+          "needle": "CODE004",
+          "response": "CODE005"
+        },
+        {
+          "position": 0.857,
+          "correct": false,
+          "needle": "CODE005",
+          "response": "CODE006"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "budget": 1024,
+      "compressed_tokens": 256,
+      "compression_ratio": 0.0,
+      "recall": 0.5,
+      "avg_latency": 0.132,
+      "results": [
+        {
+          "position": 0.143,
+          "correct": false,
+          "needle": "CODE000",
+          "response": "CODE005"
+        },
+        {
+          "position": 0.286,
+          "correct": false,
+          "needle": "CODE001",
+          "response": "CODE002"
+        },
+        {
+          "position": 0.429,
+          "correct": true,
+          "needle": "CODE002",
+          "response": "CODE002"
+        },
+        {
+          "position": 0.571,
+          "correct": true,
+          "needle": "CODE003",
+          "response": "CODE003"
+        },
+        {
+          "position": 0.714,
+          "correct": false,
+          "needle": "CODE004",
+          "response": "CODE006"
+        },
+        {
+          "position": 0.857,
+          "correct": true,
+          "needle": "CODE005",
+          "response": "CODE005"
+        }
+      ]
+    },
+    {
+      "strategy": "Hierarchical Compression",
+      "budget": 1024,
+      "compressed_tokens": 257,
+      "compression_ratio": 0.0,
+      "recall": 0.3333333333333333,
+      "avg_latency": 0.125,
+      "results": [
+        {
+          "position": 0.143,
+          "correct": true,
+          "needle": "CODE000",
+          "response": "CODE000"
+        },
+        {
+          "position": 0.286,
+          "correct": true,
+          "needle": "CODE001",
+          "response": "CODE001"
+        },
+        {
+          "position": 0.429,
+          "correct": false,
+          "needle": "CODE002",
+          "response": "CODE003"
+        },
+        {
+          "position": 0.571,
+          "correct": false,
+          "needle": "CODE003",
+          "response": "CODE004"
+        },
+        {
+          "position": 0.714,
+          "correct": false,
+          "needle": "CODE004",
+          "response": "CODE005"
+        },
+        {
+          "position": 0.857,
+          "correct": false,
+          "needle": "CODE005",
+          "response": "CODE007"
+        }
+      ]
+    },
+    {
+      "strategy": "Hierarchy + Topic",
+      "budget": 1024,
+      "compressed_tokens": 253,
+      "compression_ratio": 0.0,
+      "recall": 0.3333333333333333,
+      "avg_latency": 0.119,
+      "results": [
+        {
+          "position": 0.143,
+          "correct": false,
+          "needle": "CODE000",
+          "response": "CODE001"
+        },
+        {
+          "position": 0.286,
+          "correct": false,
+          "needle": "CODE001",
+          "response": "CODE002"
+        },
+        {
+          "position": 0.429,
+          "correct": true,
+          "needle": "CODE002",
+          "response": "CODE002"
+        },
+        {
+          "position": 0.571,
+          "correct": true,
+          "needle": "CODE003",
+          "response": "CODE003"
+        },
+        {
+          "position": 0.714,
+          "correct": false,
+          "needle": "CODE004",
+          "response": "CODE005"
+        },
+        {
+          "position": 0.857,
+          "correct": false,
+          "needle": "CODE005",
+          "response": "CODE006"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "budget": 2048,
+      "compressed_tokens": 512,
+      "compression_ratio": 0.0,
+      "recall": 0.5,
+      "avg_latency": 0.122,
+      "results": [
+        {
+          "position": 0.143,
+          "correct": false,
+          "needle": "CODE000",
+          "response": "CODE001"
+        },
+        {
+          "position": 0.286,
+          "correct": false,
+          "needle": "CODE001",
+          "response": "CODE002"
+        },
+        {
+          "position": 0.429,
+          "correct": false,
+          "needle": "CODE002",
+          "response": "CODE001"
+        },
+        {
+          "position": 0.571,
+          "correct": true,
+          "needle": "CODE003",
+          "response": "CODE003"
+        },
+        {
+          "position": 0.714,
+          "correct": true,
+          "needle": "CODE004",
+          "response": "CODE004"
+        },
+        {
+          "position": 0.857,
+          "correct": true,
+          "needle": "CODE005",
+          "response": "CODE005"
+        }
+      ]
+    },
+    {
+      "strategy": "Hierarchical Compression",
+      "budget": 2048,
+      "compressed_tokens": 374,
+      "compression_ratio": 0.0,
+      "recall": 0.3333333333333333,
+      "avg_latency": 0.121,
+      "results": [
+        {
+          "position": 0.143,
+          "correct": true,
+          "needle": "CODE000",
+          "response": "CODE000"
+        },
+        {
+          "position": 0.286,
+          "correct": true,
+          "needle": "CODE001",
+          "response": "CODE001"
+        },
+        {
+          "position": 0.429,
+          "correct": false,
+          "needle": "CODE002",
+          "response": "CODE003"
+        },
+        {
+          "position": 0.571,
+          "correct": false,
+          "needle": "CODE003",
+          "response": "CODE004"
+        },
+        {
+          "position": 0.714,
+          "correct": false,
+          "needle": "CODE004",
+          "response": "CODE005"
+        },
+        {
+          "position": 0.857,
+          "correct": false,
+          "needle": "CODE005",
+          "response": "CODE007"
+        }
+      ]
+    },
+    {
+      "strategy": "Hierarchy + Topic",
+      "budget": 2048,
+      "compressed_tokens": 522,
+      "compression_ratio": 0.0,
+      "recall": 0.16666666666666666,
+      "avg_latency": 0.118,
+      "results": [
+        {
+          "position": 0.143,
+          "correct": false,
+          "needle": "CODE000",
+          "response": "CODE001"
+        },
+        {
+          "position": 0.286,
+          "correct": false,
+          "needle": "CODE001",
+          "response": "CODE002"
+        },
+        {
+          "position": 0.429,
+          "correct": false,
+          "needle": "CODE002",
+          "response": "CODE003"
+        },
+        {
+          "position": 0.571,
+          "correct": true,
+          "needle": "CODE003",
+          "response": "CODE003"
+        },
+        {
+          "position": 0.714,
+          "correct": false,
+          "needle": "CODE004",
+          "response": "CODE005"
+        },
+        {
+          "position": 0.857,
+          "correct": false,
+          "needle": "CODE005",
+          "response": "CODE006"
+        }
+      ]
+    }
+  ]
+}
