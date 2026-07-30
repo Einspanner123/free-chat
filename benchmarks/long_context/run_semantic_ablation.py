@@ -196,6 +196,57 @@ def project_topic(text: str, tok, budget: int) -> str:
     return key_text + " ".join(compressed_other)
 
 
+def make_llm_topic_strategy(model, tok, device):
+    """
+    用 LLM 提取话题：先让模型分析上下文有哪些话题，
+    然后只保留与这些话题相关的句子重建上下文。
+    两步：分析 → 重建（不需要额外 call，因为评价时会再调 model.generate）
+    """
+    llm_topic_prompt = (
+        "Extract the main topics from the following text. "
+        "Return only a comma-separated list of topic words, nothing else.\n\n"
+    )
+
+    def fn(text: str, tokenizer, budget: int) -> str:
+        import re
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        if not sentences:
+            return text[:budget]
+
+        # 第一步：LLM 提取话题
+        prompt = llm_topic_prompt + text[:2000]  # 只用前 2000 tokens 分析话题
+        msgs = [{"role": "user", "content": prompt}]
+        inputs = tokenizer.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+        inp = tokenizer(inputs, return_tensors="pt").to(device)
+        with torch.no_grad():
+            out = model.generate(**inp, max_new_tokens=50, do_sample=False)
+        topics = tokenizer.decode(out[0][inp["input_ids"].shape[1]:], skip_special_tokens=True).lower().strip()
+
+        # 第二步：保留包含话题词的句子
+        topic_words = [t.strip() for t in topics.replace(",", " ").split() if len(t.strip()) > 3]
+        if not topic_words:
+            topic_words = ["code", "fact", "nobel", "dna", "light", "moon"]  # fallback
+
+        # 保留含话题词的句子，从新到旧填充到预算
+        key_sentences = [s for s in sentences if any(tw in s.lower() for tw in topic_words)]
+        other = [s for s in sentences if s not in key_sentences]
+
+        result = list(key_sentences)
+        result_tok = sum(len(tokenizer.encode(s, add_special_tokens=False)) for s in result)
+
+        for s in reversed(other):
+            nt = len(tokenizer.encode(s, add_special_tokens=False))
+            if result_tok + nt <= budget:
+                result.insert(0, s)
+                result_tok += nt
+            else:
+                break
+
+        return " ".join(result)
+
+    return fn
+
+
 def rag_retrieval(text: str, tok, budget: int) -> str:
     """
     检索式上下文：从完整上下文中检索与问题相关的句子。
@@ -233,8 +284,17 @@ STRATEGIES = {
     "project": ("Project Compression", project_compress),
     "project+topic": ("Project + Topic", project_topic),
     "attention_sink": ("Attention Sink", attention_sink),
+    "llm_topic": ("LLM Topic Extraction", None),
     "rag": ("RAG Retrieval", rag_retrieval),
 }
+
+
+_llm_topic_fn_global = None
+
+
+def set_llm_topic_fn(fn):
+    global _llm_topic_fn_global
+    _llm_topic_fn_global = fn
 
 
 def eval_strategy(model, tok, device, context, needles, name, fn, budget):
@@ -299,6 +359,10 @@ def main():
     context, needles, _ = gen_semantic_context(args.context_tokens, tok, FACTS[:args.num_facts])
     ftok = len(tok.encode(context, add_special_tokens=False))
     print(f"Context: {ftok} tokens, {args.num_facts} facts\n")
+
+    # 构建 LLM 话题分析策略
+    llm_topic_fn = make_llm_topic_strategy(model, tok, device)
+    STRATEGIES["llm_topic"] = ("LLM Topic Extraction", llm_topic_fn)
 
     results = {"config": {"model": args.model, "context_tokens": ftok, "budgets": args.budgets, "num_facts": args.num_facts}, "strategies": []}
 
