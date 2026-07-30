@@ -4,7 +4,7 @@
 
 <a href="https://github.com/Einspanner123/free-chat"><img src="https://img.shields.io/badge/GitHub-Free%20Chat-blue?logo=github"></a>
 
-[⬇️ English](#english) · [⬇️ 中文](#chinese)
+[English](#english) · [中文](#chinese)
 
 </div>
 
