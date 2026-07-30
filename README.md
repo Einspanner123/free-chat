@@ -120,15 +120,17 @@ All benchmarks run on real hardware (NVIDIA RTX A6000) with Qwen/Qwen2.5-0.5B-In
 
 ### Key Findings
 
-1. **Attention Sink layout** is the most consistent performer: 83% recall at 8K, 62% at 24K, across all compression levels. Placing critical information in the primacy position (after sink token) leverages the model's attention bias.
+1. **Full Pipeline (topic + compression + attention sink)** achieves 83% recall at 8K and 62% at 24K -- identical to Attention Sink alone. This is because once key sentences are identified, the sink layout determines recall; compression of non-key content adds no further benefit under this setup.
 
-2. **RAG Retrieval** matches or exceeds Attention Sink at moderate-to-low compression (49-65%), suggesting that retrieval-based context pruning becomes more valuable as context grows.
+2. **Attention Sink layout** is the most consistent individual strategy: 83% recall at 8K, 62% at 24K across all compression levels. Placing critical information in the primacy position (after sink token) leverages the model's attention bias.
 
-3. **Truncation collapses at long context**: 50% recall at 8K drops to 25% at 24K (91% compression). The project's compression strategies maintain 60%+ recall under the same conditions.
+3. **RAG Retrieval** matches or exceeds Attention Sink at moderate-to-low compression (49-65%), achieving 75% at 24K vs 62%, suggesting retrieval-based pruning becomes more valuable as context grows.
 
-4. **Naive LLM topic extraction underperforms keyword matching** (0-17% vs 67%). Generic topic labels fail to pinpoint specific facts, producing worse results than no compression at all.
+4. **Truncation collapses at long context**: 50% recall at 8K drops to 25% at 24K (91% compression). The project's compression strategies maintain 60%+ recall under the same conditions.
 
-5. **Without topic preservation, compression alone hurts recall**: Project Compression at 24K with 83% compression achieves only 25% recall, matching truncation. Topic-aware variants are 2-3x better.
+5. **Naive LLM topic extraction underperforms keyword matching** (0-17% vs 67%). Generic topic labels fail to pinpoint specific facts.
+
+6. **Without topic preservation, compression alone hurts recall**: Project Compression at 24K with 83% compression achieves only 25% recall, matching truncation. Topic-aware variants are 2-3x better.
 
 ### Metrics
 
