@@ -1,0 +1,69 @@
+{
+  "config": {
+    "context_length": 4096,
+    "num_needles": 10,
+    "seed": 42
+  },
+  "results": [
+    {
+      "needle": "CODE-000",
+      "position": 0.1,
+      "correct": true
+    },
+    {
+      "needle": "CODE-001",
+      "position": 0.2,
+      "correct": true
+    },
+    {
+      "needle": "CODE-002",
+      "position": 0.3,
+      "correct": true
+    },
+    {
+      "needle": "CODE-003",
+      "position": 0.4,
+      "correct": true
+    },
+    {
+      "needle": "CODE-004",
+      "position": 0.5,
+      "correct": true
+    },
+    {
+      "needle": "CODE-005",
+      "position": 0.6,
+      "correct": false
+    },
+    {
+      "needle": "CODE-006",
+      "position": 0.7,
+      "correct": false
+    },
+    {
+      "needle": "CODE-007",
+      "position": 0.8,
+      "correct": false
+    },
+    {
+      "needle": "CODE-008",
+      "position": 0.9,
+      "correct": false
+    },
+    {
+      "needle": "CODE-009",
+      "position": 1.0,
+      "correct": false
+    }
+  ],
+  "position_recall": {
+    "overall": 0.5,
+    "front_half": 1.0,
+    "back_half": 0.0
+  },
+  "position_bias": {
+    "front_accuracy": 1.0,
+    "back_accuracy": 0.0,
+    "bias_score": 1.0
+  }
+}

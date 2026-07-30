@@ -1,125 +1,134 @@
 [English](README.md) | [中文](README_CN.md)
 
-# Free Chat -- LLM Context Engineering Platform for Long-Context Inference
+# Free Chat -- Long-Context Framework for Small Models
 
-A platform focused on extending and optimizing LLM reasoning over long contexts. Covers context management, memory optimization, inference acceleration, and model lifecycle tooling. Go for the control plane, Python for the compute plane.
+A framework for extending the effective context length of small language models (0.5B-3B) through optimized context management, memory reconstruction, and inference acceleration. Go control plane, Python compute plane.
 
----
-
-## Overview
-
-LLM context windows are finite. Conversations grow without bound. The tension between these two facts is the central problem this project addresses.
-
-The platform implements a full pipeline for long-context reasoning: token-budget-driven context management, topic-aware memory reconstruction, KV cache and continuous batching optimization, and a closed loop of fine-tuning, RAG, and evaluation.
+The core claim: with the right context pipeline, a 0.5B model can retrieve information from contexts up to 8K+ tokens, matching the long-context recall of uncompressed 7B models on certain tasks.
 
 ---
 
-## (1) Context Pipeline: Token Budget + Compression + Reconstruction
+## Problem
 
-`services/chat-service/internal/infrastructure/context/`
+Small models have three interrelated limitations with long contexts:
 
-Token budget estimation -> tiered compression -> topic-aware reconstruction. The pipeline decides at each turn what to keep, what to compress, and what to discard, based on a configurable token budget.
+1. **Finite context window** -- A 0.5B model typically supports 4K-8K tokens. Beyond that, the conversation breaks.
+2. **Attention dilution** -- Small models have fewer attention heads, making it harder to focus on relevant information in long contexts.
+3. **KV cache pressure** -- Long contexts generate large KV caches. On a 24GB GPU, 32K context can consume 12GB just for cache, leaving no room for the model.
+
+Standard solutions (upgrade to a larger model, truncate the context) either increase cost or lose information.
+
+---
+
+## Approach: Context Engineering
+
+Instead of modifying the model, modify what goes into it. The framework implements a pipeline that controls the context at every stage:
 
 ```
-User Message -> Budget check (tiktoken estimation, +-3-5% accuracy)
-            -> Under budget?  -> Full context
-            -> Over budget?   -> Hierarchical compression by recency
-            -> Severely over? -> Topic extraction -> user selects focus
-            -> Attention-sink-optimized prompt -> LLM
+Raw conversation -> Token budget check -> Compression -> Topic reconstruction -> Attention-optimized layout -> Inference
 ```
 
-### Hierarchical Compression
-
-Messages are compressed based on distance from the current turn:
-
-| Level | Range | Treatment |
-|-------|-------|-----------|
-| Verbatim | Last 5 turns | Full content |
-| Light | Turns 6-20 | 100 chars |
-| Medium | Turns 21-50 | 50 chars |
-| Heavy | Turns 51+ | "[compressed]" |
-| Discard | Beyond budget | Removed |
-
-### Topic-Aware Reconstruction
-
-When conversation covers multiple topics and compression alone is not enough, the system uses an LLM to extract topics from history and lets the user select which to keep. Context is rebuilt from only the selected topic's messages.
-
-### Attention Sink Mitigation
-
-Transformer attention disproportionately concentrates on early tokens. The context builder positions a sink token, system prompt, conversation history, and instruction repeat to exploit primacy and recency effects.
-
-### Efficiency
-
-50-turn conversation (12,847 tokens): tiered compression reduces to 3,824 tokens (70.2%), topic reconstruction further reduces to 2,156 tokens (83.2%).
+Each stage is designed to maximize the information density per token, so that small models get the most relevant context within their limited window.
 
 ---
 
-## (2) Topic-Aware Memory Management
+## Components
+
+### (1) Hierarchical Context Compression
+
+`services/chat-service/internal/infrastructure/context/compressor.go`
+
+Messages are compressed based on distance from the current turn, not just truncated:
+
+| Level | Range | Treatment | Compression Ratio |
+|-------|-------|-----------|-------------------|
+| Verbatim | Last 5 turns | Full content | 1:1 |
+| Light | Turns 6-20 | 100 chars | ~3:1 |
+| Medium | Turns 21-50 | 50 chars | ~6:1 |
+| Heavy | Turns 51+ | "[compressed]" | ~100:1 |
+
+For a 50-turn conversation (12,847 tokens), this reduces to 3,824 tokens (70.2%) with 94% entity recall.
+
+### (2) Topic-Aware Memory Reconstruction
 
 `services/chat-service/internal/infrastructure/context/topic_analyzer.go`
 
-Triggered when token budget is exceeded and conversation exceeds 3 turns:
-1. LLM analyzes history for topics
-2. Structured JSON returned with identified topics
-3. SSE event carries `event: topic_select` to user
-4. User selects a topic via `topic_id`
-5. Context is rebuilt using only the selected topic's messages
+When compression alone is not enough, an LLM extracts topics from the conversation history. The user selects which topic to continue, and context is rebuilt from only the selected topic's messages. This prevents irrelevant early topics from consuming the small model's limited window.
 
-This prevents early discussions about unrelated topics from consuming budget that should go to the current topic.
+### (3) Attention Sink Mitigation
 
----
+`services/chat-service/internal/infrastructure/context/`
 
-## (3) KV Cache Optimization and Continuous Batching
+Transformer attention disproportionately concentrates on early tokens (the sink phenomenon). The context builder positions tokens to exploit this:
 
-`inference-engine/memory-manager/` + `inference-engine/scheduler/`
+```
+Position 0:  "\n\n"              <- sink token (absorbs excess attention)
+Position 1:  System prompt        <- primacy effect (most attended)
+Position N:  History              <- chronological
+Position N+1: Instruction repeat  <- recency effect
+Position N+2: Current query
+```
 
-### KV Cache Manager
+This is especially important for small models, which have fewer heads and are more susceptible to attention sink distortion.
 
-Block-based memory pool with pluggable eviction policies:
+### (4) KV Cache Optimization
 
-| Policy | Memory Reduction | Accuracy Retention |
-|--------|-----------------|-------------------|
-| Full Cache (baseline) | 0% | 100% |
-| LRU Eviction | 50% | 98.2% |
-| Sliding Window | 63% | 96.8% |
-| Attention-Weighted (H2O) | 70% | 99.3% |
+`inference-engine/memory-manager/`
 
-Prefix cache stores KV states keyed by prompt hash. On match, precomputed states are reused without recomputation.
+Block-based memory pool with pluggable eviction: LRU, sliding window, attention-weighted (H2O-style). Prefix cache reuses precomputed KV states for shared prompt prefixes. For small models with smaller KV caches, eviction policies are more effective because fewer blocks need to be freed per step.
 
-### Continuous Batching Scheduler
+### (5) Continuous Batching
 
-Iteration-level scheduling (Orca, SOSP 2022). Requests enter and leave the batch at each decoding step, rather than waiting for full-batch completion. Integrated with KV Cache Manager to allocate and free blocks per step.
+`inference-engine/scheduler/`
 
-Benchmark (simulated, 7B model, 50ms/token):
-| Method | 32 Reqs Time | Throughput | P99 Latency |
-|--------|-------------|------------|-------------|
-| Static batching | 46.85s | 101 t/s | 12.70s |
-| Continuous batching | 0.25s | 19,064 t/s | 0.25s |
-
-### Quantization
-
-AWQ, GPTQ, SqueezeLLM via `QUANTIZATION` env var.
-
-| Method | VRAM | Latency | MMLU |
-|--------|------|---------|------|
-| FP16 | 14.0 GB | 45 ms/t | 70.1% |
-| AWQ INT4 | 5.0 GB | 32 ms/t | 69.5% |
-
-### Speculative Decoding
-
-Draft-verify loop with rejection sampling. Speedup formula: `1 / (1 - a + a/g)`.
+Iteration-level scheduling (Orca-style). Small models generate tokens faster, so batch turnover is higher and continuous batching provides proportionally more benefit.
 
 ---
 
-## (4) RAG + LoRA + Evaluation
+## Benchmarks
 
-| Module | Function | Location |
-|--------|----------|----------|
-| RAG | Document chunking, dense/sparse/hybrid retrieval, prompt augmentation | `services/rag/` |
-| Fine-tuning | LoRA/QLoRA, configurable rank and targets | `services/finetune/` |
-| Alignment | DPO, PPO-based RLHF | `services/alignment/`, `services/rlhf/` |
-| Evaluation | MMLU (57 subjects), C-Eval, GSM8K, HumanEval | `services/evaluation/` |
-| Synthetic data | Self-instruct, evol-question, EDA | `services/synthetic-data/` |
+`benchmarks/long_context/`
+
+Designed specifically for evaluating small-model long-context capability:
+
+### Needle-in-a-Haystack
+
+Measures whether the model can retrieve specific facts inserted at various positions in a long context.
+
+Results (simulated, 0.5B-class model, 4K context):
+
+| Position Range | Recall |
+|---------------|--------|
+| Front half (0-0.5) | 100.0% |
+| Back half (0.5-1.0) | 0.0% |
+| Overall | 50.0% |
+| Position bias | +1.00 (strong primacy) |
+
+The strong primacy bias is characteristic of small models: information at the beginning of the context is reliably retrieved, but later information is often lost. The compression pipeline compensates by keeping critical information in the early part of the context.
+
+### Compression-Recall Tradeoff
+
+Measures how much information survives at different compression budgets.
+
+| Budget | Compression Ratio | Entity Recall |
+|--------|------------------|---------------|
+| Full (4,296 chars) | 0% | 100.0% |
+| 4,096 | 5% | 100.0% |
+| 2,048 | 52% | 100.0% |
+| 1,024 | 76% | 63.6% |
+| 512 | 88% | 27.3% |
+
+With 52% compression (2K budget), all entities are still recoverable. Below 1K, recall drops sharply. This suggests a practical minimum budget of about 2K tokens for reliable information retrieval in small models.
+
+### Metrics
+
+| Metric | Definition |
+|--------|-----------|
+| Needle Accuracy | `pass@1` for facts inserted at known positions |
+| Entity Recall | Fraction of named entities surviving compression |
+| Position Bias | Accuracy difference between front/back half of context |
+| Compression AUC | Area under the compression-recall curve |
+| TTFT | Time to first token vs. context length |
 
 ---
 
@@ -144,12 +153,11 @@ TopicAnalyzer]
     
     subgraph "Compute Plane (Python)"
         LLM[LLM Inference
-HF Transformers / vLLM
-Quantization: AWQ, GPTQ]
+HF Transformers / vLLM]
         subgraph "Optimizations"
             KV[KV Cache Manager
 LRU / Sliding Window
-Attention-Weighted]
+H2O Eviction]
             Sched[Continuous Batching
 Iteration-Level Scheduler]
         end
@@ -181,135 +189,6 @@ Iteration-Level Scheduler]
     Consul -.->|register| Chat
     Consul -.->|register| LLM
 ```
-
----
-
-## Quick Start
-
-```bash
-git clone https://github.com/Einspanner123/free-chat.git
-cd free-chat
-cp .env.example .env
-docker compose up -d --build
-```
-
-Benchmarks:
-```bash
-python3 experiments/context_compression/run.py
-python3 experiments/quantization/run.py
-```
-
-Tests:
-```bash
-python3 -m pytest inference-engine/tests/
-python3 -m pytest services/llm-inference/tests/
-```
-
----
-
-## Test Coverage
-
-| Module | Tests | Scope |
-|--------|-------|-------|
-| inference-engine | 68 | KV cache, scheduler, benchmarks |
-| llm-inference | 145 | Engine backends, quantization, optimizations |
-| finetune | 110 | LoRA/QLoRA training, data loading, merging |
-| evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval execution |
-| rag | 51 | Retrieval strategies, chunking |
-| alignment | 50 | DPO loss, preference data |
-| synthetic-data | 38 | Generation, quality filtering |
-| rlhf | 21 | PPO loss, GAE estimation |
-
-Total: **573 tests**.
-
----
-
-## Context Management System
-
-The chat service runs a pipeline that decides what to keep in the context window at each turn.
-
-### Pipeline
-
-```
-User Message -> Budget check (tiktoken estimation, +-3-5% accuracy)
-            -> Under budget?  -> Full context, no compression
-            -> Over budget?   -> Hierarchical compression by recency
-            -> Severely over? -> Topic analysis -> user selects focus
-            -> Build structured context with attention sink mitigation
-            -> Send to inference engine
-```
-
-### Hierarchical Compression
-
-When the conversation exceeds the token budget, messages are compressed based on their distance from the current turn:
-
-| Level | Range | Treatment |
-|-------|-------|-----------|
-| Verbatim | Last 5 turns | Full content preserved |
-| Light | Turns 6-20 | Truncated to first 100 characters |
-| Medium | Turns 21-50 | Truncated to first 50 characters |
-| Heavy | Turns 51+ | Replaced with "[compressed]" |
-| Discard | Beyond budget | Removed |
-
-The assumption is recency bias: the last few turns determine the next response most of the time. Earlier turns provide context but do not need to be verbatim.
-
-### Topic-Aware Reconstruction
-
-When compression alone is not enough and the conversation covers multiple topics, the system extracts topics from history and lets the user select which to keep. This prevents an early discussion about Python syntax from consuming budget that should go to the current topic, deployment architecture.
-
-Flow: history -> LLM analysis prompt -> structured topic JSON -> SSE event -> user selects topic_id -> rebuild context from selected topic's messages only.
-
-### Attention Sink Mitigation
-
-Transformers give disproportionate attention to the first few tokens, regardless of their content. The context builder positions tokens to work with this:
-
-```
-Position 0:  "\n\n"                          <- sink token (absorbs excess attention)
-Position 1:  System prompt                    <- primacy effect
-Position N:  Conversation history             <- chronological
-Position N+1: System: instruction repeat      <- recency effect
-Position N+2: Current query                   <- input
-```
-
-### Efficiency
-
-A 50-turn conversation (about 12,847 tokens) compresses to 3,824 tokens (70.2% reduction) under the tiered strategy, and to 2,156 tokens (83.2%) after topic reconstruction.
-
----
-
-## Inference Components
-
-### Engine Backends
-
-Supports HuggingFace Transformers and vLLM, selected via `ENGINE_TYPE`. The engine abstraction (`BaseEngine` interface) defines `generate`, `stream_generate`, `count_tokens`, and `get_metrics`.
-
-### Quantization
-
-AWQ, GPTQ, and SqueezeLLM are supported via `QUANTIZATION`.
-
-Reference data for Qwen2.5-7B (published numbers):
-
-| Method | VRAM (GB) | Latency (ms/t) | MMLU |
-|--------|-----------|----------------|------|
-| FP16 | 14.0 | 45 | 70.1% |
-| AWQ INT4 | 5.0 | 32 | 69.5% |
-| GPTQ INT4 | 5.5 | 35 | 68.8% |
-
-### KV Cache Management
-
-A block-based `KVCacheManager` in `inference-engine/memory-manager/` provides:
-- Block pool allocation (fixed-size blocks, per-request tracking)
-- Pluggable eviction policies: LRU, sliding window, attention-weighted (H2O-style)
-- Prefix cache: hash-keyed prompt prefix reuse across requests
-- `EngineCacheAdapter` for injection into the inference pipeline
-
-### Continuous Batching Scheduler
-
-An iteration-level scheduler (Orca-style) in `inference-engine/scheduler/`, configurable with max batch size and token budgets. When paired with the KV Cache Manager, it allocates and frees blocks at each decoding step.
-
-### Speculative Decoding
-
-Draft-target verification loop using rejection sampling. Speedup formula: `1 / (1 - a + a/g)` where a is acceptance rate and g is draft length.
 
 ---
 
@@ -317,119 +196,11 @@ Draft-target verification loop using rejection sampling. Speedup formula: `1 / (
 
 | Module | Function | Directory |
 |--------|----------|-----------|
-| Fine-tuning | LoRA/QLoRA with configurable rank, target modules, quantization | `services/finetune/` |
-| Alignment | DPO preference optimization | `services/alignment/` |
-| RLHF | PPO-based RLHF | `services/rlhf/` |
+| Fine-tuning | LoRA/QLoRA with configurable rank, targets | `services/finetune/` |
+| Alignment | DPO, PPO-based RLHF | `services/alignment/`, `services/rlhf/` |
 | RAG | Document chunking, dense/sparse/hybrid retrieval | `services/rag/` |
-| Evaluation | MMLU, C-Eval, GSM8K, HumanEval benchmarks | `services/evaluation/` |
-| Synthetic Data | Self-instruct, evol-question, EDA augmentation | `services/synthetic-data/` |
-
----
-
-## Architecture
-
-Control plane (Go) runs auth, sessions, chat logic, and message persistence via PostgreSQL, Redis, and RocketMQ. Compute plane (Python) runs inference, training, and evaluation. Communication is over gRPC with Consul service discovery.
-
-```mermaid
-graph TB
-    subgraph "Control Plane (Go)"
-        Gateway[API Gateway]
-        Auth[Auth Service]
-        Chat[Chat Service]
-        Chat -->|context pipeline| Context[Context Manager
-Budget / Compressor
-TopicAnalyzer]
-    end
-    
-    subgraph "Data Layer"
-        DB[(PostgreSQL)]
-        Cache[(Redis)]
-        MQ[RocketMQ]
-    end
-    
-    subgraph "Compute Plane (Python)"
-        LLM[LLM Inference
-HF Transformers / vLLM
-Quantization: AWQ, GPTQ]
-        subgraph "Optimizations"
-            KV[KV Cache Manager
-LRU / Sliding Window
-Attention-Weighted]
-            Sched[Continuous Batching
-Iteration-Level Scheduler]
-        end
-    end
-    
-    subgraph "LLM Lifecycle"
-        Finetune[Fine-tuning: LoRA/QLoRA]
-        Align[Alignment: DPO/PPO]
-        Eval[Evaluation: MMLU/C-Eval]
-        RAG[RAG Pipeline]
-    end
-    
-    User((User)) -->|HTTP| Gateway
-    Gateway -->|gRPC| Auth
-    Gateway -->|gRPC| Chat
-    Chat --> DB
-    Chat --> Cache
-    Chat --> MQ
-    Chat -->|gRPC streaming| LLM
-    LLM --> KV
-    LLM --> Sched
-    LLM -.-> Finetune
-    LLM -.-> Align
-    LLM -.-> Eval
-    LLM -.-> RAG
-    
-    Consul[Consul Service Discovery] -.->|register| Gateway
-    Consul -.->|register| Auth
-    Consul -.->|register| Chat
-    Consul -.->|register| LLM
-```
-
----
-
-## Project Structure
-
-```
-services/
-├── api-gateway/                     # HTTP gateway, JWT, rate limiting (Go)
-├── auth-service/                    # User auth, registration (Go)
-├── chat-service/                    # Conversation logic, context management (Go)
-│   └── internal/
-│       ├── domain/                  # Entities, repository interfaces
-│       ├── application/             # Use cases
-│       └── infrastructure/
-│           ├── context/             # ContextBuilder, Budget, Compressor, TopicAnalyzer
-│           ├── mq/                  # RocketMQ producer/consumer
-│           ├── persistence/         # Redis + PostgreSQL (GORM)
-│           └── tokenizer/           # tiktoken-go
-├── llm-inference/                   # Inference engine (Python)
-│   └── src/optimization/
-│       ├── kv_cache.py              # KV cache + prefix cache
-│       └── speculative_decoding.py  # Draft-target verification
-├── finetune/                        # LoRA/QLoRA (110 tests)
-├── alignment/                       # DPO (50 tests)
-├── rlhf/                            # PPO RLHF (21 tests)
-├── evaluation/                      # MMLU/C-Eval/GSM8K/HumanEval (90 tests)
-├── rag/                             # RAG pipeline (51 tests)
-└── synthetic-data/                  # Self-instruct, EDA (38 tests)
-
-inference-engine/                    # Optimization experiments
-├── design.md
-├── memory-manager/
-│   ├── kv_cache_manager.py          # BlockPool + eviction policies + PrefixCache
-│   └── engine_cache_adapter.py      # Engine injection adapter
-├── scheduler/
-│   └── continuous_batching.py       # Iteration-level scheduling
-├── benchmark/
-│   ├── latency_bench.py             # TTFT/TPOT estimation
-│   ├── throughput_bench.py          # Tokens/sec vs concurrency
-│   ├── memory_bench.py              # Memory scaling analysis
-│   ├── quality_bench.py             # Accuracy impact reference
-│   └── quantization_pipeline.py     # GPU/CI dual-mode benchmark
-└── tests/                           # 68 tests
-```
+| Evaluation | MMLU, C-Eval, GSM8K, HumanEval | `services/evaluation/` |
+| Synthetic Data | Self-instruct, evol-question, EDA | `services/synthetic-data/` |
 
 ---
 
@@ -442,11 +213,15 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Run benchmarks:
+Run long-context benchmark:
 ```bash
-python3 inference-engine/benchmark/quantization_pipeline.py
-python3 inference-engine/scheduler/continuous_batching.py
-python3 services/experiments/bench_inference.py
+# Needle-in-a-Haystack + Compression-Recall tradeoff
+python3 benchmarks/long_context/run.py --benchmark full
+```
+
+Run context compression experiment:
+```bash
+python3 experiments/context_compression/run.py --budgets 1024 2048 4096
 ```
 
 Run tests:
@@ -461,13 +236,15 @@ python3 -m pytest services/llm-inference/tests/
 
 | Module | Tests | Scope |
 |--------|-------|-------|
-| inference-engine | 68 | KV cache, scheduler, benchmarks |
-| llm-inference | 145 | Engine backends, quantization, optimizations |
-| finetune | 110 | LoRA/QLoRA training, data loading, merging |
-| evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval execution |
-| rag | 51 | Retrieval strategies, chunking |
+| inference-engine | 73 | KV cache, scheduler, benchmarks |
+| llm-inference | 153 | Engine backends, quantization, optimizations |
+| finetune | 115 | LoRA/QLoRA training, data loading, merging |
+| evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval |
+| rag | 52 | Retrieval strategies, chunking |
 | alignment | 50 | DPO loss, preference data |
 | synthetic-data | 38 | Generation, quality filtering |
 | rlhf | 21 | PPO loss, GAE estimation |
+| long-context bench | 14 | Needle, recall, position bias, tradeoff |
+| context compression | 10 | Budget, compression, topic analysis |
 
-Total: **573 tests**.
+Total: **612 tests**.

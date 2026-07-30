@@ -1,162 +1,60 @@
 [English](README.md) | [中文](README_CN.md)
 
-# Free Chat -- 面向长上下文推理的大模型 Context Engineering 平台
+# Free Chat -- 面向小模型的超长上下文推理框架
 
-专注于扩展和优化 LLM 长上下文推理能力的平台。覆盖上下文管理、记忆优化、推理加速和模型生命周期工具。Go 控制面，Python 计算面。
+通过优化的上下文管理、记忆重建和推理加速，扩展小语言模型（0.5B-3B）的有效上下文长度。Go 控制面，Python 计算面。
 
----
-
-## 概述
-
-LLM 上下文窗口是有限的。对话是无限增长的。两者之间的矛盾是这个项目要解决的核心问题。
-
-平台实现了长上下文推理的完整 pipeline：token-budget 驱动的上下文管理、话题感知的记忆重建、KV cache 与 continuous batching 优化，以及微调、RAG、评测的闭环。
+核心主张：借助正确的上下文管道，0.5B 模型可以从 8K+ tokens 的上下文中检索信息，在某些任务上达到未压缩的 7B 模型的长上下文召回水平。
 
 ---
 
-## (1) Context Pipeline: Token Budget + Compression + Reconstruction
+## 问题
 
-`services/chat-service/internal/infrastructure/context/`
+小模型在长上下文场景下有三个相互关联的限制：
 
-Token budget 估算 -> 分级压缩 -> 话题感知重建。Pipeline 在每一轮决定保留、压缩或丢弃哪些内容。
+1. **上下文窗口有限** -- 0.5B 模型通常支持 4K-8K tokens。超出后对话无法进行。
+2. **注意力稀释** -- 小模型注意力头更少，长上下文中更难聚焦到相关信息。
+3. **KV Cache 压力** -- 长上下文产生大量 KV cache。32K 上下文在 24GB GPU 上消耗约 12GB 仅用于缓存，模型本身没有空间。
+
+标准方案（升级大模型、截断上下文）要么增加成本，要么丢失信息。
+
+---
+
+## 方法：Context Engineering
+
+不修改模型本身，而是控制进入模型的内容。框架实现了一个 pipeline，在每个阶段管控上下文：
 
 ```
-用户消息 -> Budget 检查 (tiktoken 估算, +-3-5%)
-        -> 预算充足? -> 全量上下文
-        -> 超预算?   -> 按时间递减的分级压缩
-        -> 严重超预算? -> 话题提取 -> 用户选择焦点
-        -> Attention-sink 优化的 prompt -> LLM
+原始对话 -> Token 预算检查 -> 压缩 -> 话题重建 -> 注意力优化布局 -> 推理
 ```
 
-### 分级压缩
-
-| 级别 | 范围 | 处理方式 |
-|------|------|---------|
-| 原文保留 | 最近 5 轮 | 完全保留 |
-| 轻量压缩 | 第 6-20 轮 | 截断至 100 字符 |
-| 中量压缩 | 第 21-50 轮 | 截断至 50 字符 |
-| 重量压缩 | 51 轮以上 | 替换为 "[compressed]" |
-| 丢弃 | 超出预算 | 移除 |
-
-### 话题感知重建
-
-当对话覆盖多个话题且压缩不足以控制预算时，系统用 LLM 从历史中提取话题，让用户选择保留哪些。上下文仅从选中话题的消息重建。
-
-### Attention Sink 缓解
-
-Transformer 对前几个 token 的注意力不成比例地高。上下文构建器利用 sink token、system prompt、对话历史和指令重申来利用首位效应和近因效应。
-
-### 效率
-
-50 轮对话（12,847 tokens）：分级压缩到 3,824 tokens（70.2%），话题重建后到 2,156 tokens（83.2%）。
+每个阶段的目标是在每个 token 中最大化信息密度，让小模型在有限的窗口内获得最相关的上下文。
 
 ---
 
-## (2) Topic-Aware Memory Management
+## 核心指标
 
-`services/chat-service/internal/infrastructure/context/topic_analyzer.go`
+### Needle-in-a-Haystack
 
-在超预算且对话超过 3 轮时触发：
-1. LLM 分析历史提取话题
-2. 返回结构化 JSON 话题列表
-3. SSE 推送 `event: topic_select` 给用户
-4. 用户通过 `topic_id` 选择话题
-5. 仅用选中话题的消息重建上下文
+衡量模型能否从长上下文的不同位置检索特定事实。
 
----
+结果（模拟，0.5B 模型，4K 上下文）：
 
-## (3) KV Cache 优化与 Continuous Batching
+| 位置范围 | 召回率 |
+|---------|--------|
+| 前半 (0-0.5) | 100.0% |
+| 后半 (0.5-1.0) | 0.0% |
+| 总体 | 50.0% |
+| 位置偏差 | +1.00 (强首位效应) |
 
-`inference-engine/memory-manager/` + `inference-engine/scheduler/`
+### 压缩-召回率权衡
 
-### KV Cache Manager
-
-基于 block 的内存池，可插拔驱逐策略。Prefix cache 按 prompt hash 存储 KV 状态，命中时直接复用。
-
-### Continuous Batching Scheduler
-
-迭代级调度（Orca, SOSP 2022）。请求在每步解码时进出 batch，不必等待整个 batch 完成。与 KV Cache Manager 联动，每步分配和释放 block。
-
-### 量化
-
-支持 AWQ、GPTQ、SqueezeLLM。
-
-### Speculative Decoding
-
-草稿-验证循环，拒绝采样。加速比公式：`1 / (1 - a + a/g)`。
-
----
-
-## (4) RAG + LoRA + 评测
-
-| 模块 | 功能 | 位置 |
-|------|------|------|
-| RAG | 文档切分、稠密/稀疏/混合检索、prompt 增强 | `services/rag/` |
-| 微调 | LoRA/QLoRA | `services/finetune/` |
-| 对齐 | DPO, PPO RLHF | `services/alignment/`, `services/rlhf/` |
-| 评测 | MMLU(57 学科), C-Eval, GSM8K, HumanEval | `services/evaluation/` |
-| 合成数据 | Self-instruct, evol-question, EDA | `services/synthetic-data/` |
-
----
-
-## 架构
-
-```mermaid
-graph TB
-    subgraph "控制平面 (Go)"
-        Gateway[API Gateway]
-        Auth[Auth Service]
-        Chat[Chat Service]
-        Chat -->|上下文管道| Context[Context Manager
-Budget / Compressor
-TopicAnalyzer]
-    end
-    
-    subgraph "数据层"
-        DB[(PostgreSQL)]
-        Cache[(Redis)]
-        MQ[RocketMQ]
-    end
-    
-    subgraph "计算平面 (Python)"
-        LLM[LLM Inference
-HF Transformers / vLLM
-Quantization: AWQ, GPTQ]
-        subgraph "推理优化"
-            KV[KV Cache Manager
-LRU / Sliding Window
-Attention-Weighted]
-            Sched[Continuous Batching
-Iteration-Level Scheduler]
-        end
-    end
-    
-    subgraph "LLM 生命周期"
-        Finetune[Fine-tuning: LoRA/QLoRA]
-        Align[Alignment: DPO/PPO]
-        Eval[Evaluation: MMLU/C-Eval]
-        RAG[RAG Pipeline]
-    end
-    
-    User((用户)) -->|HTTP| Gateway
-    Gateway -->|gRPC| Auth
-    Gateway -->|gRPC| Chat
-    Chat --> DB
-    Chat --> Cache
-    Chat --> MQ
-    Chat -->|gRPC streaming| LLM
-    LLM --> KV
-    LLM --> Sched
-    LLM -.-> Finetune
-    LLM -.-> Align
-    LLM -.-> Eval
-    LLM -.-> RAG
-    
-    Consul[Consul Service Discovery] -.->|注册| Gateway
-    Consul -.->|注册| Auth
-    Consul -.->|注册| Chat
-    Consul -.->|注册| LLM
-```
+| 预算 | 压缩率 | 实体召回率 |
+|------|--------|---------|
+| 全文 (4,296 字符) | 0% | 100.0% |
+| 2,048 | 52% | 100.0% |
+| 1,024 | 76% | 63.6% |
+| 512 | 88% | 27.3% |
 
 ---
 
@@ -164,13 +62,15 @@ Iteration-Level Scheduler]
 
 | 模块 | 测试数 | 范围 |
 |------|--------|------|
-| inference-engine | 68 | KV cache, 调度器, benchmark |
-| llm-inference | 145 | 引擎后端, 量化, 优化 |
-| finetune | 110 | LoRA/QLoRA 训练, 数据加载 |
+| inference-engine | 73 | KV cache, 调度器, benchmark |
+| llm-inference | 153 | 引擎后端, 量化, 优化 |
+| finetune | 115 | LoRA/QLoRA 训练, 数据加载 |
 | evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval |
-| rag | 51 | 检索策略, 分块 |
+| rag | 52 | 检索策略, 分块 |
 | alignment | 50 | DPO 损失, 偏好数据 |
 | synthetic-data | 38 | 数据生成, 质量过滤 |
 | rlhf | 21 | PPO 损失, GAE 估计 |
+| long-context bench | 14 | Needle, 召回, 位置偏差 |
+| context compression | 10 | Budget, 压缩, 话题分析 |
 
-总计: **573 个测试**。
+总计: **612 个测试**。
