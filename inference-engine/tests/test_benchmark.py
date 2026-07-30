@@ -95,8 +95,14 @@ class TestLatencyBench:
 
     def test_run_latency_bench(self):
         from latency_bench import run_latency_bench
-        suite = run_latency_bench(model_params_b=7, batch_sizes=[1, 2, 4])
-        assert len(suite.results) > 0
+        suite = run_latency_bench(model_params_b=7, batch_sizes=[1, 2, 4], prompt_lengths=[128, 512])
+        # 3 batch sizes x 2 prompt lengths x 2 metrics (TTFT, TPOT) = 12
+        assert len(suite.results) == 12
+        # Verify specific known values
+        ttft_results = [r for r in suite.results if "TTFT" in r.name]
+        assert len(ttft_results) == 6  # 3 batch sizes x 2 prompt lengths
+        for r in ttft_results:
+            assert 100 < r.value < 10000  # TTFT should be in reasonable ms range
 
     def test_latency_vs_sequence_length(self):
         from latency_bench import estimate_ttft
@@ -131,7 +137,17 @@ class TestThroughputBench:
     def test_run_throughput_bench(self):
         from throughput_bench import run_throughput_bench
         suite = run_throughput_bench(model_params_b=7, concurrency_levels=[1, 2, 4])
-        assert len(suite.results) >= 2
+        # 3 concurrency levels x 2 batching methods (static, continuous) = 6
+        assert len(suite.results) == 6
+        # Throughput should increase with concurrency
+        static_results = [r for r in suite.results if "static" in r.name]
+        continuous_results = [r for r in suite.results if "continuous" in r.name]
+        assert len(static_results) == 3
+        assert len(continuous_results) == 3
+        # Continuous batching should outperform static at same concurrency
+        static_tps = max(r.value for r in static_results)
+        continuous_tps = max(r.value for r in continuous_results)
+        assert continuous_tps > static_tps
 
 
 class TestMemoryBench:
@@ -163,7 +179,12 @@ class TestMemoryBench:
     def test_run_memory_bench(self):
         from memory_bench import run_memory_bench
         suite = run_memory_bench(seq_lens=[1024, 4096], batch_sizes=[1, 4])
-        assert len(suite.results) >= 2
+        # 4 models x (FP16 + AWQ) + 4 models x 2 seq_lens x 2 batch_sizes for KV cache
+        assert len(suite.results) >= 8
+        # FP16 memory for 7B should be ~14GB
+        fp16_7b = [r for r in suite.results if "model_7.0B_fp16" in r.name]
+        if fp16_7b:
+            assert abs(fp16_7b[0].value - 14.0) < 1.0
 
     def model_accessibility_map(self):
         """Which model sizes fit on which GPUs."""
