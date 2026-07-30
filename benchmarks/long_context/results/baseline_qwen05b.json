@@ -1,0 +1,40 @@
+{
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "context_length": 4096,
+  "num_needles": 5,
+  "recall": 1.0,
+  "avg_latency_s": 0.947,
+  "gpu_memory_gb": 0.9,
+  "results": [
+    {
+      "position": 0.167,
+      "correct": true,
+      "needle": "CODE000",
+      "response": "The secret code at position CODE000 is \"CODE000\"."
+    },
+    {
+      "position": 0.333,
+      "correct": true,
+      "needle": "CODE001",
+      "response": "The secret code at position CODE001 is \"humpback whales\"."
+    },
+    {
+      "position": 0.5,
+      "correct": true,
+      "needle": "CODE002",
+      "response": "The secret code at position CODE002 is \"CODE002.\""
+    },
+    {
+      "position": 0.667,
+      "correct": true,
+      "needle": "CODE003",
+      "response": "The secret code at position CODE003 is \"function\"."
+    },
+    {
+      "position": 0.833,
+      "correct": true,
+      "needle": "CODE004",
+      "response": "The secret code at position CODE004 is \"migration patterns\"."
+    }
+  ]
+}

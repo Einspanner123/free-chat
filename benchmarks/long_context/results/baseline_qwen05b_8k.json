@@ -1,0 +1,70 @@
+{
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "context_length": 8192,
+  "num_needles": 10,
+  "recall": 1.0,
+  "avg_latency_s": 0.588,
+  "gpu_memory_gb": 0.9,
+  "results": [
+    {
+      "position": 0.091,
+      "correct": true,
+      "needle": "CODE000",
+      "response": "The secret code at position CODE000 is \"CODE000\"."
+    },
+    {
+      "position": 0.182,
+      "correct": true,
+      "needle": "CODE001",
+      "response": "The secret code at position CODE001 is \"CODE001\"."
+    },
+    {
+      "position": 0.273,
+      "correct": true,
+      "needle": "CODE002",
+      "response": "The secret code at position CODE002 is \"CODE002\"."
+    },
+    {
+      "position": 0.364,
+      "correct": true,
+      "needle": "CODE003",
+      "response": "The secret code at position CODE003 is \"CODE003\"."
+    },
+    {
+      "position": 0.455,
+      "correct": true,
+      "needle": "CODE004",
+      "response": "The secret code at position CODE004 is \"efficiency\"."
+    },
+    {
+      "position": 0.545,
+      "correct": true,
+      "needle": "CODE005",
+      "response": "The secret code at position CODE005 is \"CODE005\"."
+    },
+    {
+      "position": 0.636,
+      "correct": true,
+      "needle": "CODE006",
+      "response": "The secret code at position CODE006 is \"additional funding for public transportation.\""
+    },
+    {
+      "position": 0.727,
+      "correct": true,
+      "needle": "CODE007",
+      "response": "The secret code at position CODE007 is \"additional funding for public transportation.\""
+    },
+    {
+      "position": 0.818,
+      "correct": true,
+      "needle": "CODE008",
+      "response": "The secret code at position CODE008 is \"additional funding for public transportation.\""
+    },
+    {
+      "position": 0.909,
+      "correct": true,
+      "needle": "CODE009",
+      "response": "The secret code at position CODE009 is \"ATTRIBUTES\"."
+    }
+  ]
+}
