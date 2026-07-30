@@ -278,12 +278,61 @@ def rag_retrieval(text: str, tok, budget: int) -> str:
     return " ".join(result)
 
 
+def full_pipeline(text: str, tok, budget: int) -> str:
+    """
+    完整项目管道：话题提取 + 分级压缩 + Attention Sink 布局。
+    对应项目中的 TopicAnalyzer → Compressor → buildPrefixedContext。
+    """
+    import re
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    if not sentences:
+        return text[:max(len(text)//4, 1)] if text else ""
+
+    # Step 1: 话题提取（关键词匹配）
+    key = [s for s in sentences if any(fact[:20] in s for fact, _, _, _ in FACTS)]
+    other = [s for s in sentences if s not in key]
+
+    # Step 2: 分级压缩非关键句子
+    compressed_other = []
+    for i, s in enumerate(reversed(other)):
+        turn = i + 1
+        if turn <= 5:
+            ct = s
+        elif turn <= 20:
+            ct = s[:100]
+        elif turn <= 50:
+            ct = s[:50]
+        else:
+            ct = ""
+        if ct:
+            compressed_other.insert(0, ct)
+
+    # Step 3: Attention Sink 布局
+    # Position 0: sink token
+    # Position 1: 关键句子（话题相关）
+    # Position N: 压缩后的其他句子
+    # Position N+1: 指令重申（由 eval_strategy 在 prompt 中添加）
+    key_text = "\n\n".join(key)
+    other_text = " ".join(compressed_other)
+    result_tok = len(tok.encode(key_text + "\n\n" + other_text, add_special_tokens=False))
+
+    if result_tok <= budget:
+        return "\n\n" + key_text + "\n\n" + other_text
+    elif len(tok.encode(key_text, add_special_tokens=False)) <= budget:
+        t = tok.encode(key_text, add_special_tokens=False)[:budget]
+        return "\n\n" + tok.decode(t, skip_special_tokens=True)
+    else:
+        t = tok.encode(key_text, add_special_tokens=False)[:budget - 2]
+        return "\n\n" + tok.decode(t, skip_special_tokens=True)
+
+
 STRATEGIES = {
     "full": ("Full Context", full),
     "truncation": ("Truncation", truncation),
     "project": ("Project Compression", project_compress),
     "project+topic": ("Project + Topic", project_topic),
     "attention_sink": ("Attention Sink", attention_sink),
+    "full_pipeline": ("Full Pipeline", full_pipeline),
     "llm_topic": ("LLM Topic Extraction", None),
     "rag": ("RAG Retrieval", rag_retrieval),
 }
