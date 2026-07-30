@@ -240,8 +240,14 @@ STRATEGIES = {
 def eval_strategy(model, tok, device, context, needles, name, fn, budget):
     processed = fn(context, tok, budget)
     ptok = len(tok.encode(processed, add_special_tokens=False))
+    # 填充到预算，保证 token 数一致
+    if ptok < budget and fn != full:
+        fill_needed = budget - ptok
+        filler = " ".join(["The quick brown fox jumps over the lazy dog."] * (fill_needed // 10))
+        processed = processed + "\n\n" + filler
+        ptok = len(tok.encode(processed, add_special_tokens=False))
     ftok = len(tok.encode(context, add_special_tokens=False))
-    ratio = round(1 - ptok / ftok, 3) if ftok > 0 else 0
+    ratio = round(1 - ftok / budget, 3) if budget > 0 else 0
 
     correct = 0
     results = []
