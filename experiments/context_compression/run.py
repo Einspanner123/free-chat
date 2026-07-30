@@ -25,6 +25,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from metrics import compute_all_metrics
 
+# Add experiments root for env info
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from _env_info import capture as capture_env, format_summary as format_env
+
 
 # =============================================================================
 # Synthetic conversation generator
@@ -172,6 +176,7 @@ def run_experiment(
             "total_turns": len(conversation),
             "total_tokens": original_tokens,
         },
+        "environment": capture_env(),
         "methods": {},
     }
 
@@ -253,8 +258,11 @@ def main():
     # Load config if specified
     budgets = args.budgets
 
+    from _env_info import capture as capture_env, format_summary as format_env
+    env = capture_env()
     print(f"Context Compression Experiment")
     print(f"  Turns: {args.num_turns}, Seed: {args.seed}")
+    print(f"  {env['gpu']['devices'][0]['name'] if env['gpu']['available'] else 'GPU: None (reference mode)'}")
     if budgets:
         print(f"  Budgets: {budgets}")
     print()

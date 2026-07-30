@@ -198,6 +198,13 @@ def main():
     parser.add_argument("--seq-lens", nargs="+", type=int, default=None)
     args = parser.parse_args()
 
+    import sys as _sys, os as _os
+    _sys.path.insert(0, _os.path.dirname(_os.path.dirname(__file__)))
+    from _env_info import capture
+    env = capture()
+    gpu_name = env["gpu"]["devices"][0]["name"] if env["gpu"]["available"] else "None (reference mode)"
+    print(f"GPU: {gpu_name}")
+
     print("=" * 80)
     print("KV Cache Experiment: Memory × Latency × Throughput")
     print("=" * 80)

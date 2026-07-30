@@ -146,6 +146,14 @@ def main():
     parser.add_argument("--methods", nargs="+", default=["fp16", "int8", "gptq", "awq"])
     args = parser.parse_args()
 
+    # Record environment info
+    import sys as _sys, os as _os
+    _sys.path.insert(0, _os.path.dirname(_os.path.dirname(__file__)))
+    from _env_info import capture as capture_env
+    env = capture_env()
+    gpu_name = env["gpu"]["devices"][0]["name"] if env["gpu"]["available"] else "None (reference mode)"
+    print(f"GPU: {gpu_name}")
+
     if args.gpu:
         results = run_on_gpu(args.model, args.methods)
     else:

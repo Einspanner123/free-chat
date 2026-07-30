@@ -202,6 +202,13 @@ def main():
     parser.add_argument("--out", default="results")
     args = parser.parse_args()
 
+    import sys as _sys, os as _os
+    _sys.path.insert(0, _os.path.dirname(_os.path.dirname(__file__)))
+    from _env_info import capture
+    env = capture()
+    gpu_name = env["gpu"]["devices"][0]["name"] if env["gpu"]["available"] else "None (reference mode)"
+    print(f"GPU: {gpu_name}")
+
     target_size = args.target
     draft_sizes = args.draft_sizes
 
