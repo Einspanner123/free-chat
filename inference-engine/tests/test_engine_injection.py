@@ -79,3 +79,56 @@ class TestCacheAdapter:
         stats = adapter.stats()
         assert stats["active_sequences"] == 2
         assert stats["used_blocks"] > 0
+
+    def test_adapter_zero_prompt(self):
+        """initialize_sequence with 0 prompt tokens."""
+        from kv_cache_manager import KVCacheManager
+        from engine_cache_adapter import EngineCacheAdapter
+        inner = KVCacheManager(total_blocks=16)
+        adapter = EngineCacheAdapter(inner)
+        adapter.initialize_sequence("s1", prompt_tokens=0)
+        # Should allocate at least 1 block
+        assert inner.used_blocks >= 1
+        adapter.finalize_sequence("s1")
+
+    def test_adapter_empty_stats(self):
+        """Stats with no active sequences."""
+        from kv_cache_manager import KVCacheManager
+        from engine_cache_adapter import EngineCacheAdapter
+        inner = KVCacheManager(total_blocks=16)
+        adapter = EngineCacheAdapter(inner)
+        stats = adapter.stats()
+        assert stats["active_sequences"] == 0
+        assert stats["used_blocks"] == 0
+
+    def test_adapter_prefix_miss(self):
+        """Lookup for nonexistent prefix returns None."""
+        from kv_cache_manager import KVCacheManager
+        from engine_cache_adapter import EngineCacheAdapter
+        inner = KVCacheManager(total_blocks=16)
+        adapter = EngineCacheAdapter(inner)
+        assert adapter.lookup_prefix("nonexistent") is None
+
+    def test_adapter_clear_sequences(self):
+        """Clear all active sequences."""
+        from kv_cache_manager import KVCacheManager
+        from engine_cache_adapter import EngineCacheAdapter
+        inner = KVCacheManager(total_blocks=16)
+        adapter = EngineCacheAdapter(inner)
+        adapter.initialize_sequence("a", prompt_tokens=32)
+        adapter.initialize_sequence("b", prompt_tokens=32)
+        adapter.initialize_sequence("c", prompt_tokens=32)
+        assert adapter.stats()["active_sequences"] == 3
+        adapter.clear()
+        assert adapter.stats()["active_sequences"] == 0
+        assert inner.used_blocks == 0
+
+    def test_adapter_pool_exhaustion(self):
+        """Requesting more blocks than available should handle gracefully."""
+        from kv_cache_manager import KVCacheManager
+        from engine_cache_adapter import EngineCacheAdapter
+        inner = KVCacheManager(total_blocks=4)
+        adapter = EngineCacheAdapter(inner, blocks_per_token=0.5)
+        adapter.initialize_sequence("big", prompt_tokens=100)  # requests ~50 blocks
+        # Only 4 blocks available
+        assert inner.used_blocks <= 4

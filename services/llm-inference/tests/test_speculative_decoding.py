@@ -85,3 +85,59 @@ class TestSpeculativeDecoding:
         sd = SpeculativeDecoder(draft_model=draft, target_model=target, gamma=5)
         speedup = sd.estimate_speedup(acceptance_rate=1.0)
         assert speedup > 1.0
+
+    def test_empty_draft_tokens(self, draft, target):
+        """Empty draft tokens should not crash verify."""
+        from optimization.speculative_decoding import SpeculativeDecoder
+        sd = SpeculativeDecoder(draft_model=draft, target_model=target, gamma=3)
+        accepted = sd.verify([], "context")
+        assert accepted == []
+
+    def test_verify_high_acceptance(self, draft, target):
+        """verify should accept most tokens when draft is good."""
+        from optimization.speculative_decoding import SpeculativeDecoder
+        sd = SpeculativeDecoder(draft_model=draft, target_model=target, gamma=5)
+        accepted = sd.verify(["a", "b", "c", "d", "e"], "prefix")
+        # With default 0.9 acceptance threshold, most should be accepted
+        assert len(accepted) >= 3
+
+    def test_rejection_sampling_all_accept(self):
+        """When p > q for all tokens, all should be accepted."""
+        from optimization.speculative_decoding import SpeculativeDecoder
+        sd = SpeculativeDecoder(draft_model=None, target_model=None, gamma=3)
+        mask, n = sd.rejection_sampling([0.5, 0.5, 0.5], [0.6, 0.6, 0.6])
+        assert n == 3
+        assert all(mask)
+
+    def test_rejection_sampling_all_reject(self):
+        """When p is much smaller than q, early rejection occurs."""
+        from optimization.speculative_decoding import SpeculativeDecoder
+        sd = SpeculativeDecoder(draft_model=None, target_model=None, gamma=5)
+        mask, n = sd.rejection_sampling([0.9, 0.9, 0.9], [0.1, 0.1, 0.1])
+        assert n < 3  # should reject before position 3
+
+    def test_rejection_sampling_empty(self):
+        from optimization.speculative_decoding import SpeculativeDecoder
+        sd = SpeculativeDecoder(draft_model=None, target_model=None, gamma=3)
+        mask, n = sd.rejection_sampling([], [])
+        assert n == 0
+
+    def test_speculate_without_draft_model(self, target):
+        """When draft is None, fall back to target only."""
+        from optimization.speculative_decoding import SpeculativeDecoder
+        sd = SpeculativeDecoder(draft_model=None, target_model=target, gamma=3)
+        result = sd.speculate("Hello")
+        assert result is not None
+
+    def test_speedup_gamma_one(self, draft, target):
+        """Gamma=1 means no speculation, speedup should be 1.0."""
+        from optimization.speculative_decoding import SpeculativeDecoder
+        sd = SpeculativeDecoder(draft_model=draft, target_model=target, gamma=1)
+        assert sd.estimate_speedup(acceptance_rate=0.8) == 1.0
+
+    def test_speedup_acceptance_rate_zero(self, draft, target):
+        """Zero acceptance rate means all tokens rejected, speedup = 1/(1-0+0/5) = 1."""
+        from optimization.speculative_decoding import SpeculativeDecoder
+        sd = SpeculativeDecoder(draft_model=draft, target_model=target, gamma=5)
+        speedup = sd.estimate_speedup(acceptance_rate=0.0)
+        assert speedup == 1.0

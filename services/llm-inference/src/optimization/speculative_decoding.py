@@ -110,8 +110,9 @@ class SpeculativeDecoder:
         """Rejection sampling to verify draft tokens.
 
         For each position i:
-        - If p(x_i) > q(x_i), always accept
-        - Else accept with probability p(x_i) / q(x_i)
+        - If p > q, always accept (target is more confident than draft)
+        - If q == 0 and p == 0, accept (both equally uncertain)
+        - Else accept with probability p / q
 
         Args:
             q_probs: Draft model probabilities for each token.
@@ -124,6 +125,11 @@ class SpeculativeDecoder:
         accepted = []
         for q, p in zip(q_probs, p_probs):
             if p > q:
+                accepted.append(True)
+            elif q == 0 and p == 0:
+                accepted.append(True)
+            elif q == 0:
+                # p <= q and q == 0 → p must also be 0 (handled above)
                 accepted.append(True)
             else:
                 if random.random() < p / q:
