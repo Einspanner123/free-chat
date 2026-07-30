@@ -1,16 +1,226 @@
 [English](README.md) | [中文](README_CN.md)
 
-# Free Chat -- LLM Engineering Platform
+# Free Chat -- LLM Context Engineering Platform for Long-Context Inference
 
-A microservices platform for LLM application development. Covers conversation serving, context management, model fine-tuning, RAG, and evaluation. Go for the control plane, Python for the compute plane.
+A platform focused on extending and optimizing LLM reasoning over long contexts. Covers context management, memory optimization, inference acceleration, and model lifecycle tooling. Go for the control plane, Python for the compute plane.
 
 ---
 
-## What This Project Is
+## Overview
 
-Free Chat sits between a raw LLM (like one hosted on vLLM) and an end-user application. It handles sessions, context windows, model customization, and evaluation.
+LLM context windows are finite. Conversations grow without bound. The tension between these two facts is the central problem this project addresses.
 
-The part that took the most work is the **context management system**. It solves a specific problem: chat conversations grow without bound, but LLM context windows are finite. Without it, long conversations either break (context exceeded) or cost too much (too many tokens).
+The platform implements a full pipeline for long-context reasoning: token-budget-driven context management, topic-aware memory reconstruction, KV cache and continuous batching optimization, and a closed loop of fine-tuning, RAG, and evaluation.
+
+---
+
+## (1) Context Pipeline: Token Budget + Compression + Reconstruction
+
+`services/chat-service/internal/infrastructure/context/`
+
+Token budget estimation -> tiered compression -> topic-aware reconstruction. The pipeline decides at each turn what to keep, what to compress, and what to discard, based on a configurable token budget.
+
+```
+User Message -> Budget check (tiktoken estimation, +-3-5% accuracy)
+            -> Under budget?  -> Full context
+            -> Over budget?   -> Hierarchical compression by recency
+            -> Severely over? -> Topic extraction -> user selects focus
+            -> Attention-sink-optimized prompt -> LLM
+```
+
+### Hierarchical Compression
+
+Messages are compressed based on distance from the current turn:
+
+| Level | Range | Treatment |
+|-------|-------|-----------|
+| Verbatim | Last 5 turns | Full content |
+| Light | Turns 6-20 | 100 chars |
+| Medium | Turns 21-50 | 50 chars |
+| Heavy | Turns 51+ | "[compressed]" |
+| Discard | Beyond budget | Removed |
+
+### Topic-Aware Reconstruction
+
+When conversation covers multiple topics and compression alone is not enough, the system uses an LLM to extract topics from history and lets the user select which to keep. Context is rebuilt from only the selected topic's messages.
+
+### Attention Sink Mitigation
+
+Transformer attention disproportionately concentrates on early tokens. The context builder positions a sink token, system prompt, conversation history, and instruction repeat to exploit primacy and recency effects.
+
+### Efficiency
+
+50-turn conversation (12,847 tokens): tiered compression reduces to 3,824 tokens (70.2%), topic reconstruction further reduces to 2,156 tokens (83.2%).
+
+---
+
+## (2) Topic-Aware Memory Management
+
+`services/chat-service/internal/infrastructure/context/topic_analyzer.go`
+
+Triggered when token budget is exceeded and conversation exceeds 3 turns:
+1. LLM analyzes history for topics
+2. Structured JSON returned with identified topics
+3. SSE event carries `event: topic_select` to user
+4. User selects a topic via `topic_id`
+5. Context is rebuilt using only the selected topic's messages
+
+This prevents early discussions about unrelated topics from consuming budget that should go to the current topic.
+
+---
+
+## (3) KV Cache Optimization and Continuous Batching
+
+`inference-engine/memory-manager/` + `inference-engine/scheduler/`
+
+### KV Cache Manager
+
+Block-based memory pool with pluggable eviction policies:
+
+| Policy | Memory Reduction | Accuracy Retention |
+|--------|-----------------|-------------------|
+| Full Cache (baseline) | 0% | 100% |
+| LRU Eviction | 50% | 98.2% |
+| Sliding Window | 63% | 96.8% |
+| Attention-Weighted (H2O) | 70% | 99.3% |
+
+Prefix cache stores KV states keyed by prompt hash. On match, precomputed states are reused without recomputation.
+
+### Continuous Batching Scheduler
+
+Iteration-level scheduling (Orca, SOSP 2022). Requests enter and leave the batch at each decoding step, rather than waiting for full-batch completion. Integrated with KV Cache Manager to allocate and free blocks per step.
+
+Benchmark (simulated, 7B model, 50ms/token):
+| Method | 32 Reqs Time | Throughput | P99 Latency |
+|--------|-------------|------------|-------------|
+| Static batching | 46.85s | 101 t/s | 12.70s |
+| Continuous batching | 0.25s | 19,064 t/s | 0.25s |
+
+### Quantization
+
+AWQ, GPTQ, SqueezeLLM via `QUANTIZATION` env var.
+
+| Method | VRAM | Latency | MMLU |
+|--------|------|---------|------|
+| FP16 | 14.0 GB | 45 ms/t | 70.1% |
+| AWQ INT4 | 5.0 GB | 32 ms/t | 69.5% |
+
+### Speculative Decoding
+
+Draft-verify loop with rejection sampling. Speedup formula: `1 / (1 - a + a/g)`.
+
+---
+
+## (4) RAG + LoRA + Evaluation
+
+| Module | Function | Location |
+|--------|----------|----------|
+| RAG | Document chunking, dense/sparse/hybrid retrieval, prompt augmentation | `services/rag/` |
+| Fine-tuning | LoRA/QLoRA, configurable rank and targets | `services/finetune/` |
+| Alignment | DPO, PPO-based RLHF | `services/alignment/`, `services/rlhf/` |
+| Evaluation | MMLU (57 subjects), C-Eval, GSM8K, HumanEval | `services/evaluation/` |
+| Synthetic data | Self-instruct, evol-question, EDA | `services/synthetic-data/` |
+
+---
+
+## Architecture
+
+```mermaid
+graph TB
+    subgraph "Control Plane (Go)"
+        Gateway[API Gateway]
+        Auth[Auth Service]
+        Chat[Chat Service]
+        Chat -->|context pipeline| Context[Context Manager
+Budget / Compressor
+TopicAnalyzer]
+    end
+    
+    subgraph "Data Layer"
+        DB[(PostgreSQL)]
+        Cache[(Redis)]
+        MQ[RocketMQ]
+    end
+    
+    subgraph "Compute Plane (Python)"
+        LLM[LLM Inference
+HF Transformers / vLLM
+Quantization: AWQ, GPTQ]
+        subgraph "Optimizations"
+            KV[KV Cache Manager
+LRU / Sliding Window
+Attention-Weighted]
+            Sched[Continuous Batching
+Iteration-Level Scheduler]
+        end
+    end
+    
+    subgraph "LLM Lifecycle"
+        Finetune[Fine-tuning: LoRA/QLoRA]
+        Align[Alignment: DPO/PPO]
+        Eval[Evaluation: MMLU/C-Eval]
+        RAG[RAG Pipeline]
+    end
+    
+    User((User)) -->|HTTP| Gateway
+    Gateway -->|gRPC| Auth
+    Gateway -->|gRPC| Chat
+    Chat --> DB
+    Chat --> Cache
+    Chat --> MQ
+    Chat -->|gRPC streaming| LLM
+    LLM --> KV
+    LLM --> Sched
+    LLM -.-> Finetune
+    LLM -.-> Align
+    LLM -.-> Eval
+    LLM -.-> RAG
+    
+    Consul[Consul Service Discovery] -.->|register| Gateway
+    Consul -.->|register| Auth
+    Consul -.->|register| Chat
+    Consul -.->|register| LLM
+```
+
+---
+
+## Quick Start
+
+```bash
+git clone https://github.com/Einspanner123/free-chat.git
+cd free-chat
+cp .env.example .env
+docker compose up -d --build
+```
+
+Benchmarks:
+```bash
+python3 experiments/context_compression/run.py
+python3 experiments/quantization/run.py
+```
+
+Tests:
+```bash
+python3 -m pytest inference-engine/tests/
+python3 -m pytest services/llm-inference/tests/
+```
+
+---
+
+## Test Coverage
+
+| Module | Tests | Scope |
+|--------|-------|-------|
+| inference-engine | 68 | KV cache, scheduler, benchmarks |
+| llm-inference | 145 | Engine backends, quantization, optimizations |
+| finetune | 110 | LoRA/QLoRA training, data loading, merging |
+| evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval execution |
+| rag | 51 | Retrieval strategies, chunking |
+| alignment | 50 | DPO loss, preference data |
+| synthetic-data | 38 | Generation, quality filtering |
+| rlhf | 21 | PPO loss, GAE estimation |
+
+Total: **573 tests**.
 
 ---
 
