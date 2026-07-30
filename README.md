@@ -1,8 +1,20 @@
+<div align="center">
+
+# Free Chat — LLM Engineering Platform
+
+<a href="https://github.com/Einspanner123/free-chat"><img src="https://img.shields.io/badge/GitHub-Free%20Chat-blue?logo=github"></a>
+
+[⬇️ English](#english) · [⬇️ 中文](#chinese)
+
+</div>
+
+---
+
+<a id="english"></a>
+
 # Free Chat — LLM Engineering Platform
 
 A microservices-based platform for LLM application development, covering **conversation serving, context management, model fine-tuning, RAG, and evaluation**. Built with Go (control plane) and Python (compute plane).
-
----
 
 ## What This Project Is
 
@@ -10,16 +22,12 @@ Free Chat is an **LLM application platform** that integrates the full lifecycle 
 
 The most technically differentiated part is the **context management system**, which addresses a real production problem: how to keep LLM conversations coherent over hundreds of turns without exceeding context window limits or exploding inference cost.
 
----
-
 ## Context Management System
-
-This is the most non-trivial part of the project. The chat service implements a multi-stage pipeline that decides what to keep in the LLM's context window at every turn.
 
 ### Pipeline
 
 ```
-User Message → Budget check (tiktoken estimation, ±3-5% accuracy)
+User Message → Budget check (tiktoken estimation, ±3-5%)
             → Under budget?  → Full context, no compression
             → Over budget?   → Hierarchical compression by recency
             → Severely over? → Topic analysis → user selects focus
@@ -29,79 +37,31 @@ User Message → Budget check (tiktoken estimation, ±3-5% accuracy)
 
 ### Hierarchical Compression
 
-When the conversation exceeds the token budget, messages are not simply truncated—they are compressed based on their distance from the current turn:
-
 | Level | Range | Treatment |
 |-------|-------|-----------|
 | Verbatim | Last 5 turns | Full content preserved |
-| Light | Turns 6-20 | Truncated to first 100 characters |
-| Medium | Turns 21-50 | Truncated to first 50 characters |
+| Light | Turns 6-20 | Truncated to first 100 chars |
+| Medium | Turns 21-50 | Truncated to first 50 chars |
 | Heavy | Turns 51+ | Replaced with "[compressed]" |
 | Discard | Beyond budget | Removed |
 
-This design assumes a **recency bias**: the last few turns determine the next response most of the time. Earlier turns provide context but do not need to be verbatim.
-
 ### Topic-Aware Reconstruction
 
-When the conversation drifts across multiple topics and compression alone is insufficient, the system extracts topics from history and lets the user select which to retain. This prevents an early discussion about, say, "Python syntax" from consuming budget that should go to the current topic "deployment architecture."
-
-Extraction flow: history → LLM analysis prompt → structured topic JSON → SSE event → user selects topic_id → rebuild context from selected topic's messages only.
-
-### Attention Sink Mitigation
-
-Transformers exhibit attention sink behavior: the first few tokens receive disproportionate attention, regardless of content. The context builder positions tokens to exploit this:
-
-```
-Position 0:  "\n\n"                          ← sink token (absorbs excess attention)
-Position 1:  System prompt                    ← primacy effect
-Position N:  Conversation history             ← chronological
-Position N+1: System: instruction repeat      ← recency effect
-Position N+2: Current query                   ← input
-```
+When compression alone is insufficient and the conversation exceeds 3 turns, the system extracts topics from history and lets the user select which to retain.
 
 ### Efficiency
 
-A 50-turn conversation (approximately 12,847 tokens) compresses to 3,824 tokens (70.2% reduction) under the tiered strategy, and to 2,156 tokens (83.2%) after topic reconstruction.
-
----
+A 50-turn conversation (12,847 tokens) compresses to 3,824 tokens (70.2%) under tiered compression, and to 2,156 tokens (83.2%) after topic reconstruction.
 
 ## Inference Components
 
-The platform includes several inference-side components that integrate with the serving layer.
-
-### Engine Backends
-
-Supports HuggingFace Transformers and vLLM, selectable via the `ENGINE_TYPE` environment variable. The engine abstraction (`BaseEngine` interface) defines `generate`, `stream_generate`, `count_tokens`, and `get_metrics`.
-
-### Quantization
-
-AWQ, GPTQ, and SqueezeLLM quantization are supported via the `QUANTIZATION` environment variable.
-
-Reference benchmark data for Qwen2.5-7B (published numbers):
-
-| Method | VRAM (GB) | Latency (ms/t) | MMLU |
-|--------|-----------|----------------|------|
-| FP16 | 14.0 | 45 | 70.1% |
-| AWQ INT4 | 5.0 | 32 | 69.5% |
-| GPTQ INT4 | 5.5 | 35 | 68.8% |
-
-### KV Cache Management
-
-A block-based `KVCacheManager` sits in `inference-engine/memory-manager/`, providing:
-- Block pool allocation (fixed-size blocks, per-request tracking)
-- Pluggable eviction policies: LRU, sliding window, attention-weighted (H2O-style)
-- Prefix cache: hash-keyed prompt prefix reuse across requests
-- `EngineCacheAdapter` for injection into the inference pipeline
-
-### Continuous Batching Scheduler
-
-An iteration-level scheduler (Orca-style) in `inference-engine/scheduler/`, configurable with max batch size and token budgets. When paired with the KV Cache Manager, it allocates and frees blocks at each decoding step.
-
-### Speculative Decoding
-
-Draft-target verification loop using rejection sampling. Speedup formula: `1 / (1 - α + α/γ)` where α is acceptance rate and γ is draft length.
-
----
+| Component | Description | Location |
+|-----------|-------------|----------|
+| Engine backends | HuggingFace Transformers, vLLM (selectable via ENGINE_TYPE) | `services/llm-inference/` |
+| Quantization | AWQ, GPTQ, SqueezeLLM (selectable via QUANTIZATION) | `services/llm-inference/` |
+| KV Cache Manager | Block-based pool, LRU/sliding window/attention-weighted eviction | `inference-engine/memory-manager/` |
+| Continuous Batching | Iteration-level scheduling with KVCache integration | `inference-engine/scheduler/` |
+| Speculative Decoding | Draft-verify loop with rejection sampling | `services/llm-inference/src/optimization/` |
 
 ## LLM Lifecycle Modules
 
@@ -114,100 +74,17 @@ Draft-target verification loop using rejection sampling. Speedup formula: `1 / (
 | Evaluation | MMLU, C-Eval, GSM8K, HumanEval benchmarks | `services/evaluation/` |
 | Synthetic Data | Self-instruct, evol-question, EDA augmentation | `services/synthetic-data/` |
 
----
-
-## Architecture
-
-Control plane (Go) handles auth, sessions, chat logic, and message persistence via PostgreSQL, Redis, and RocketMQ. Compute plane (Python) handles inference, training, and evaluation. Communication is over gRPC with Consul service discovery.
-
-```mermaid
-graph TD
-    User((User)) -->|HTTP| Gateway[API Gateway]
-    Gateway -->|gRPC| Chat[Chat Service]
-    Chat --> LLM[LLM Inference]
-    LLM -.-> Finetune[Fine-tuning]
-    LLM -.-> RAG[RAG Pipeline]
-    LLM -.-> Evaluation[Benchmarks]
-    
-    subgraph "Data Layer"
-        PostgreSQL
-        Redis
-        RocketMQ
-    end
-    Chat --> PostgreSQL
-    Chat --> Redis
-    Chat --> RocketMQ
-```
-
----
-
-## Project Structure
+## Experiments
 
 ```
-services/
-├── api-gateway/                     # HTTP gateway, JWT, rate limiting (Go)
-├── auth-service/                    # User auth, registration (Go)
-├── chat-service/                    # Conversation logic, context management (Go)
-│   └── internal/
-│       ├── domain/                  # Entities, repository interfaces
-│       ├── application/             # Use cases
-│       └── infrastructure/
-│           ├── context/             # ContextBuilder, Budget, Compressor, TopicAnalyzer
-│           ├── mq/                  # RocketMQ producer/consumer
-│           ├── persistence/         # Redis + PostgreSQL (GORM)
-│           └── tokenizer/           # tiktoken-go
-├── llm-inference/                   # Inference engine (Python)
-│   └── src/optimization/
-│       ├── kv_cache.py              # KV cache + prefix cache
-│       └── speculative_decoding.py  # Draft-target verification
-├── finetune/                        # LoRA/QLoRA (110 tests)
-├── alignment/                       # DPO (50 tests)
-├── rlhf/                            # PPO RLHF (21 tests)
-├── evaluation/                      # MMLU/C-Eval/GSM8K/HumanEval (90 tests)
-├── rag/                             # RAG pipeline (51 tests)
-└── synthetic-data/                  # Self-instruct, EDA (38 tests)
-
-inference-engine/                    # Optimization experiments
-├── design.md
-├── memory-manager/
-│   ├── kv_cache_manager.py          # BlockPool + eviction policies + PrefixCache
-│   └── engine_cache_adapter.py      # Engine injection adapter
-├── scheduler/
-│   └── continuous_batching.py       # Iteration-level scheduling
-├── benchmark/
-│   ├── latency_bench.py             # TTFT/TPOT estimation
-│   ├── throughput_bench.py          # Tokens/sec vs concurrency
-│   ├── memory_bench.py              # Memory scaling analysis
-│   ├── quality_bench.py             # Accuracy impact reference
-│   └── quantization_pipeline.py     # GPU/CI dual-mode benchmark
-└── tests/                           # 68 tests
+experiments/
+├── context_compression/    # Full Context vs Truncation vs Hierarchical Compression
+├── quantization/           # FP16 vs INT8 vs GPTQ vs AWQ
+├── kv_cache/               # No Cache vs KV Cache vs Prefix Cache
+└── speculative_decoding/   # γ=3/5/7, acceptance rate, speedup
 ```
 
----
-
-## Quick Start
-
-```bash
-git clone https://github.com/Einspanner123/free-chat.git
-cd free-chat
-cp .env.example .env
-docker compose up -d --build
-```
-
-Run benchmarks:
-```bash
-python3 inference-engine/benchmark/quantization_pipeline.py
-python3 inference-engine/scheduler/continuous_batching.py
-python3 services/experiments/bench_inference.py
-```
-
-Run tests:
-```bash
-python3 -m pytest inference-engine/tests/
-python3 -m pytest services/llm-inference/tests/
-```
-
----
+Each experiment can be run with: `python experiments/<name>/run.py`
 
 ## Test Coverage
 
@@ -223,3 +100,108 @@ python3 -m pytest services/llm-inference/tests/
 | rlhf | 21 | PPO loss, GAE estimation |
 
 Total: **573 tests**.
+
+---
+
+# 中文
+
+<a id="chinese"></a>
+
+# Free Chat — LLM 工程平台
+
+基于微服务的 LLM 应用开发平台，覆盖**对话服务、上下文管理、模型微调、RAG、评测**。Go 控制面 + Python 计算面。
+
+## 项目定位
+
+Free Chat 是一个 **LLM 应用平台**，而非推理引擎或训练框架。它位于 vLLM、PyTorch 等基础设施之上，将它们编排为应用可用的服务。
+
+技术上最有差异化的部分是**上下文管理系统**——它解决一个真实的生产问题：如何在数百轮对话中保持 LLM 的连贯性，同时不超出上下文窗口限制或爆炸性增加推理成本。
+
+## 上下文管理系统
+
+### Pipeline
+
+```
+用户消息 → 预算检查 (tiktoken 估算, ±3-5%)
+        → 预算充足?  → 全量上下文，不压缩
+        → 超预算?    → 按时间递减的分级压缩
+        → 严重超预算? → 话题分析 → 用户选择焦点
+        → 构建含 attention sink 优化的结构化上下文
+        → 发送给推理引擎
+```
+
+### 分级压缩
+
+| 级别 | 范围 | 处理方式 |
+|------|------|---------|
+| 原文保留 | 最近 5 轮 | 完全保留 |
+| 轻量压缩 | 第 6-20 轮 | 截断至 100 字符 |
+| 中量压缩 | 第 21-50 轮 | 截断至 50 字符 |
+| 重量压缩 | 51 轮以上 | 替换为 "[compressed]" |
+| 丢弃 | 超出预算 | 移除 |
+
+### 话题感知重建
+
+当话题漂移且压缩不足以控制预算时，系统从历史中提取话题，让用户选择保留哪些。
+
+### Attention Sink 缓解
+
+```
+位置 0:  "\n\n"                          ← sink token
+位置 1:  System 指令                      ← 首位效应
+位置 N:  对话历史                          ← 时间顺序
+位置 N+1: System: 指令重申                 ← 近因效应
+位置 N+2: 当前输入
+```
+
+### 效率
+
+50 轮对话（约 12,847 tokens）在分级压缩下缩减到 3,824 tokens（70.2%），话题重建后进一步到 2,156 tokens（83.2%）。
+
+## 推理组件
+
+| 组件 | 说明 | 位置 |
+|------|------|------|
+| 引擎后端 | HuggingFace Transformers / vLLM (ENGINE_TYPE) | `services/llm-inference/` |
+| 量化 | AWQ, GPTQ, SqueezeLLM (QUANTIZATION) | `services/llm-inference/` |
+| KV Cache 管理 | BlockPool + 三种驱逐策略 | `inference-engine/memory-manager/` |
+| Continuous Batching | 迭代级调度 | `inference-engine/scheduler/` |
+| Speculative Decoding | 草稿-验证循环 | `services/llm-inference/src/optimization/` |
+
+## LLM 生命周期模块
+
+| 模块 | 功能 | 目录 |
+|------|------|------|
+| 微调 | LoRA/QLoRA | `services/finetune/` |
+| 对齐 | DPO 偏好优化 | `services/alignment/` |
+| RLHF | PPO 强化学习 | `services/rlhf/` |
+| RAG | 文档分块、稠密/稀疏/混合检索 | `services/rag/` |
+| 评测 | MMLU, C-Eval, GSM8K, HumanEval | `services/evaluation/` |
+| 合成数据 | Self-instruct, 数据增强 | `services/synthetic-data/` |
+
+## 实验
+
+```
+experiments/
+├── context_compression/    # 全量上下文 vs 截断 vs 分级压缩
+├── quantization/           # FP16 vs INT8 vs GPTQ vs AWQ
+├── kv_cache/               # 无缓存 vs KV Cache vs Prefix Cache
+└── speculative_decoding/   # γ=3/5/7, 接受率, 加速比
+```
+
+运行: `python experiments/<name>/run.py`
+
+## 测试覆盖
+
+| 模块 | 测试数 | 范围 |
+|------|--------|------|
+| inference-engine | 68 | KV cache, 调度器, benchmark |
+| llm-inference | 145 | 引擎后端, 量化, 优化 |
+| finetune | 110 | LoRA/QLoRA 训练, 数据加载 |
+| evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval |
+| rag | 51 | 检索策略, 分块 |
+| alignment | 50 | DPO 损失, 偏好数据 |
+| synthetic-data | 38 | 数据生成, 质量过滤 |
+| rlhf | 21 | PPO 损失, GAE 估计 |
+
+总计: **573 个测试**。
