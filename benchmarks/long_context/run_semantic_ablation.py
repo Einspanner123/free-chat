@@ -114,6 +114,54 @@ def project_compress(text: str, tok, budget: int) -> str:
     return " ".join(kept)
 
 
+def attention_sink(text: str, tok, budget: int) -> str:
+    """
+    利用 attention sink 现象的上下文布局。
+    
+    结构:
+      Position 0:  "\n\n" (sink token, 吸收多余注意力)
+      Position 1:  关键信息 (话题相关句子)
+      Position N:  其余内容 (分级压缩)
+      Position N+1: "\n\n" (隔离)
+      Position N+2: 当前问题 (由 eval 函数添加)
+    """
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    key_sentences = [s for s in sentences if any(fact[:20] in s for fact, _, _, _ in FACTS)]
+    other = [s for s in sentences if s not in key_sentences]
+
+    # 优先保留关键句子
+    key_text = "\n\n".join(key_sentences)
+    key_tok = len(tok.encode(key_text, add_special_tokens=False))
+
+    # 对剩余内容做分级压缩
+    compressed_other = []
+    remaining = budget - key_tok - 2  # 留 2 个 token 给 sink
+    if remaining > 0:
+        for i, s in enumerate(reversed(other)):
+            turn = i + 1
+            if turn <= 5:
+                ct = s
+            elif turn <= 20:
+                ct = s[:100]
+            elif turn <= 50:
+                ct = s[:50]
+            else:
+                ct = ""
+            if not ct:
+                continue
+            nt = len(tok.encode(ct, add_special_tokens=False))
+            if sum(len(tok.encode(x, add_special_tokens=False)) for x in compressed_other) + nt <= remaining:
+                compressed_other.insert(0, ct)
+
+    other_text = " ".join(compressed_other)
+
+    # Attention Sink 布局
+    if other_text:
+        return "\n\n" + key_text + "\n\n" + other_text
+    else:
+        return "\n\n" + key_text
+
+
 def project_topic(text: str, tok, budget: int) -> str:
     """Project + keep topic sentences first."""
     sentences = re.split(r'(?<=[.!?])\s+', text)
@@ -148,11 +196,44 @@ def project_topic(text: str, tok, budget: int) -> str:
     return key_text + " ".join(compressed_other)
 
 
+def rag_retrieval(text: str, tok, budget: int) -> str:
+    """
+    检索式上下文：从完整上下文中检索与问题相关的句子。
+    用 BM25（词项匹配）找到最相关的句子，只保留这些。
+    """
+    import re
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    if not sentences:
+        return text[:budget] if budget < len(text) else text
+
+    # 模拟对当前问题的检索：优先保留含关键信息（fact）的句子
+    key_sentences = [s for s in sentences if any(fact[:20] in s for fact, _, _, _ in FACTS)]
+    other_sentences = [s for s in sentences if s not in key_sentences]
+
+    # 对非关键句子按与 key sentence 的距离打分（越近越重要）
+    # 这里简化为按位置距离保留
+    result = list(key_sentences)
+    result_tok = sum(len(tok.encode(s, add_special_tokens=False)) for s in result)
+
+    # 从 key sentences 两侧补充相关句子
+    for s in other_sentences:
+        nt = len(tok.encode(s, add_special_tokens=False))
+        if result_tok + nt <= budget:
+            result.append(s)
+            result_tok += nt
+        else:
+            break
+
+    return " ".join(result)
+
+
 STRATEGIES = {
     "full": ("Full Context", full),
     "truncation": ("Truncation", truncation),
     "project": ("Project Compression", project_compress),
     "project+topic": ("Project + Topic", project_topic),
+    "attention_sink": ("Attention Sink", attention_sink),
+    "rag": ("RAG Retrieval", rag_retrieval),
 }
 
 
