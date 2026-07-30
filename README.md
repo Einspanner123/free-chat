@@ -121,22 +121,60 @@ Draft-target verification loop using rejection sampling. Speedup formula: `1 / (
 Control plane (Go) runs auth, sessions, chat logic, and message persistence via PostgreSQL, Redis, and RocketMQ. Compute plane (Python) runs inference, training, and evaluation. Communication is over gRPC with Consul service discovery.
 
 ```mermaid
-graph TD
-    User((User)) -->|HTTP| Gateway[API Gateway]
-    Gateway -->|gRPC| Chat[Chat Service]
-    Chat --> LLM[LLM Inference]
-    LLM -.-> Finetune[Fine-tuning]
-    LLM -.-> RAG[RAG Pipeline]
-    LLM -.-> Evaluation[Benchmarks]
+graph TB
+    subgraph "Control Plane (Go)"
+        Gateway[API Gateway]
+        Auth[Auth Service]
+        Chat[Chat Service]
+        Chat -->|context pipeline| Context[Context Manager
+Budget / Compressor
+TopicAnalyzer]
+    end
     
     subgraph "Data Layer"
-        PostgreSQL
-        Redis
-        RocketMQ
+        DB[(PostgreSQL)]
+        Cache[(Redis)]
+        MQ[RocketMQ]
     end
-    Chat --> PostgreSQL
-    Chat --> Redis
-    Chat --> RocketMQ
+    
+    subgraph "Compute Plane (Python)"
+        LLM[LLM Inference
+HF Transformers / vLLM
+Quantization: AWQ, GPTQ]
+        subgraph "Optimizations"
+            KV[KV Cache Manager
+LRU / Sliding Window
+Attention-Weighted]
+            Sched[Continuous Batching
+Iteration-Level Scheduler]
+        end
+    end
+    
+    subgraph "LLM Lifecycle"
+        Finetune[Fine-tuning: LoRA/QLoRA]
+        Align[Alignment: DPO/PPO]
+        Eval[Evaluation: MMLU/C-Eval]
+        RAG[RAG Pipeline]
+    end
+    
+    User((User)) -->|HTTP| Gateway
+    Gateway -->|gRPC| Auth
+    Gateway -->|gRPC| Chat
+    Chat --> DB
+    Chat --> Cache
+    Chat --> MQ
+    Chat -->|gRPC streaming| LLM
+    LLM --> KV
+    LLM --> Sched
+    LLM -.-> Finetune
+    LLM -.-> Align
+    LLM -.-> Eval
+    LLM -.-> RAG
+    
+    Consul[Consul Service Discovery] -.->|register| Gateway
+    Consul -.->|register| Auth
+    Consul -.->|register| Chat
+    Consul -.->|register| LLM
 ```
 
 ---

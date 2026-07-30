@@ -121,22 +121,60 @@ Transformer 对前几个 token 的注意力不成比例地高，不管它们的�
 控制面（Go）处理认证、会话、聊天逻辑和消息持久化（PostgreSQL、Redis、RocketMQ）。计算面（Python）处理推理、训练和评测。通信通过 gRPC + Consul。
 
 ```mermaid
-graph TD
-    User((User)) -->|HTTP| Gateway[API Gateway]
-    Gateway -->|gRPC| Chat[Chat Service]
-    Chat --> LLM[LLM Inference]
-    LLM -.-> Finetune[Fine-tuning]
-    LLM -.-> RAG[RAG Pipeline]
-    LLM -.-> Evaluation[Benchmarks]
-    
-    subgraph "Data Layer"
-        PostgreSQL
-        Redis
-        RocketMQ
+graph TB
+    subgraph "控制平面 (Go)"
+        Gateway[API Gateway]
+        Auth[Auth Service]
+        Chat[Chat Service]
+        Chat -->|上下文管道| Context[Context Manager
+Budget / Compressor
+TopicAnalyzer]
     end
-    Chat --> PostgreSQL
-    Chat --> Redis
-    Chat --> RocketMQ
+    
+    subgraph "数据层"
+        DB[(PostgreSQL)]
+        Cache[(Redis)]
+        MQ[RocketMQ]
+    end
+    
+    subgraph "计算平面 (Python)"
+        LLM[LLM Inference
+HF Transformers / vLLM
+Quantization: AWQ, GPTQ]
+        subgraph "推理优化"
+            KV[KV Cache Manager
+LRU / Sliding Window
+Attention-Weighted]
+            Sched[Continuous Batching
+Iteration-Level Scheduler]
+        end
+    end
+    
+    subgraph "LLM 生命周期"
+        Finetune[Fine-tuning: LoRA/QLoRA]
+        Align[Alignment: DPO/PPO]
+        Eval[Evaluation: MMLU/C-Eval]
+        RAG[RAG Pipeline]
+    end
+    
+    User((用户)) -->|HTTP| Gateway
+    Gateway -->|gRPC| Auth
+    Gateway -->|gRPC| Chat
+    Chat --> DB
+    Chat --> Cache
+    Chat --> MQ
+    Chat -->|gRPC streaming| LLM
+    LLM --> KV
+    LLM --> Sched
+    LLM -.-> Finetune
+    LLM -.-> Align
+    LLM -.-> Eval
+    LLM -.-> RAG
+    
+    Consul[Consul Service Discovery] -.->|注册| Gateway
+    Consul -.->|注册| Auth
+    Consul -.->|注册| Chat
+    Consul -.->|注册| LLM
 ```
 
 ---
