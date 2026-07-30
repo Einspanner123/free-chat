@@ -1,0 +1,49 @@
+# Context Compression Experiment Configuration
+# Usage: python run.py --config config.yaml
+
+experiment:
+  name: "context_compression"
+  seed: 42
+
+data:
+  num_turns: 50
+  turns_per_topic: 7
+  avg_tokens_per_turn: 250
+  num_topics: 7
+
+compression:
+  methods:
+    - name: "full_context"
+      label: "Full Context (baseline)"
+    - name: "truncation"
+      label: "Truncation"
+    - name: "hierarchical"
+      label: "Hierarchical Compression"
+  
+  budgets: [1024, 2048, 4096, 8192]
+  
+  levels:
+    - name: "verbatim"
+      range: "last 5 turns"
+      max_chars: null
+    - name: "light"
+      range: "turns 6-20"
+      max_chars: 100
+    - name: "medium"
+      range: "turns 21-50"
+      max_chars: 50
+    - name: "heavy"
+      range: "turns 51+"
+      max_chars: 0  # replaced with marker
+
+metrics:
+  - "tokens"
+  - "compression_ratio"
+  - "entity_recall"
+  - "turns_kept"
+  - "estimated_latency"
+
+output:
+  results_dir: "results"
+  plots_dir: "plots"
+  report_file: "report.md"
