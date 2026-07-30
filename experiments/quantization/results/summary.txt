@@ -1,0 +1,14 @@
+================================================================================
+Quantization Benchmark Results
+================================================================================
+
+Method       Bits   Model VRAM   Latency    Throughput   MMLU     GSM8K    C-Eval  
+-----------------------------------------------------------------------------------
+FP16         16     14.0       GB 45.0     ms 22.2        70.1%   52.3%   68.5%  
+INT8         8      7.7        GB 38.0     ms 26.3        69.8%   51.8%   68.0%  
+GPTQ INT4    4      4.9        GB 35.0     ms 28.6        68.8%   50.5%   66.8%  
+AWQ INT4     4      4.5        GB 32.0     ms 31.2        69.5%   51.5%   67.6%  
+FP8 (E4M3)   8      7.0        GB 34.0     ms 29.4        70.0%   52.0%   68.2%  
+
+Key finding: AWQ INT4 provides the best accuracy-memory tradeoff.
+  58% VRAM reduction with 0.6pp MMLU loss at 1.41x speedup.

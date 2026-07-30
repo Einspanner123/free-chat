@@ -1,0 +1,173 @@
+{
+  "experiment": "kv_cache",
+  "results": [
+    {
+      "method": "No Cache",
+      "seq_len": 128,
+      "kv_cache_gb": 0.0,
+      "latency_ms_per_token": 146.8,
+      "speedup": 1.0,
+      "throughput_tps": 6.8
+    },
+    {
+      "method": "KV Cache",
+      "seq_len": 128,
+      "kv_cache_gb": 0.05,
+      "latency_ms_per_token": 120.4,
+      "speedup": 1.2,
+      "throughput_tps": 8.3
+    },
+    {
+      "method": "No Cache",
+      "seq_len": 512,
+      "kv_cache_gb": 0.0,
+      "latency_ms_per_token": 830.3,
+      "speedup": 1.0,
+      "throughput_tps": 1.2
+    },
+    {
+      "method": "KV Cache",
+      "seq_len": 512,
+      "kv_cache_gb": 0.19,
+      "latency_ms_per_token": 331.6,
+      "speedup": 2.5,
+      "throughput_tps": 3.0
+    },
+    {
+      "method": "No Cache",
+      "seq_len": 1024,
+      "kv_cache_gb": 0.0,
+      "latency_ms_per_token": 2659.2,
+      "speedup": 1.0,
+      "throughput_tps": 0.4
+    },
+    {
+      "method": "KV Cache",
+      "seq_len": 1024,
+      "kv_cache_gb": 0.38,
+      "latency_ms_per_token": 613.2,
+      "speedup": 4.3,
+      "throughput_tps": 1.6
+    },
+    {
+      "method": "No Cache",
+      "seq_len": 4096,
+      "kv_cache_gb": 0.0,
+      "latency_ms_per_token": 35652.4,
+      "speedup": 1.0,
+      "throughput_tps": 0.0
+    },
+    {
+      "method": "KV Cache",
+      "seq_len": 4096,
+      "kv_cache_gb": 1.53,
+      "latency_ms_per_token": 2302.8,
+      "speedup": 15.5,
+      "throughput_tps": 0.4
+    },
+    {
+      "method": "No Cache",
+      "seq_len": 8192,
+      "kv_cache_gb": 0.0,
+      "latency_ms_per_token": 138363.7,
+      "speedup": 1.0,
+      "throughput_tps": 0.0
+    },
+    {
+      "method": "KV Cache",
+      "seq_len": 8192,
+      "kv_cache_gb": 3.06,
+      "latency_ms_per_token": 4555.6,
+      "speedup": 30.4,
+      "throughput_tps": 0.2
+    },
+    {
+      "method": "No Cache",
+      "seq_len": 16384,
+      "kv_cache_gb": 0.0,
+      "latency_ms_per_token": 545112.9,
+      "speedup": 1.0,
+      "throughput_tps": 0.0
+    },
+    {
+      "method": "KV Cache",
+      "seq_len": 16384,
+      "kv_cache_gb": 6.12,
+      "latency_ms_per_token": 9061.2,
+      "speedup": 60.2,
+      "throughput_tps": 0.1
+    },
+    {
+      "method": "No Cache",
+      "seq_len": 32768,
+      "kv_cache_gb": 0.0,
+      "latency_ms_per_token": 2163917.6,
+      "speedup": 1.0,
+      "throughput_tps": 0.0
+    },
+    {
+      "method": "KV Cache",
+      "seq_len": 32768,
+      "kv_cache_gb": 12.25,
+      "latency_ms_per_token": 18072.4,
+      "speedup": 119.7,
+      "throughput_tps": 0.1
+    },
+    {
+      "method": "Prefix Cache (4-req batch)",
+      "seq_len": 128,
+      "kv_cache_gb": 0.05,
+      "latency_ms_per_token": 113.2,
+      "speedup": 1.1,
+      "throughput_tps": 8.8
+    },
+    {
+      "method": "Prefix Cache (4-req batch)",
+      "seq_len": 512,
+      "kv_cache_gb": 0.19,
+      "latency_ms_per_token": 302.8,
+      "speedup": 1.1,
+      "throughput_tps": 3.3
+    },
+    {
+      "method": "Prefix Cache (4-req batch)",
+      "seq_len": 1024,
+      "kv_cache_gb": 0.38,
+      "latency_ms_per_token": 555.6,
+      "speedup": 1.1,
+      "throughput_tps": 1.8
+    },
+    {
+      "method": "Prefix Cache (4-req batch)",
+      "seq_len": 4096,
+      "kv_cache_gb": 1.53,
+      "latency_ms_per_token": 2072.4,
+      "speedup": 1.1,
+      "throughput_tps": 0.5
+    },
+    {
+      "method": "Prefix Cache (4-req batch)",
+      "seq_len": 8192,
+      "kv_cache_gb": 3.06,
+      "latency_ms_per_token": 4094.8,
+      "speedup": 1.1,
+      "throughput_tps": 0.2
+    },
+    {
+      "method": "Prefix Cache (4-req batch)",
+      "seq_len": 16384,
+      "kv_cache_gb": 6.12,
+      "latency_ms_per_token": 8139.6,
+      "speedup": 1.1,
+      "throughput_tps": 0.1
+    },
+    {
+      "method": "Prefix Cache (4-req batch)",
+      "seq_len": 32768,
+      "kv_cache_gb": 12.25,
+      "latency_ms_per_token": 16229.2,
+      "speedup": 1.1,
+      "throughput_tps": 0.1
+    }
+  ]
+}

@@ -176,9 +176,34 @@ def format_analysis(results: List[SpecDecodeResult]) -> str:
     return "\n".join(lines)
 
 
+def save_results(results_list: List[SpecDecodeResult], out_dir: str = "results"):
+    import json, os
+    os.makedirs(out_dir, exist_ok=True)
+    data = {
+        "experiment": "speculative_decoding",
+        "results": [
+            {"draft_size": r.draft_size_b, "gamma": r.gamma, "acceptance_rate": r.acceptance_rate,
+             "draft_latency_ms": r.draft_latency_ms, "target_latency_ms": r.target_latency_ms,
+             "effective_ms_per_token": r.effective_ms_per_token, "speedup": r.speedup,
+             "throughput_tps": r.throughput_tps}
+            for r in results_list
+        ],
+    }
+    with open(os.path.join(out_dir, "results.json"), "w") as f:
+        json.dump(data, f, indent=2)
+    print(f"Results saved to {out_dir}/")
+
+
 def main():
-    target_size = 7
-    draft_sizes = [0.5, 1.5]
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--target", type=float, default=7)
+    parser.add_argument("--draft-sizes", nargs="+", type=float, default=[0.5, 1.5])
+    parser.add_argument("--out", default="results")
+    args = parser.parse_args()
+
+    target_size = args.target
+    draft_sizes = args.draft_sizes
 
     print("=" * 80)
     print(f"Speculative Decoding: Target={target_size}B, Draft={draft_sizes}")
@@ -186,6 +211,7 @@ def main():
     print()
 
     results = run_experiment(target_size=target_size)
+    save_results(results, args.out)
 
     for ds in draft_sizes:
         print(f"--- Draft Model: {ds}B (latency: {_MODEL_LATENCY[ds]}ms/t) ---")
@@ -198,7 +224,6 @@ def main():
         print()
 
     print(format_analysis(results))
-    print()
 
 
 if __name__ == "__main__":

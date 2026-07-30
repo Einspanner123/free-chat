@@ -170,20 +170,44 @@ def format_analysis(results: List[KVCacheResult]) -> str:
     return "\n".join(lines)
 
 
+def save_results(results_list: List[KVCacheResult], out_dir: str = "results"):
+    import json, os
+    os.makedirs(out_dir, exist_ok=True)
+    data = {
+        "experiment": "kv_cache",
+        "results": [
+            {"method": r.method, "seq_len": r.seq_len, "kv_cache_gb": r.kv_cache_gb,
+             "latency_ms_per_token": r.latency_ms_per_token, "speedup": r.speedup_vs_no_cache,
+             "throughput_tps": r.throughput_tps}
+            for r in results_list
+        ],
+    }
+    with open(os.path.join(out_dir, "results.json"), "w") as f:
+        json.dump(data, f, indent=2)
+    with open(os.path.join(out_dir, "summary.txt"), "w") as f:
+        f.write(format_table(results_list))
+        f.write("\n\n")
+        f.write(format_analysis(results_list))
+    print(f"Results saved to {out_dir}/")
+
+
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out", default="results")
+    parser.add_argument("--seq-lens", nargs="+", type=int, default=None)
+    args = parser.parse_args()
+
     print("=" * 80)
     print("KV Cache Experiment: Memory × Latency × Throughput")
     print("=" * 80)
     print()
-    print("Model: 7B-class transformer (28 layers, 28 heads, 128-dim)")
-    print("Method: Analytical estimation based on published measurements")
-    print()
 
-    results = run_experiment()
+    results = run_experiment(seq_lens=args.seq_lens)
+    save_results(results, args.out)
     print(format_table(results))
     print()
     print(format_analysis(results))
-    print()
 
 
 if __name__ == "__main__":

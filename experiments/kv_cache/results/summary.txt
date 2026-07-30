@@ -1,0 +1,41 @@
+| Method | Seq Len | KV Cache (GB) | Latency (ms/t) | Speedup | Throughput (t/s) |
+|--------|---------|---------------|----------------|---------|-----------------|
+| No Cache                  | 128     | 0.00         | 146.8          | 1.0    x | 6.8             |
+| KV Cache                  | 128     | 0.05         | 120.4          | 1.2    x | 8.3             |
+| No Cache                  | 512     | 0.00         | 830.3          | 1.0    x | 1.2             |
+| KV Cache                  | 512     | 0.19         | 331.6          | 2.5    x | 3.0             |
+| No Cache                  | 1024    | 0.00         | 2659.2         | 1.0    x | 0.4             |
+| KV Cache                  | 1024    | 0.38         | 613.2          | 4.3    x | 1.6             |
+| No Cache                  | 4096    | 0.00         | 35652.4        | 1.0    x | 0.0             |
+| KV Cache                  | 4096    | 1.53         | 2302.8         | 15.5   x | 0.4             |
+| No Cache                  | 8192    | 0.00         | 138363.7       | 1.0    x | 0.0             |
+| KV Cache                  | 8192    | 3.06         | 4555.6         | 30.4   x | 0.2             |
+| No Cache                  | 16384   | 0.00         | 545112.9       | 1.0    x | 0.0             |
+| KV Cache                  | 16384   | 6.12         | 9061.2         | 60.2   x | 0.1             |
+| No Cache                  | 32768   | 0.00         | 2163917.6      | 1.0    x | 0.0             |
+| KV Cache                  | 32768   | 12.25        | 18072.4        | 119.7  x | 0.1             |
+| Prefix Cache (4-req batch) | 128     | 0.05         | 113.2          | 1.1    x | 8.8             |
+| Prefix Cache (4-req batch) | 512     | 0.19         | 302.8          | 1.1    x | 3.3             |
+| Prefix Cache (4-req batch) | 1024    | 0.38         | 555.6          | 1.1    x | 1.8             |
+| Prefix Cache (4-req batch) | 4096    | 1.53         | 2072.4         | 1.1    x | 0.5             |
+| Prefix Cache (4-req batch) | 8192    | 3.06         | 4094.8         | 1.1    x | 0.2             |
+| Prefix Cache (4-req batch) | 16384   | 6.12         | 8139.6         | 1.1    x | 0.1             |
+| Prefix Cache (4-req batch) | 32768   | 12.25        | 16229.2        | 1.1    x | 0.1             |
+
+## Analysis
+
+At seq_len=4096: No cache 35652.4ms/t vs KV cache 2302.8ms/t
+KV cache provides 16x speedup at 1.5GB memory cost.
+
+KV cache scales linearly with sequence length:
+  seq_len=128   : 0.1GB
+  seq_len=512   : 0.2GB
+  seq_len=1024  : 0.4GB
+  seq_len=4096  : 1.5GB
+  seq_len=8192  : 3.1GB
+  seq_len=16384 : 6.1GB
+  seq_len=32768 : 12.2GB
+
+At 32K context, KV cache alone consumes ~12GB.
+This is why eviction strategies (LRU, H2O, Sliding Window) become necessary
+for long-context serving on consumer GPUs.
