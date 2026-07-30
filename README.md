@@ -1,37 +1,37 @@
 [English](README.md) | [中文](README_CN.md)
 
-# Free Chat — LLM Engineering Platform
+# Free Chat -- LLM Engineering Platform
 
-A microservices-based platform for LLM application development, covering **conversation serving, context management, model fine-tuning, RAG, and evaluation**. Built with Go (control plane) and Python (compute plane).
+A microservices platform for LLM application development. Covers conversation serving, context management, model fine-tuning, RAG, and evaluation. Go for the control plane, Python for the compute plane.
 
 ---
 
 ## What This Project Is
 
-Free Chat is an **LLM application platform** that integrates the full lifecycle of deploying and customizing large language models. It is not an inference engine (like vLLM) or a training framework—it sits above those layers, orchestrating them for application use.
+Free Chat sits between a raw LLM (like one hosted on vLLM) and an end-user application. It handles sessions, context windows, model customization, and evaluation.
 
-The most technically differentiated part is the **context management system**, which addresses a real production problem: how to keep LLM conversations coherent over hundreds of turns without exceeding context window limits or exploding inference cost.
+The part that took the most work is the **context management system**. It solves a specific problem: chat conversations grow without bound, but LLM context windows are finite. Without it, long conversations either break (context exceeded) or cost too much (too many tokens).
 
 ---
 
 ## Context Management System
 
-This is the most non-trivial part of the project. The chat service implements a multi-stage pipeline that decides what to keep in the LLM's context window at every turn.
+The chat service runs a pipeline that decides what to keep in the context window at each turn.
 
 ### Pipeline
 
 ```
-User Message → Budget check (tiktoken estimation, ±3-5% accuracy)
-            → Under budget?  → Full context, no compression
-            → Over budget?   → Hierarchical compression by recency
-            → Severely over? → Topic analysis → user selects focus
-            → Build structured context with attention sink mitigation
-            → Send to inference engine
+User Message -> Budget check (tiktoken estimation, +-3-5% accuracy)
+            -> Under budget?  -> Full context, no compression
+            -> Over budget?   -> Hierarchical compression by recency
+            -> Severely over? -> Topic analysis -> user selects focus
+            -> Build structured context with attention sink mitigation
+            -> Send to inference engine
 ```
 
 ### Hierarchical Compression
 
-When the conversation exceeds the token budget, messages are not simply truncated—they are compressed based on their distance from the current turn:
+When the conversation exceeds the token budget, messages are compressed based on their distance from the current turn:
 
 | Level | Range | Treatment |
 |-------|-------|-----------|
@@ -41,45 +41,43 @@ When the conversation exceeds the token budget, messages are not simply truncate
 | Heavy | Turns 51+ | Replaced with "[compressed]" |
 | Discard | Beyond budget | Removed |
 
-This design assumes a **recency bias**: the last few turns determine the next response most of the time. Earlier turns provide context but do not need to be verbatim.
+The assumption is recency bias: the last few turns determine the next response most of the time. Earlier turns provide context but do not need to be verbatim.
 
 ### Topic-Aware Reconstruction
 
-When the conversation drifts across multiple topics and compression alone is insufficient, the system extracts topics from history and lets the user select which to retain. This prevents an early discussion about, say, "Python syntax" from consuming budget that should go to the current topic "deployment architecture."
+When compression alone is not enough and the conversation covers multiple topics, the system extracts topics from history and lets the user select which to keep. This prevents an early discussion about Python syntax from consuming budget that should go to the current topic, deployment architecture.
 
-Extraction flow: history → LLM analysis prompt → structured topic JSON → SSE event → user selects topic_id → rebuild context from selected topic's messages only.
+Flow: history -> LLM analysis prompt -> structured topic JSON -> SSE event -> user selects topic_id -> rebuild context from selected topic's messages only.
 
 ### Attention Sink Mitigation
 
-Transformers exhibit attention sink behavior: the first few tokens receive disproportionate attention, regardless of content. The context builder positions tokens to exploit this:
+Transformers give disproportionate attention to the first few tokens, regardless of their content. The context builder positions tokens to work with this:
 
 ```
-Position 0:  "\n\n"                          ← sink token (absorbs excess attention)
-Position 1:  System prompt                    ← primacy effect
-Position N:  Conversation history             ← chronological
-Position N+1: System: instruction repeat      ← recency effect
-Position N+2: Current query                   ← input
+Position 0:  "\n\n"                          <- sink token (absorbs excess attention)
+Position 1:  System prompt                    <- primacy effect
+Position N:  Conversation history             <- chronological
+Position N+1: System: instruction repeat      <- recency effect
+Position N+2: Current query                   <- input
 ```
 
 ### Efficiency
 
-A 50-turn conversation (approximately 12,847 tokens) compresses to 3,824 tokens (70.2% reduction) under the tiered strategy, and to 2,156 tokens (83.2%) after topic reconstruction.
+A 50-turn conversation (about 12,847 tokens) compresses to 3,824 tokens (70.2% reduction) under the tiered strategy, and to 2,156 tokens (83.2%) after topic reconstruction.
 
 ---
 
 ## Inference Components
 
-The platform includes several inference-side components that integrate with the serving layer.
-
 ### Engine Backends
 
-Supports HuggingFace Transformers and vLLM, selectable via the `ENGINE_TYPE` environment variable. The engine abstraction (`BaseEngine` interface) defines `generate`, `stream_generate`, `count_tokens`, and `get_metrics`.
+Supports HuggingFace Transformers and vLLM, selected via `ENGINE_TYPE`. The engine abstraction (`BaseEngine` interface) defines `generate`, `stream_generate`, `count_tokens`, and `get_metrics`.
 
 ### Quantization
 
-AWQ, GPTQ, and SqueezeLLM quantization are supported via the `QUANTIZATION` environment variable.
+AWQ, GPTQ, and SqueezeLLM are supported via `QUANTIZATION`.
 
-Reference benchmark data for Qwen2.5-7B (published numbers):
+Reference data for Qwen2.5-7B (published numbers):
 
 | Method | VRAM (GB) | Latency (ms/t) | MMLU |
 |--------|-----------|----------------|------|
@@ -89,7 +87,7 @@ Reference benchmark data for Qwen2.5-7B (published numbers):
 
 ### KV Cache Management
 
-A block-based `KVCacheManager` sits in `inference-engine/memory-manager/`, providing:
+A block-based `KVCacheManager` in `inference-engine/memory-manager/` provides:
 - Block pool allocation (fixed-size blocks, per-request tracking)
 - Pluggable eviction policies: LRU, sliding window, attention-weighted (H2O-style)
 - Prefix cache: hash-keyed prompt prefix reuse across requests
@@ -101,7 +99,7 @@ An iteration-level scheduler (Orca-style) in `inference-engine/scheduler/`, conf
 
 ### Speculative Decoding
 
-Draft-target verification loop using rejection sampling. Speedup formula: `1 / (1 - α + α/γ)` where α is acceptance rate and γ is draft length.
+Draft-target verification loop using rejection sampling. Speedup formula: `1 / (1 - a + a/g)` where a is acceptance rate and g is draft length.
 
 ---
 
@@ -111,7 +109,7 @@ Draft-target verification loop using rejection sampling. Speedup formula: `1 / (
 |--------|----------|-----------|
 | Fine-tuning | LoRA/QLoRA with configurable rank, target modules, quantization | `services/finetune/` |
 | Alignment | DPO preference optimization | `services/alignment/` |
-| RLHF | PPO-based reinforcement learning from human feedback | `services/rlhf/` |
+| RLHF | PPO-based RLHF | `services/rlhf/` |
 | RAG | Document chunking, dense/sparse/hybrid retrieval | `services/rag/` |
 | Evaluation | MMLU, C-Eval, GSM8K, HumanEval benchmarks | `services/evaluation/` |
 | Synthetic Data | Self-instruct, evol-question, EDA augmentation | `services/synthetic-data/` |
@@ -120,7 +118,7 @@ Draft-target verification loop using rejection sampling. Speedup formula: `1 / (
 
 ## Architecture
 
-Control plane (Go) handles auth, sessions, chat logic, and message persistence via PostgreSQL, Redis, and RocketMQ. Compute plane (Python) handles inference, training, and evaluation. Communication is over gRPC with Consul service discovery.
+Control plane (Go) runs auth, sessions, chat logic, and message persistence via PostgreSQL, Redis, and RocketMQ. Compute plane (Python) runs inference, training, and evaluation. Communication is over gRPC with Consul service discovery.
 
 ```mermaid
 graph TD
