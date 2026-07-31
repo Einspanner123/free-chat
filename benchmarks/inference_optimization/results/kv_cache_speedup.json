@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "book": "pride_and_prejudice"
+  },
+  "measurements": {
+    "prefix_cache_short_suffix": {
+      "prefix_tokens": 4096,
+      "suffix_tokens": 5,
+      "full_prefill_ms": 124.2,
+      "cached_prefill_ms": 41.8,
+      "saved_ms": 82.4,
+      "speedup": 2.97
+    },
+    "prefix_cache_long_suffix": {
+      "prefix_tokens": 4096,
+      "suffix_tokens": 22,
+      "full_prefill_ms": 124.7,
+      "cached_prefill_ms": 44.9,
+      "saved_ms": 79.8,
+      "speedup": 2.78
+    },
+    "kv_eviction_decode": {
+      "baseline_full_ms": 1184.4,
+      "results": [
+        {
+          "context_tokens": 4096,
+          "keep_tokens": 1024,
+          "eviction_ratio": 0.75,
+          "full_decode_ms": 1184.4,
+          "evicted_decode_ms": 1191.6,
+          "saved_ms": -7.2,
+          "speedup": 0.99
+        },
+        {
+          "context_tokens": 4096,
+          "keep_tokens": 2048,
+          "eviction_ratio": 0.5,
+          "full_decode_ms": 1184.4,
+          "evicted_decode_ms": 1188.7,
+          "saved_ms": -4.3,
+          "speedup": 1.0
+        },
+        {
+          "context_tokens": 4096,
+          "keep_tokens": 3072,
+          "eviction_ratio": 0.25,
+          "full_decode_ms": 1184.4,
+          "evicted_decode_ms": 1217.7,
+          "saved_ms": -33.3,
+          "speedup": 0.97
+        }
+      ]
+    }
+  }
+}
