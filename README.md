@@ -89,11 +89,11 @@ Iteration-level scheduling (Orca-style). Small models generate tokens faster, so
 
 `benchmarks/long_context/`
 
-All benchmarks run on real hardware (NVIDIA RTX A6000) with Qwen/Qwen2.5-0.5B-Instruct (494M params). Context is synthetic text with factual statements inserted at evenly spaced positions. Metrics: fact recall (does the model's response contain the target answer). All compression strategies are padded to equal token counts for fair comparison.
+Benchmarks run on real hardware (NVIDIA RTX A6000). Two contexts: synthetic text (facts at even positions) and real book text (Project Gutenberg, RULER-style needle types: single-value, multi-value, multi-key, multi-hop). All compression strategies padded to equal token counts.
 
-### Ablation Results (8K context)
+### Synthetic Context (Qwen2.5-0.5B, 8K)
 
-8016 tokens, 6 factual questions (Apollo 11, human bones, DNA replication, Amazon River, Marie Curie, HTTP 404).
+8016 tokens, 6 factual questions.
 
 | Strategy | 1024 tok (87%) | 2048 tok (74%) | 4096 tok (49%) |
 |----------|---------------|---------------|---------------|
@@ -105,7 +105,7 @@ All benchmarks run on real hardware (NVIDIA RTX A6000) with Qwen/Qwen2.5-0.5B-In
 | Attention Sink | **83%** | **83%** | **83%** |
 | RAG Retrieval (keyword) | 67% | **83%** | **83%** |
 
-### Ablation Results (24K context)
+### Synthetic Context (Qwen2.5-0.5B, 24K)
 
 23452 tokens, 8 facts. Near the model's 32K max context length.
 
@@ -118,19 +118,32 @@ All benchmarks run on real hardware (NVIDIA RTX A6000) with Qwen/Qwen2.5-0.5B-In
 | Attention Sink | 62% | 62% | 62% |
 | RAG Retrieval (keyword) | 62% | **75%** | **75%** |
 
+### Real Book Text (Qwen3-0.6B, 8K)
+
+Pride and Prejudice, 8262 tokens, 8 needles (RULER types).
+
+| Strategy | 1024 tok (88%) | 2048 tok (75%) | 4096 tok (50%) |
+|----------|---------------|---------------|---------------|
+| Full Context (baseline) | 25% | 25% | 25% |
+| Truncation | 0% | 12% | 25% |
+| Project + Topic (keyword) | **62%** | **62%** | 50% |
+| Attention Sink | **62%** | **62%** | **62%** |
+
 ### Key Findings
 
-1. **Full Pipeline (topic + compression + attention sink)** achieves 83% recall at 8K and 62% at 24K -- identical to Attention Sink alone. This is because once key sentences are identified, the sink layout determines recall; compression of non-key content adds no further benefit under this setup.
+1. **Compression strategies are most valuable on real text with stronger models**: on Pride and Prejudice with Qwen3-0.6B, Topic/Attention Sink reach 62% recall vs 25% full context (2.5x) and 0% truncation. The gap widens precisely when the task is hard.
 
-2. **Attention Sink layout** is the most consistent individual strategy: 83% recall at 8K, 62% at 24K across all compression levels. Placing critical information in the primacy position (after sink token) leverages the model's attention bias.
+2. **Attention Sink layout** is the most consistent individual strategy: 83% at synthetic 8K, 62% at 24K, 62% on real text. Placing critical information in the primacy position (after sink token) leverages attention bias.
 
-3. **RAG Retrieval** matches or exceeds Attention Sink at moderate-to-low compression (49-65%), achieving 75% at 24K vs 62%, suggesting retrieval-based pruning becomes more valuable as context grows.
+3. **RAG Retrieval** matches or exceeds Attention Sink at moderate compression on synthetic text (75% at 24K vs 62%), suggesting retrieval-based pruning gains value as context grows.
 
-4. **Truncation collapses at long context**: 50% recall at 8K drops to 25% at 24K (91% compression). The project's compression strategies maintain 60%+ recall under the same conditions.
+4. **Truncation collapses at long context**: 50% at 8K synthetic drops to 25% at 24K; on real text it falls to 0%. Simple token cut-off destroys information.
 
-5. **Naive LLM topic extraction underperforms keyword matching** (0-17% vs 67%). Generic topic labels fail to pinpoint specific facts.
+5. **Model capability determines strategy value**: with Qwen2.5-0.5B, naive LLM topic extraction underperforms keyword matching (17% vs 67%). With Qwen3-0.6B's better instruction following, LLM topic extraction reaches 83%. The project's LLM-based `topic_analyzer.go` only pays off with capable models.
 
-6. **Without topic preservation, compression alone hurts recall**: Project Compression at 24K with 83% compression achieves only 25% recall, matching truncation. Topic-aware variants are 2-3x better.
+6. **On synthetic text, strong models (Qwen3) make compression strategies less differentiated** (full context 83% already). On real text, the framework's advantage grows: 62% vs 25%.
+
+7. **Without topic preservation, compression alone hurts recall**: Project Compression at 24K reaches only 25%, matching truncation. Topic-aware variants are 2-3x better.
 
 ### Metrics
 
