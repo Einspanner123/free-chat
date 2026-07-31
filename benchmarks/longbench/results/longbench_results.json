@@ -1,0 +1,52 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "book": "pride_and_prejudice",
+    "context_tokens": 4096,
+    "num_questions": 4,
+    "published_baselines": {
+      "GPT-4": 0.92,
+      "GPT-3.5-turbo": 0.82,
+      "Llama-2-7B": 0.25,
+      "Qwen-7B-chat": 0.6,
+      "ChatGLM3-6B": 0.45
+    }
+  },
+  "strategies": [
+    {
+      "strategy": "Full Context",
+      "f1": 0.134,
+      "tokens": 4096
+    },
+    {
+      "strategy": "Truncation",
+      "budget": 1024,
+      "f1": 0.157
+    },
+    {
+      "strategy": "Project + Topic",
+      "budget": 1024,
+      "f1": 0.178
+    },
+    {
+      "strategy": "Attention Sink",
+      "budget": 1024,
+      "f1": 0.162
+    },
+    {
+      "strategy": "Truncation",
+      "budget": 2048,
+      "f1": 0.147
+    },
+    {
+      "strategy": "Project + Topic",
+      "budget": 2048,
+      "f1": 0.191
+    },
+    {
+      "strategy": "Attention Sink",
+      "budget": 2048,
+      "f1": 0.144
+    }
+  ]
+}
