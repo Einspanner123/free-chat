@@ -1,0 +1,894 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "context_tokens": 8016,
+    "budgets": [
+      1024,
+      2048,
+      4096
+    ],
+    "num_facts": 6
+  },
+  "strategies": [
+    {
+      "strategy": "Full Context",
+      "budget_tokens": 8016,
+      "actual_tokens": 8016,
+      "compression_ratio": 0.0,
+      "recall": 0.8333333333333334,
+      "avg_latency_s": 1.036,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was Apollo 11 in 196"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately 6,400 kilometers"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": true,
+          "response": "Marie Curie won Nobel Prizes in both Physics and C"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 indicates that the requested "
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "budget_tokens": 1024,
+      "actual_tokens": 1024,
+      "compression_ratio": -6.828,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.571,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": true,
+          "response": "The first manned Moon landing was in **1969**."
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones** in total. Th"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": false,
+          "response": "The Amazon River is approximately **6,700 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": true,
+          "response": "Marie Curie won Nobel Prizes in Physics and Chemis"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": false,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "Project Compression",
+      "budget_tokens": 1024,
+      "actual_tokens": 1023,
+      "compression_ratio": -6.828,
+      "recall": 0.8333333333333334,
+      "avg_latency_s": 0.554,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": true,
+          "response": "The first manned Moon landing was in **1969**."
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains approximately 206 million "
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": false,
+          "response": "The Amazon River is approximately **6,700 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": true,
+          "response": "Marie Curie won Nobel Prizes in Physics and Chemis"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "budget_tokens": 1024,
+      "actual_tokens": 1016,
+      "compression_ratio": -6.828,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.571,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was **Apollo 11** in"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": false,
+          "response": "Marie Curie won Nobel Prizes in both **Physics** a"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "Attention Sink",
+      "budget_tokens": 1024,
+      "actual_tokens": 1019,
+      "compression_ratio": -6.828,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.576,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was **Apollo 11** in"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": false,
+          "response": "Marie Curie won Nobel Prizes in both **Physics** a"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "Full Pipeline",
+      "budget_tokens": 1024,
+      "actual_tokens": 1019,
+      "compression_ratio": -6.828,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.583,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was **Apollo 11** in"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": false,
+          "response": "Marie Curie won Nobel Prizes in both **Physics** a"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "LLM Topic Extraction",
+      "budget_tokens": 1024,
+      "actual_tokens": 5473,
+      "compression_ratio": -6.828,
+      "recall": 0.8333333333333334,
+      "avg_latency_s": 0.708,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": true,
+          "response": "The first manned Moon landing was in **1969**."
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones** in total. Th"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": false,
+          "response": "The Amazon River is approximately **6,700 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": true,
+          "response": "Marie Curie won the Nobel Prize in Physics and Che"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "RAG Retrieval",
+      "budget_tokens": 1024,
+      "actual_tokens": 1021,
+      "compression_ratio": -6.828,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.586,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was **Apollo 11** in"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "The DNA replication occurs during the **S phase** "
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": false,
+          "response": "Marie Curie won Nobel Prizes in **Physics** and **"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "budget_tokens": 2048,
+      "actual_tokens": 2048,
+      "compression_ratio": -2.914,
+      "recall": 0.8333333333333334,
+      "avg_latency_s": 0.595,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": true,
+          "response": "The first manned Moon landing occurred in **1969**"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains approximately **206 bones*"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": false,
+          "response": "The Amazon River is approximately **6,700 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": true,
+          "response": "Marie Curie won Nobel Prizes in Physics and Chemis"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 indicates that the requested "
+        }
+      ]
+    },
+    {
+      "strategy": "Project Compression",
+      "budget_tokens": 2048,
+      "actual_tokens": 2046,
+      "compression_ratio": -2.914,
+      "recall": 0.8333333333333334,
+      "avg_latency_s": 0.577,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": true,
+          "response": "The first manned Moon landing was in **1969**."
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains approximately 206 million "
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": false,
+          "response": "The Amazon River is approximately **6,700 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": true,
+          "response": "Marie Curie won Nobel Prizes in Physics and Chemis"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "budget_tokens": 2048,
+      "actual_tokens": 2046,
+      "compression_ratio": -2.914,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.602,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was Apollo 11 in 196"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": false,
+          "response": "Marie Curie won Nobel Prizes in **Physics** and **"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "Attention Sink",
+      "budget_tokens": 2048,
+      "actual_tokens": 2039,
+      "compression_ratio": -2.914,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.601,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was Apollo 11 in **1"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": false,
+          "response": "Marie Curie won Nobel Prizes in **Physics** and **"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 indicates that the requested "
+        }
+      ]
+    },
+    {
+      "strategy": "Full Pipeline",
+      "budget_tokens": 2048,
+      "actual_tokens": 2039,
+      "compression_ratio": -2.914,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.596,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was Apollo 11 in **1"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": false,
+          "response": "Marie Curie won Nobel Prizes in **Physics** and **"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 indicates that the requested "
+        }
+      ]
+    },
+    {
+      "strategy": "LLM Topic Extraction",
+      "budget_tokens": 2048,
+      "actual_tokens": 5473,
+      "compression_ratio": -2.914,
+      "recall": 0.8333333333333334,
+      "avg_latency_s": 0.711,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": true,
+          "response": "The first manned Moon landing was in **1969**."
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones** in total. Th"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": false,
+          "response": "The Amazon River is approximately **6,700 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": true,
+          "response": "Marie Curie won the Nobel Prize in Physics and Che"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "RAG Retrieval",
+      "budget_tokens": 2048,
+      "actual_tokens": 2042,
+      "compression_ratio": -2.914,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.605,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was Apollo 11 in 196"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": false,
+          "response": "Marie Curie won Nobel Prizes in both **Physics** a"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "budget_tokens": 4096,
+      "actual_tokens": 4096,
+      "compression_ratio": -0.957,
+      "recall": 1.0,
+      "avg_latency_s": 0.661,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": true,
+          "response": "The first manned Moon landing occurred in **1969**"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains approximately **206 bones*"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": true,
+          "response": "Marie Curie won Nobel Prizes in both Physics and C"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 indicates that the requested "
+        }
+      ]
+    },
+    {
+      "strategy": "Project Compression",
+      "budget_tokens": 4096,
+      "actual_tokens": 4094,
+      "compression_ratio": -0.957,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.641,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": true,
+          "response": "The first manned Moon landing was in **1969**."
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": false,
+          "response": "The human body contains approximately 207 billion "
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": false,
+          "response": "The Amazon River is approximately **6,700 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": true,
+          "response": "Marie Curie won Nobel Prizes in Physics and Chemis"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "budget_tokens": 4096,
+      "actual_tokens": 4096,
+      "compression_ratio": -0.957,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.657,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was Apollo 11 in 196"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": false,
+          "response": "Marie Curie won Nobel Prizes in **Physics** and **"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "Attention Sink",
+      "budget_tokens": 4096,
+      "actual_tokens": 4089,
+      "compression_ratio": -0.957,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.657,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was **Apollo 11** in"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": false,
+          "response": "Marie Curie won Nobel Prizes in **Physics** and **"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "Full Pipeline",
+      "budget_tokens": 4096,
+      "actual_tokens": 4089,
+      "compression_ratio": -0.957,
+      "recall": 0.6666666666666666,
+      "avg_latency_s": 0.66,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was **Apollo 11** in"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": false,
+          "response": "Marie Curie won Nobel Prizes in **Physics** and **"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "LLM Topic Extraction",
+      "budget_tokens": 4096,
+      "actual_tokens": 5473,
+      "compression_ratio": -0.957,
+      "recall": 0.8333333333333334,
+      "avg_latency_s": 0.708,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": true,
+          "response": "The first manned Moon landing was in **1969**."
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones** in total. Th"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": false,
+          "response": "The Amazon River is approximately **6,700 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": true,
+          "response": "Marie Curie won the Nobel Prize in Physics and Che"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    },
+    {
+      "strategy": "RAG Retrieval",
+      "budget_tokens": 4096,
+      "actual_tokens": 4092,
+      "compression_ratio": -0.957,
+      "recall": 0.8333333333333334,
+      "avg_latency_s": 0.658,
+      "results": [
+        {
+          "position": 0.0,
+          "correct": false,
+          "response": "The first manned Moon landing was **Apollo 11** in"
+        },
+        {
+          "position": 0.16666666666666666,
+          "correct": true,
+          "response": "The human body contains **206 bones in total**, wi"
+        },
+        {
+          "position": 0.3333333333333333,
+          "correct": true,
+          "response": "DNA replication occurs during the **S phase** of t"
+        },
+        {
+          "position": 0.5,
+          "correct": true,
+          "response": "The Amazon River is approximately **6,400 kilomete"
+        },
+        {
+          "position": 0.6666666666666666,
+          "correct": true,
+          "response": "Marie Curie won Nobel Prizes in both Physics and C"
+        },
+        {
+          "position": 0.8333333333333334,
+          "correct": true,
+          "response": "HTTP status code 404 means that the requested reso"
+        }
+      ]
+    }
+  ]
+}

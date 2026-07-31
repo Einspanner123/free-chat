@@ -1,0 +1,591 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "book": "pride_and_prejudice",
+    "context_tokens": 8262,
+    "budgets": [
+      1024,
+      2048,
+      4096
+    ],
+    "num_needles": 8,
+    "types": [
+      "niah_single",
+      "niah_multivalue",
+      "niah_multikey",
+      "niah_multihop"
+    ]
+  },
+  "strategies": [
+    {
+      "strategy": "Full Context",
+      "actual_tokens": 8262,
+      "compression_ratio": 0.0,
+      "recall": 0.25,
+      "avg_latency_s": 0.837,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "**Chapter I: \"He came down to see the place\"**\n\nIt"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code of Eve is V11."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": true,
+          "response": "Carol's secret code is **K002**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "**Chapter I: \"He came down to see the place\"**\n\nIt"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "**Chapter I: \"He came down to see the place\"**\n\nIt"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "The secret code of Alice is **K002**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "**Chapter I.**\n\nIt is a truth universally acknowledged, that"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "**Chapter I: \"He came down to see the place\"**\n\nIt"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "actual_tokens": 1024,
+      "compression_ratio": 0.876,
+      "recall": 0.0,
+      "avg_latency_s": 0.435,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "The secret code is: **\"A single man in possession of a good"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "The secret code of Eve is **\"I am not a woman, I"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Carol's secret code is **\"I am sure she did not listen.\""
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Dave lives in a **city**. The city is located in the **"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret code is: **\"A single man in possession of a good"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "The secret code of Alice is **\"I am not a woman, I"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Grace's secret code is **\"I am sure she did not listen.\""
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "The city in question is **London**, as indicated in the text"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "actual_tokens": 1019,
+      "compression_ratio": 0.877,
+      "recall": 0.625,
+      "avg_latency_s": 0.384,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code is **CODE000**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code of Eve is **V11**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": true,
+          "response": "Carol's secret code is **K002**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "The city where **Dave lives** is **Cairo**, and the country"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret code is **CODE000**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code of Alice is **V51**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is **K006**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "The city where **Henry lives** is **Lima**, and the country"
+        }
+      ]
+    },
+    {
+      "strategy": "Attention Sink",
+      "actual_tokens": 1021,
+      "compression_ratio": 0.876,
+      "recall": 0.625,
+      "avg_latency_s": 0.363,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code is **CODE000**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code of Eve is **V11**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": true,
+          "response": "Carol's secret code is **K002**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "The city where Dave lives is **Cairo**, and the country is *"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret code is **CODE000**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code of Alice is **V51**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is **K006**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "The city in question is **London**."
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "actual_tokens": 2048,
+      "compression_ratio": 0.752,
+      "recall": 0.125,
+      "avg_latency_s": 0.425,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "The secret code is **K006**, and Grace's favorite city"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "The secret code of Eve is **K006**. This is"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Carol's secret code is **K006**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Dave lives in a city in the United Kingdom."
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret code is **K006**, and Grace's favorite city"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "The secret code of Alice is **K006**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is **K006**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Here is a summary of the text, focusing on the main themes a"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "actual_tokens": 2039,
+      "compression_ratio": 0.753,
+      "recall": 0.625,
+      "avg_latency_s": 0.431,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code is **CODE000**. Here's a breakdown"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code of Eve is **V11**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": true,
+          "response": "Carol's secret code is **K002**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Dave lives in **Cairo**, which is in the **Middle East**"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret code is **CODE000**. Here's a breakdown"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code of Alice is **V51**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is **K006**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "The city where Henry lives is **Lima**, and the country is *"
+        }
+      ]
+    },
+    {
+      "strategy": "Attention Sink",
+      "actual_tokens": 2041,
+      "compression_ratio": 0.753,
+      "recall": 0.625,
+      "avg_latency_s": 0.399,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code is **CODE000**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code of Eve is **V11**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": true,
+          "response": "Carol's secret code is **K002**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "The city where Dave lives is **Cairo**, and the country is *"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret code is **CODE000**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code of Alice is **V51**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is K006."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "The city where Henry lives is **Lima**, and the country is *"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "actual_tokens": 4096,
+      "compression_ratio": 0.504,
+      "recall": 0.25,
+      "avg_latency_s": 0.444,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "The secret code is **V50**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "The secret code of Eve is **V50**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "The secret code for Carol is **V52**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "The city where Dave lives is **New York**."
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret code is **V50**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code of Alice is **V51**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": true,
+          "response": "The secret code is **K006**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Here is a summary of the text, highlighting the key themes a"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "actual_tokens": 4089,
+      "compression_ratio": 0.505,
+      "recall": 0.5,
+      "avg_latency_s": 0.489,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "The secret codes are:\n\n- **Dave** has V10  \n-"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code of Eve is **V11**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": true,
+          "response": "Carol's secret code is **K002**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Dave lives in a city in **Cairo**, which is located in **"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret codes are:\n\n- **Dave** has V10  \n-"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code of Alice is **V51**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is **K006**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "The city where Henry lives is **Lima**, and the country is *"
+        }
+      ]
+    },
+    {
+      "strategy": "Attention Sink",
+      "actual_tokens": 4091,
+      "compression_ratio": 0.505,
+      "recall": 0.625,
+      "avg_latency_s": 0.444,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code is **CODE000**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code of Eve is **V11**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": true,
+          "response": "Carol's secret code is **K002**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Dave lives in a city in **England**."
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret code is **CODE000**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code of Alice is **V51**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is K006."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "The city where Henry lives is **Lima**, and the country is *"
+        }
+      ]
+    }
+  ]
+}

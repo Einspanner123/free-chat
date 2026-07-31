@@ -213,7 +213,7 @@ def eval_strategy(model, tok, device, context, needles, name, fn, budget):
         q = n["question"]
         prompt = processed + "\n\n" + q
         msgs = [{"role": "user", "content": prompt}]
-        text = tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+        text = tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True, enable_thinking=False)
         inputs = tok(text, return_tensors="pt").to(device)
         t0 = time.time()
         with torch.no_grad():

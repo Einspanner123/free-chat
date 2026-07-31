@@ -216,7 +216,7 @@ def make_llm_topic_strategy(model, tok, device):
         # 第一步：LLM 提取话题
         prompt = llm_topic_prompt + text[:2000]  # 只用前 2000 tokens 分析话题
         msgs = [{"role": "user", "content": prompt}]
-        inputs = tokenizer.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+        inputs = tokenizer.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True, enable_thinking=False)
         inp = tokenizer(inputs, return_tensors="pt").to(device)
         with torch.no_grad():
             out = model.generate(**inp, max_new_tokens=50, do_sample=False)
@@ -366,7 +366,7 @@ def eval_strategy(model, tok, device, context, needles, name, fn, budget):
         q = n["question"]
         prompt = processed + "\n\n" + q
         msgs = [{"role": "user", "content": prompt}]
-        text = tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
+        text = tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True, enable_thinking=False)
         inputs = tok(text, return_tensors="pt").to(device)
         t0 = time.time()
         with torch.no_grad():
