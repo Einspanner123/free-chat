@@ -1,0 +1,204 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "book": "pride_and_prejudice",
+    "context_tokens": 8234,
+    "num_needles": 8,
+    "chunk_size": 200,
+    "top_k": [
+      1,
+      3,
+      5
+    ]
+  },
+  "strategies": [
+    {
+      "strategy": "Full Context",
+      "recall": 0.125,
+      "avg_latency_s": 0.789,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": false,
+          "response": "Alice's secret code is **C001**."
+        },
+        {
+          "position": 0.222,
+          "correct": false,
+          "response": "Bob's secret code is C007."
+        },
+        {
+          "position": 0.333,
+          "correct": false,
+          "response": "Carol's secret code is **C007**."
+        },
+        {
+          "position": 0.444,
+          "correct": false,
+          "response": "Dave's secret code is C007."
+        },
+        {
+          "position": 0.556,
+          "correct": false,
+          "response": "Eve's secret code is C007."
+        },
+        {
+          "position": 0.667,
+          "correct": false,
+          "response": "Frank's secret code is C007."
+        },
+        {
+          "position": 0.778,
+          "correct": false,
+          "response": "Grace's secret code is C007."
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "Henry's secret code is **C007**."
+        }
+      ]
+    },
+    {
+      "strategy": "RAG (top-1)",
+      "recall": 0.25,
+      "avg_latency_s": 0.41,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": false,
+          "response": "Alice's secret code is **C007**."
+        },
+        {
+          "position": 0.222,
+          "correct": false,
+          "response": "Bob's secret code is **C007**."
+        },
+        {
+          "position": 0.333,
+          "correct": false,
+          "response": "Carol's secret code is **C006**."
+        },
+        {
+          "position": 0.444,
+          "correct": false,
+          "response": "Dave's secret code is **C007**."
+        },
+        {
+          "position": 0.556,
+          "correct": false,
+          "response": "Eve's secret code is **C007**."
+        },
+        {
+          "position": 0.667,
+          "correct": false,
+          "response": "Frank's secret code is **C007**."
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is **C006**."
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "Henry's secret code is **C007**."
+        }
+      ]
+    },
+    {
+      "strategy": "RAG (top-3)",
+      "recall": 0.625,
+      "avg_latency_s": 0.417,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": false,
+          "response": "Alice's secret code is **C007**."
+        },
+        {
+          "position": 0.222,
+          "correct": false,
+          "response": "Bob's secret code is **C006**."
+        },
+        {
+          "position": 0.333,
+          "correct": true,
+          "response": "Carol's secret code is **C002**."
+        },
+        {
+          "position": 0.444,
+          "correct": false,
+          "response": "Dave's secret code is **C006**."
+        },
+        {
+          "position": 0.556,
+          "correct": true,
+          "response": "Eve's secret code is **C004**."
+        },
+        {
+          "position": 0.667,
+          "correct": true,
+          "response": "Frank's secret code is **C005**."
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is **C006**."
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "Henry's secret code is **C007**."
+        }
+      ]
+    },
+    {
+      "strategy": "RAG (top-5)",
+      "recall": 0.75,
+      "avg_latency_s": 0.409,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": false,
+          "response": "Alice's secret code is **C005**."
+        },
+        {
+          "position": 0.222,
+          "correct": true,
+          "response": "Bob's secret code is **C001**."
+        },
+        {
+          "position": 0.333,
+          "correct": true,
+          "response": "Carol's secret code is **C002**."
+        },
+        {
+          "position": 0.444,
+          "correct": false,
+          "response": "Dave's secret code is **C005**."
+        },
+        {
+          "position": 0.556,
+          "correct": true,
+          "response": "Eve's secret code is **C004**."
+        },
+        {
+          "position": 0.667,
+          "correct": true,
+          "response": "Frank's secret code is **C005**."
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is **C006**."
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "Henry's secret code is **C007**."
+        }
+      ]
+    }
+  ]
+}
