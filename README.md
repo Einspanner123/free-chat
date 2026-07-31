@@ -77,11 +77,11 @@ This is especially important for small models, which have fewer heads and are mo
 
 Block-based memory pool with pluggable eviction: LRU, sliding window, attention-weighted (H2O-style). Prefix cache reuses precomputed KV states for shared prompt prefixes. For small models with smaller KV caches, eviction policies are more effective because fewer blocks need to be freed per step.
 
-### (5) Continuous Batching
+### (5) Inference Serving Interfaces
 
-`inference-engine/scheduler/`
+`inference-engine/memory-manager/engine_cache_adapter.py`
 
-Iteration-level scheduling (Orca-style). Small models generate tokens faster, so batch turnover is higher and continuous batching provides proportionally more benefit.
+`EngineCacheAdapter` bridges the KV Cache Manager to the inference engine: `initialize_sequence`, `on_token_generated`, `finalize_sequence`, and prefix lookup. The engine backends (HF/vLLM via `services/llm-inference/`) accept quantization via `QUANTIZATION` and engine selection via `ENGINE_TYPE`.
 
 ---
 
@@ -194,9 +194,8 @@ HF Transformers / vLLM]
         subgraph "Optimizations"
             KV[KV Cache Manager
 LRU / Sliding Window
-H2O Eviction]
-            Sched[Continuous Batching
-Iteration-Level Scheduler]
+H2O Eviction
+Prefix Cache]
         end
     end
     
@@ -215,7 +214,7 @@ Iteration-Level Scheduler]
     Chat --> MQ
     Chat -->|gRPC streaming| LLM
     LLM --> KV
-    LLM --> Sched
+    
     LLM -.-> Finetune
     LLM -.-> Align
     LLM -.-> Eval
@@ -250,15 +249,19 @@ cp .env.example .env
 docker compose up -d --build
 ```
 
-Run long-context benchmark:
+Run long-context benchmarks (real model + real book text):
 ```bash
-# Needle-in-a-Haystack + Compression-Recall tradeoff
-python3 benchmarks/long_context/run.py --benchmark full
-```
+# Baseline: needle-in-a-haystack on full context
+.venv/bin/python benchmarks/long_context/run_baseline.py
 
-Run context compression experiment:
-```bash
-python3 experiments/context_compression/run.py --budgets 1024 2048 4096
+# Ablation: 6 strategies x compression levels
+.venv/bin/python benchmarks/long_context/run_semantic_ablation.py
+
+# Real book text + RULER needle types
+.venv/bin/python benchmarks/long_context/run_realtext.py
+
+# Real RAG pipeline (project components)
+.venv/bin/python benchmarks/long_context/run_rag_real.py
 ```
 
 Run tests:
@@ -273,7 +276,7 @@ python3 -m pytest services/llm-inference/tests/
 
 | Module | Tests | Scope |
 |--------|-------|-------|
-| inference-engine | 73 | KV cache, scheduler, benchmarks |
+| inference-engine | 39 | KV cache manager, eviction policies, adapter |
 | llm-inference | 153 | Engine backends, quantization, optimizations |
 | finetune | 115 | LoRA/QLoRA training, data loading, merging |
 | evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval |
@@ -282,6 +285,5 @@ python3 -m pytest services/llm-inference/tests/
 | synthetic-data | 38 | Generation, quality filtering |
 | rlhf | 21 | PPO loss, GAE estimation |
 | long-context bench | 14 | Needle, recall, position bias, tradeoff |
-| context compression | 10 | Budget, compression, topic analysis |
 
-Total: **612 tests**.
+Total: **534 tests**..

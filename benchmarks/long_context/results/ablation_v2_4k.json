@@ -1,0 +1,514 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "context_tokens": 4065,
+    "budgets": [
+      512,
+      1024,
+      2048
+    ],
+    "num_needles": 8
+  },
+  "strategies": [
+    {
+      "strategy": "Full Context",
+      "budget_tokens": 4065,
+      "actual_tokens": 4065,
+      "compression_ratio": 0.0,
+      "recall": 1.0,
+      "avg_latency_s": 0.549,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code at position CODE000 appe"
+        },
+        {
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code at position CODE001 is"
+        },
+        {
+          "position": 0.333,
+          "correct": true,
+          "response": "The secret code at position CODE002 is"
+        },
+        {
+          "position": 0.444,
+          "correct": true,
+          "response": "The secret code at position CODE003 is"
+        },
+        {
+          "position": 0.556,
+          "correct": true,
+          "response": "The secret code at position CODE004 is"
+        },
+        {
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code at position CODE005 is"
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "The secret code at position CODE006 is"
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "The secret code at position CODE007 is"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "budget_tokens": 512,
+      "actual_tokens": 512,
+      "compression_ratio": 0.874,
+      "recall": 1.0,
+      "avg_latency_s": 0.288,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code at position CODE000 appe"
+        },
+        {
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code at position CODE001 appe"
+        },
+        {
+          "position": 0.333,
+          "correct": true,
+          "response": "The secret code at position CODE002 appe"
+        },
+        {
+          "position": 0.444,
+          "correct": true,
+          "response": "The secret code at position CODE003 appe"
+        },
+        {
+          "position": 0.556,
+          "correct": true,
+          "response": "The secret code at position CODE004 appe"
+        },
+        {
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code at position CODE005 appe"
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "The secret code at position CODE006 appe"
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "The secret code at position CODE007 is"
+        }
+      ]
+    },
+    {
+      "strategy": "Project Compression",
+      "budget_tokens": 512,
+      "actual_tokens": 507,
+      "compression_ratio": 0.875,
+      "recall": 1.0,
+      "avg_latency_s": 0.288,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code at position CODE000 appe"
+        },
+        {
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code at position CODE001 appe"
+        },
+        {
+          "position": 0.333,
+          "correct": true,
+          "response": "The secret code at position CODE002 appe"
+        },
+        {
+          "position": 0.444,
+          "correct": true,
+          "response": "The secret code at position CODE003 appe"
+        },
+        {
+          "position": 0.556,
+          "correct": true,
+          "response": "The secret code at position CODE004 appe"
+        },
+        {
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code at position CODE005 appe"
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "The secret code at position CODE006 appe"
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "The secret code at position CODE007 appe"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "budget_tokens": 512,
+      "actual_tokens": 505,
+      "compression_ratio": 0.876,
+      "recall": 1.0,
+      "avg_latency_s": 0.275,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": true,
+          "response": "At position CODE000, the secret code"
+        },
+        {
+          "position": 0.222,
+          "correct": true,
+          "response": "At position CODE001, the secret code"
+        },
+        {
+          "position": 0.333,
+          "correct": true,
+          "response": "At position CODE002, the secret code"
+        },
+        {
+          "position": 0.444,
+          "correct": true,
+          "response": "At position CODE003, the secret code"
+        },
+        {
+          "position": 0.556,
+          "correct": true,
+          "response": "At position CODE004, the secret code"
+        },
+        {
+          "position": 0.667,
+          "correct": true,
+          "response": "At position CODE005, the secret code"
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "At position CODE006, the secret code"
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "At position CODE007, the secret code"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "budget_tokens": 1024,
+      "actual_tokens": 1024,
+      "compression_ratio": 0.748,
+      "recall": 1.0,
+      "avg_latency_s": 0.3,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code at position CODE000 appe"
+        },
+        {
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code at position CODE001 appe"
+        },
+        {
+          "position": 0.333,
+          "correct": true,
+          "response": "The secret code at position CODE002 appe"
+        },
+        {
+          "position": 0.444,
+          "correct": true,
+          "response": "The secret code at position CODE003 appe"
+        },
+        {
+          "position": 0.556,
+          "correct": true,
+          "response": "The secret code at position CODE004 appe"
+        },
+        {
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code at position CODE005 appe"
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "The secret code at position CODE006 is"
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "The secret code at position CODE007 is"
+        }
+      ]
+    },
+    {
+      "strategy": "Project Compression",
+      "budget_tokens": 1024,
+      "actual_tokens": 1015,
+      "compression_ratio": 0.75,
+      "recall": 1.0,
+      "avg_latency_s": 0.291,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code at position CODE000 appe"
+        },
+        {
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code at position CODE001 appe"
+        },
+        {
+          "position": 0.333,
+          "correct": true,
+          "response": "The secret code at position CODE002 appe"
+        },
+        {
+          "position": 0.444,
+          "correct": true,
+          "response": "The secret code at position CODE003 appe"
+        },
+        {
+          "position": 0.556,
+          "correct": true,
+          "response": "The secret code at position CODE004 appe"
+        },
+        {
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code at position CODE005 appe"
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "The secret code at position CODE006 appe"
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "The secret code at position CODE007 appe"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "budget_tokens": 1024,
+      "actual_tokens": 1015,
+      "compression_ratio": 0.75,
+      "recall": 1.0,
+      "avg_latency_s": 0.284,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code at position CODE000 is"
+        },
+        {
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code at position CODE001 is"
+        },
+        {
+          "position": 0.333,
+          "correct": true,
+          "response": "The secret code at position CODE002 is"
+        },
+        {
+          "position": 0.444,
+          "correct": true,
+          "response": "The secret code at position CODE003 appe"
+        },
+        {
+          "position": 0.556,
+          "correct": true,
+          "response": "At position CODE004, the secret code"
+        },
+        {
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code at position CODE005 appe"
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "At position CODE006, the secret code"
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "The secret code at position CODE007 is"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "budget_tokens": 2048,
+      "actual_tokens": 2048,
+      "compression_ratio": 0.496,
+      "recall": 1.0,
+      "avg_latency_s": 0.31,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code at position CODE000 appe"
+        },
+        {
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code at position CODE001 appe"
+        },
+        {
+          "position": 0.333,
+          "correct": true,
+          "response": "The secret code at position CODE002 appe"
+        },
+        {
+          "position": 0.444,
+          "correct": true,
+          "response": "The secret code at position CODE003 appe"
+        },
+        {
+          "position": 0.556,
+          "correct": true,
+          "response": "The secret code at position CODE004 is"
+        },
+        {
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code at position CODE005 is"
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "The secret code at position CODE006 is"
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "The secret code at position CODE007 is"
+        }
+      ]
+    },
+    {
+      "strategy": "Project Compression",
+      "budget_tokens": 2048,
+      "actual_tokens": 1330,
+      "compression_ratio": 0.673,
+      "recall": 1.0,
+      "avg_latency_s": 0.295,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code at position CODE000 appe"
+        },
+        {
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code at position CODE001 appe"
+        },
+        {
+          "position": 0.333,
+          "correct": true,
+          "response": "The secret code at position CODE002 appe"
+        },
+        {
+          "position": 0.444,
+          "correct": true,
+          "response": "The secret code at position CODE003 appe"
+        },
+        {
+          "position": 0.556,
+          "correct": true,
+          "response": "The secret code at position CODE004 appe"
+        },
+        {
+          "position": 0.667,
+          "correct": true,
+          "response": "The secret code at position CODE005 appe"
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "The secret code at position CODE006 appe"
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "The secret code at position CODE007 appe"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "budget_tokens": 2048,
+      "actual_tokens": 1420,
+      "compression_ratio": 0.651,
+      "recall": 1.0,
+      "avg_latency_s": 0.294,
+      "results": [
+        {
+          "position": 0.111,
+          "correct": true,
+          "response": "At position CODE000, the secret code"
+        },
+        {
+          "position": 0.222,
+          "correct": true,
+          "response": "At position CODE001, the secret code"
+        },
+        {
+          "position": 0.333,
+          "correct": true,
+          "response": "At position CODE002, the secret code"
+        },
+        {
+          "position": 0.444,
+          "correct": true,
+          "response": "At position CODE003, the secret code"
+        },
+        {
+          "position": 0.556,
+          "correct": true,
+          "response": "At position CODE004, the secret code"
+        },
+        {
+          "position": 0.667,
+          "correct": true,
+          "response": "At position CODE005, the secret code"
+        },
+        {
+          "position": 0.778,
+          "correct": true,
+          "response": "At position CODE006, the secret code"
+        },
+        {
+          "position": 0.889,
+          "correct": true,
+          "response": "At position CODE007, the secret code"
+        }
+      ]
+    }
+  ]
+}

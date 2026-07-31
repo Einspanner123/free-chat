@@ -108,16 +108,24 @@ class TestPositionBias:
 
 
 class TestBenchmarkRunner:
-    def test_config_defaults(self):
-        from run import LongContextBenchConfig
-        cfg = LongContextBenchConfig()
-        assert 0 < cfg.context_length <= 32768
-        assert cfg.num_needles >= 1
+    def test_entity_recall_metrics_consistency(self):
+        """实体召回率指标对真实英文文本的一致性。"""
+        from metrics import entity_recall
+        original = "Elizabeth Bennet visited the Pemberley estate with Mr. Darcy."
+        compressed = "Elizabeth visited Pemberley with Darcy."
+        recall = entity_recall(original, compressed)
+        assert 0.5 <= recall <= 1.0  # 主要实体（Elizabeth/Pemberley/Darcy）应保留
 
-    def test_generate_context(self):
-        from run import generate_and_insert
-        context, needles = generate_and_insert(length=1024, num_needles=3, seed=42)
-        assert len(context) >= 1000
-        assert len(needles) == 3
-        for n in needles:
-            assert n["needle"] in context
+    def test_position_metrics_consistency(self):
+        """位置召回率指标的一致性。"""
+        from metrics import compute_position_recall, compute_position_bias
+        results = [
+            {"position": 0.1, "correct": True},
+            {"position": 0.3, "correct": True},
+            {"position": 0.7, "correct": False},
+            {"position": 0.9, "correct": False},
+        ]
+        pr = compute_position_recall(results)
+        bias = compute_position_bias(results)
+        assert pr["overall"] == 0.5
+        assert bias["bias_score"] > 0  # 首位效应

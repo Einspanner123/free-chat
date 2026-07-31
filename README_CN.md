@@ -86,7 +86,7 @@
 
 | 模块 | 测试数 | 范围 |
 |------|--------|------|
-| inference-engine | 73 | KV cache, 调度器, benchmark |
+| inference-engine | 39 | KV cache 管理, 驱逐策略, 适配器 |
 | llm-inference | 153 | 引擎后端, 量化, 优化 |
 | finetune | 115 | LoRA/QLoRA 训练, 数据加载 |
 | evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval |
@@ -97,4 +97,4 @@
 | long-context bench | 14 | Needle, 召回, 位置偏差 |
 | context compression | 10 | Budget, 压缩, 话题分析 |
 
-总计: **612 个测试**。
+总计: **534 个测试**.
