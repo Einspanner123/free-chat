@@ -129,6 +129,19 @@ Pride and Prejudice, 8262 tokens, 8 needles (RULER types).
 | Project + Topic (keyword) | **62%** | **62%** | 50% |
 | Attention Sink | **62%** | **62%** | **62%** |
 
+### Real RAG Pipeline (Qwen3-0.6B, 8K)
+
+Uses the project's actual RAG components: `RecursiveChunker` + bge-small-en embedding + `InMemoryVectorStore` + `HybridRetriever` (BM25 + dense).
+
+| Strategy | Recall | Latency | Context used |
+|----------|--------|---------|-------------|
+| Full Context (baseline) | 12% | 0.79s | ~8K tokens |
+| RAG top-1 | 25% | 0.41s | ~200 tokens |
+| RAG top-3 | 62% | 0.42s | ~600 tokens |
+| RAG top-5 | **75%** | **0.41s** | ~1000 tokens |
+
+RAG top-5 achieves 75% recall (6x the full-context baseline of 12%) with half the latency, using only ~1000 tokens of retrieved context.
+
 ### Key Findings
 
 1. **Compression strategies are most valuable on real text with stronger models**: on Pride and Prejudice with Qwen3-0.6B, Topic/Attention Sink reach 62% recall vs 25% full context (2.5x) and 0% truncation. The gap widens precisely when the task is hard.
