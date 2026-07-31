@@ -1,0 +1,591 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "book": "pride_and_prejudice",
+    "context_tokens": 8262,
+    "budgets": [
+      1024,
+      2048,
+      4096
+    ],
+    "num_needles": 8,
+    "types": [
+      "niah_single",
+      "niah_multivalue",
+      "niah_multikey",
+      "niah_multihop"
+    ]
+  },
+  "strategies": [
+    {
+      "strategy": "Full Context",
+      "actual_tokens": 8262,
+      "compression_ratio": 0.0,
+      "recall": 0.125,
+      "avg_latency_s": 0.612,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the information provided in the Preface, the main p"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "Based on the information provided in the Preface, the secret"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": true,
+          "response": "Based on the passage, Carol's secret code is:\n\nK002"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided in the passage, here is a "
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the information provided in the Preface, the main p"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the information provided in the Preface, the secret"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided in the Preface, here is a "
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided in the document, here is a"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "actual_tokens": 1024,
+      "compression_ratio": 0.876,
+      "recall": 0.0,
+      "avg_latency_s": 0.307,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the provided text, there isn't a clear secret code "
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "The secret code of Eve is based on the concept of \"pride and"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the information provided in the text, there is no s"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the provided text, there doesn't seem to be a clear"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the provided text, there isn't a clear secret code "
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Alice's secret code appears to be a combination of words and"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided in the text, Grace's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the provided text, there doesn't seem to be a clear"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "actual_tokens": 1019,
+      "compression_ratio": 0.877,
+      "recall": 0.375,
+      "avg_latency_s": 0.273,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code provided is \"CODE000\". This appears to be"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": true,
+          "response": "According to the given information, the secret code of Eve i"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Carol's secret code is **CODE002**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "The city where Dave lives is Cairo."
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret code provided is \"CODE000\". This appears to be"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Alice's secret code is **CODE002**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is K006."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "It seems there was a mix-up in the instructions provided. Le"
+        }
+      ]
+    },
+    {
+      "strategy": "Attention Sink",
+      "actual_tokens": 1021,
+      "compression_ratio": 0.876,
+      "recall": 0.25,
+      "avg_latency_s": 0.261,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code is **CODE000**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "The secret code of Eve is **E11**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the information provided, Carol's secret code appea"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "The secret code is CODE000.\n\nThe secret codes are: Dave"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret code is **CODE000**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "To determine the secret code of Alice, we need to analyze th"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is K006."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "The city where Henry lives is Paris."
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "actual_tokens": 2048,
+      "compression_ratio": 0.752,
+      "recall": 0.0,
+      "avg_latency_s": 0.318,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the information provided in the text, there appears"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "Based on the information provided, there isn't a specific se"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the information provided in the text, Carol's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided, here is a summary of the "
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the information provided in the text, there appears"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the information provided in the text, there isn't m"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided in the text, Grace's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided, here is a summary of the "
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "actual_tokens": 2039,
+      "compression_ratio": 0.753,
+      "recall": 0.375,
+      "avg_latency_s": 0.296,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code provided is \"CODE000\". This appears to be"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": true,
+          "response": "According to the passage, the secret code of Eve is \"V11"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Carol's secret code is CODE002."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided in the text, the city wher"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret code provided is \"CODE000\". This appears to be"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "According to the passage, the secret code of Alice is \"K00"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": true,
+          "response": "Grace's secret code is K006."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided, the city where Henry live"
+        }
+      ]
+    },
+    {
+      "strategy": "Attention Sink",
+      "actual_tokens": 2041,
+      "compression_ratio": 0.753,
+      "recall": 0.25,
+      "avg_latency_s": 0.277,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "The secret code is **CODE004**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": true,
+          "response": "The secret code of Eve is V11."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the information provided, Carol's secret code is **"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided, the secret code is \"CODE0"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": true,
+          "response": "The secret code is **CODE004**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "The secret code of Alice is **K006**."
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided, Grace's secret code appea"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "The city where Henry lives is Paris, France."
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "actual_tokens": 4096,
+      "compression_ratio": 0.504,
+      "recall": 0.0,
+      "avg_latency_s": 0.346,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the passage provided, the secret code mentioned is:"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "Based on the passage provided, the secret code of Eve is \"K0"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the passage provided, Carol's secret code is:\n\nK00"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided, Miss Austen's primary foc"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the passage provided, the secret code mentioned is:"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the passage provided, the secret code of Alice is:\n"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the passage provided, Grace's secret code is:\n\nK00"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided, here is a summary of the "
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "actual_tokens": 4089,
+      "compression_ratio": 0.505,
+      "recall": 0.25,
+      "avg_latency_s": 0.339,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": true,
+          "response": "The secret code provided in the text is \"CODE000\". This"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": true,
+          "response": "According to the passage, the secret code of Eve is \"V11"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "According to the provided text, Carol's secret code is \"K00"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided in the text, Dave lives in"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "The secret code provided in the text is \"CODE000\". This"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the information provided in the text, there is no s"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Grace's secret code is **CODE006**."
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided in the text, the city wher"
+        }
+      ]
+    },
+    {
+      "strategy": "Attention Sink",
+      "actual_tokens": 4091,
+      "compression_ratio": 0.505,
+      "recall": 0.25,
+      "avg_latency_s": 0.333,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "The secret code is **CODE004**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": true,
+          "response": "Based on the information provided, the secret code of Eve is"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the information provided in the text, Carol's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided in the text, Dave lives in"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": true,
+          "response": "The secret code is **CODE004**."
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the information provided, there is no specific ment"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided in the text, Grace's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided in the text, we can deduce"
+        }
+      ]
+    }
+  ]
+}

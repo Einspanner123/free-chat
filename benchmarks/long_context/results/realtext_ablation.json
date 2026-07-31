@@ -1,0 +1,591 @@
+{
+  "config": {
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "book": "pride_and_prejudice",
+    "context_tokens": 7626,
+    "budgets": [
+      1024,
+      2048,
+      4096
+    ],
+    "num_needles": 8,
+    "types": [
+      "niah_single",
+      "niah_multivalue",
+      "niah_multikey",
+      "niah_multihop"
+    ]
+  },
+  "strategies": [
+    {
+      "strategy": "Full Context",
+      "actual_tokens": 7626,
+      "compression_ratio": 0.0,
+      "recall": 0.0,
+      "avg_latency_s": 0.689,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the passage, the secret code mentioned is:\n\nDave ha"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "Based on the passage, the secret code of Eve is:\n\nDave has V"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the passage, Carol's secret code is:\n\nDave has V1"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided in the passage, Dave lives"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the passage, the secret code mentioned is:\n\nDave ha"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the passage, the secret code of Alice is:\n\nDave has"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the passage, Grace's secret code is:\n\n\"Dave has V"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided in the passage, the city m"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "actual_tokens": 1024,
+      "compression_ratio": 0.866,
+      "recall": 0.0,
+      "avg_latency_s": 0.396,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "I'm sorry, but I cannot provide answers on political matters"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "I'm sorry, but I cannot provide answers on political matters"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the information provided in the text, there is no s"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided in the passage, Dave lives"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "I'm sorry, but I cannot provide answers on political matters"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "As an AI language model, I cannot provide information about "
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided in the text, there is no s"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided in the text, the city wher"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "actual_tokens": 1025,
+      "compression_ratio": 0.866,
+      "recall": 0.125,
+      "avg_latency_s": 0.399,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": true,
+          "response": "Carol's secret code is K002. According to the passage,"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided in the text, Dave lives in"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided in the text, Grace's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided in the text, the city ment"
+        }
+      ]
+    },
+    {
+      "strategy": "Attention Sink",
+      "actual_tokens": 1025,
+      "compression_ratio": 0.866,
+      "recall": 0.0,
+      "avg_latency_s": 0.397,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the information provided in the text, Carol's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "The city described in the passage is London. Specifically, i"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided in the text, Grace's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "The city described in the passage is London. Specifically, i"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "actual_tokens": 2048,
+      "compression_ratio": 0.731,
+      "recall": 0.0,
+      "avg_latency_s": 0.4,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the passage provided, the secret code mentioned is:"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the passage provided, Carol's secret code appears t"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided in the text, Dave lives in"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the passage provided, the secret code mentioned is:"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the passage provided, the secret code of Alice is:\n"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the passage provided, Grace's secret code appears t"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided in the text, the city wher"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "actual_tokens": 2043,
+      "compression_ratio": 0.732,
+      "recall": 0.0,
+      "avg_latency_s": 0.397,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the information provided in the text, Carol's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided in the text, Dave lives in"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided in the text, Grace's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided in the text, the weather i"
+        }
+      ]
+    },
+    {
+      "strategy": "Attention Sink",
+      "actual_tokens": 2044,
+      "compression_ratio": 0.732,
+      "recall": 0.125,
+      "avg_latency_s": 0.396,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the information provided in the text, Carol's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": true,
+          "response": "Based on the information provided in the text, Dave lives in"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided in the text, Grace's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided in the text, the city desc"
+        }
+      ]
+    },
+    {
+      "strategy": "Truncation",
+      "actual_tokens": 4096,
+      "compression_ratio": 0.463,
+      "recall": 0.0,
+      "avg_latency_s": 0.427,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the passage provided, the secret code mentioned is:"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "As an AI language model, I don't have access to specific inf"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the passage provided, Carol's secret code is:\n\nHenr"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided in the passage, Dave lives"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the passage provided, the secret code mentioned is:"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the passage provided, the secret code of Alice is:\n"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided in the passage, Grace's se"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided in the passage, the city m"
+        }
+      ]
+    },
+    {
+      "strategy": "Project + Topic",
+      "actual_tokens": 4093,
+      "compression_ratio": 0.463,
+      "recall": 0.0,
+      "avg_latency_s": 0.428,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the information provided in the text, Carol's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided in the text, Dave lives in"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided in the text, Grace's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided in the text, the city ment"
+        }
+      ]
+    },
+    {
+      "strategy": "Attention Sink",
+      "actual_tokens": 4094,
+      "compression_ratio": 0.463,
+      "recall": 0.0,
+      "avg_latency_s": 0.426,
+      "results": [
+        {
+          "type": "niah_single",
+          "position": 0.111,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.222,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.333,
+          "correct": false,
+          "response": "Based on the information provided in the text, Carol's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.444,
+          "correct": false,
+          "response": "Based on the information provided in the text, Dave lives in"
+        },
+        {
+          "type": "niah_single",
+          "position": 0.556,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multivalue",
+          "position": 0.667,
+          "correct": false,
+          "response": "Based on the information provided in the text, the secret co"
+        },
+        {
+          "type": "niah_multikey",
+          "position": 0.778,
+          "correct": false,
+          "response": "Based on the information provided in the text, Grace's secre"
+        },
+        {
+          "type": "niah_multihop",
+          "position": 0.889,
+          "correct": false,
+          "response": "Based on the information provided in the text, the city ment"
+        }
+      ]
+    }
+  ]
+}
