@@ -126,6 +126,47 @@ def choose_strategy(text: str, tokenizer, budget: int, strategy: str, question: 
                     compressed.insert(0, ct)
         return "\n\n" + key_text + "\n\n" + " ".join(compressed)
 
+    elif strategy == "sink_topic":
+        # 组合：保留所有标题 + 案由相关块前置（position 1）+ sink + 分级压缩
+        # 标题是定位文书的关键，全部保留；案由相关块完整前置利用首位效应
+        # 从每个块中提取标题行
+        def split_title(block):
+            m = re.match(r'(<di> 《[^》]+》)', block)
+            if m:
+                return m.group(1), block[len(m.group(1)):]
+            return "", block
+
+        key_titles, key_bodies = [], []
+        other_titles, other_bodies = [], []
+        for b in key:
+            t, body = split_title(b)
+            key_titles.append(t)
+            key_bodies.append(body)
+        for b in other:
+            t, body = split_title(b)
+            other_titles.append(t)
+            other_bodies.append(body)
+
+        # 案由相关块的标题 + 正文放 position 1
+        key_text = "\n\n".join(t + "\n" + body for t, body in zip(key_titles, key_bodies))
+        key_tok = len(tokenizer.encode(key_text, add_special_tokens=False))
+        remaining = budget - key_tok - 2
+
+        # 非案由块：保留标题（定位用），正文分级压缩
+        compressed = []
+        if remaining > 0:
+            for i, (t, body) in enumerate(zip(other_titles, other_bodies)):
+                turn = i + 1
+                ct_body = body if turn <= 5 else (body[:100] if turn <= 20 else (body[:50] if turn <= 50 else ""))
+                ct = t + "\n" + ct_body if ct_body else t
+                if not ct.strip():
+                    continue
+                nt = len(tokenizer.encode(ct, add_special_tokens=False))
+                if sum(len(tokenizer.encode(x, add_special_tokens=False)) for x in compressed) + nt <= remaining:
+                    compressed.append(ct)
+
+        return "\n\n" + key_text + "\n\n" + " ".join(compressed)
+
     return text
 
 
