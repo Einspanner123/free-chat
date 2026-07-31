@@ -1,0 +1,1331 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "samples": 40,
+    "budgets": [
+      1024
+    ]
+  },
+  "strategies": [
+    {
+      "strategy": "truncation",
+      "budget": 1024,
+      "accuracy": 0.025,
+      "correct": 1,
+      "total": 40,
+      "avg_latency_s": 0.12,
+      "per_item": [
+        {
+          "id": "96387e4ae15da043d51ef61053087ad39e7b4f01fba3f2a2",
+          "gold": "8",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 16238,
+          "used_tokens": 1024
+        },
+        {
+          "id": "15103103336cc36442b0c42f3458b745a0dff917705e78dd",
+          "gold": "11",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 13459,
+          "used_tokens": 1024
+        },
+        {
+          "id": "a3c722ad83ccdf65bf5185f0f8ae4c7f35e62d2203d84a2f",
+          "gold": "13",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 9152,
+          "used_tokens": 1024
+        },
+        {
+          "id": "dfff1cac4104be0d174c9f486a6ebb48b862a397cee631c4",
+          "gold": "44",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 22676,
+          "used_tokens": 1024
+        },
+        {
+          "id": "870d882bf3ca7872472e9616aa87dc8871e722243ad4c3e9",
+          "gold": "2",
+          "pred": "2",
+          "correct": true,
+          "full_tokens": 29538,
+          "used_tokens": 1024
+        },
+        {
+          "id": "d28282eded860607e75bed90ce7af09e05042b3142190e9c",
+          "gold": "7",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 12120,
+          "used_tokens": 1024
+        },
+        {
+          "id": "c4af14def5df38d2eedc972316d077547529ed5885636d3f",
+          "gold": "7",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 7281,
+          "used_tokens": 1024
+        },
+        {
+          "id": "96ba7321f31f1e7791d8b8b233be77a34dcb873be323c9a0",
+          "gold": "45",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 18752,
+          "used_tokens": 1024
+        },
+        {
+          "id": "5e0337f2c813c22c9533897dd8fcfb9437dbb0c54b08a344",
+          "gold": "4",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 18772,
+          "used_tokens": 1024
+        },
+        {
+          "id": "31cc0c72ad372e19156f385c44f0c7d0b17dfa26e785048c",
+          "gold": "31",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 16607,
+          "used_tokens": 1024
+        },
+        {
+          "id": "4b8a572aef6a4886378fee8cc5c831dc15bcfd3ffabde924",
+          "gold": "4",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 21761,
+          "used_tokens": 1024
+        },
+        {
+          "id": "b789904ef73ecece88a2895495f07dae7e62dca902ff81b5",
+          "gold": "16",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14017,
+          "used_tokens": 1024
+        },
+        {
+          "id": "7355e5120c71a7041ad886fd9ae11f0a8209260e463603c0",
+          "gold": "5",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 5473,
+          "used_tokens": 1024
+        },
+        {
+          "id": "0586f5721d72fec5a3eed0979362aa68940566d5c30ff5ff",
+          "gold": "44",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 23274,
+          "used_tokens": 1024
+        },
+        {
+          "id": "35255a988c0b67f602a22e118f57eee6b1896d3c0d25c5ae",
+          "gold": "19",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 15114,
+          "used_tokens": 1024
+        },
+        {
+          "id": "c6310da9962d623a5fe810e1035838d9bdb3bca9c4846a26",
+          "gold": "36",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14091,
+          "used_tokens": 1024
+        },
+        {
+          "id": "d0b5bf43f0c340c83001951c8ace563be37e9eab856fc430",
+          "gold": "24",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 10614,
+          "used_tokens": 1024
+        },
+        {
+          "id": "fa9d5e74b045c3410dc06bf543c2694f5c39bec80300cfb0",
+          "gold": "12",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 12241,
+          "used_tokens": 1024
+        },
+        {
+          "id": "347225fc3e34bc69da82dbbddeedb7012f9a16051d1b633b",
+          "gold": "23",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 19248,
+          "used_tokens": 1024
+        },
+        {
+          "id": "218567d568976f46bbe34e41026a83c6ab3cde815cde04dd",
+          "gold": "14",
+          "pred": "22",
+          "correct": false,
+          "full_tokens": 7817,
+          "used_tokens": 1024
+        },
+        {
+          "id": "9776b3470c4b709a980f1bb88ad724396e59212b4ecee62f",
+          "gold": "18",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 19065,
+          "used_tokens": 1024
+        },
+        {
+          "id": "4242a257fb1a93126a0303219f5522eaed882d0c03c00787",
+          "gold": "29",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 20282,
+          "used_tokens": 1024
+        },
+        {
+          "id": "c8fb2e7da26b4f6a903416b626c0554f4452e0372bc8f74f",
+          "gold": "22",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 17961,
+          "used_tokens": 1024
+        },
+        {
+          "id": "bab4f698b21e56226fa93064b94c74092ffc69b605ad9f5d",
+          "gold": "6",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 9207,
+          "used_tokens": 1024
+        },
+        {
+          "id": "862486acbc407c9393f07be8d024f4636fd10418a1c9edfe",
+          "gold": "8",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 8771,
+          "used_tokens": 1024
+        },
+        {
+          "id": "3e65c7d99ffec49fd5de3fcd75f55dac918618962f55e4fc",
+          "gold": "9",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 17163,
+          "used_tokens": 1024
+        },
+        {
+          "id": "dce037b41070d4bde52e7191d49f0e3982e2a959a36986bd",
+          "gold": "26",
+          "pred": "27",
+          "correct": false,
+          "full_tokens": 7391,
+          "used_tokens": 1024
+        },
+        {
+          "id": "05778a8db1c3fcd589e2d28b3cebf7e50d3287f421cf0654",
+          "gold": "26",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 23987,
+          "used_tokens": 1024
+        },
+        {
+          "id": "bc6f6e35d7693929477458e35f64047609943757931cf783",
+          "gold": "28",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14924,
+          "used_tokens": 1024
+        },
+        {
+          "id": "6deb1a1340401ebbeb1a836d9f4278a1c9b6fec6e8bd89f3",
+          "gold": "43",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 17962,
+          "used_tokens": 1024
+        },
+        {
+          "id": "b05c71cd34fde95b99067bb292061a0877fa88d42c768007",
+          "gold": "34",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 17573,
+          "used_tokens": 1024
+        },
+        {
+          "id": "2a1f4ae2449c2acf522c600872032ee42819d41f76a2de2b",
+          "gold": "19",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 13448,
+          "used_tokens": 1024
+        },
+        {
+          "id": "8b97adebd90c3313fa7eb5ae877bd01ca5fc9e36e0098857",
+          "gold": "9",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 13966,
+          "used_tokens": 1024
+        },
+        {
+          "id": "1114d16b3f4cb8d78a35cf7208e4e911f8014d51f725e54e",
+          "gold": "40",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 15753,
+          "used_tokens": 1024
+        },
+        {
+          "id": "13ad5e56bfc8116b07d1c4419732238a6278b4ee35887b9b",
+          "gold": "14",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 23735,
+          "used_tokens": 1024
+        },
+        {
+          "id": "3180cae59fcd1efb0b792fe34af1e96770e0013807d50026",
+          "gold": "26",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14816,
+          "used_tokens": 1024
+        },
+        {
+          "id": "1db1724f003aaf71774f6a87f5d382cae7eaa24abe34f234",
+          "gold": "25",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 18224,
+          "used_tokens": 1024
+        },
+        {
+          "id": "648bccaaa67271142018890ab6f19abd68abefbfb90ad795",
+          "gold": "13",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 24805,
+          "used_tokens": 1024
+        },
+        {
+          "id": "89a834965de6ea1d16fd851d7b1d24c3aa3d66fb0b0d4b36",
+          "gold": "35",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 16883,
+          "used_tokens": 1024
+        },
+        {
+          "id": "ded5aee61cf4e0f9d90ad1ae1a355aaf32dc66a67876bd79",
+          "gold": "20",
+          "pred": "40",
+          "correct": false,
+          "full_tokens": 15567,
+          "used_tokens": 1024
+        }
+      ]
+    },
+    {
+      "strategy": "project_topic",
+      "budget": 1024,
+      "accuracy": 0.025,
+      "correct": 1,
+      "total": 40,
+      "avg_latency_s": 0.09,
+      "per_item": [
+        {
+          "id": "96387e4ae15da043d51ef61053087ad39e7b4f01fba3f2a2",
+          "gold": "8",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 16238,
+          "used_tokens": 1019
+        },
+        {
+          "id": "15103103336cc36442b0c42f3458b745a0dff917705e78dd",
+          "gold": "11",
+          "pred": "22",
+          "correct": false,
+          "full_tokens": 13459,
+          "used_tokens": 1020
+        },
+        {
+          "id": "a3c722ad83ccdf65bf5185f0f8ae4c7f35e62d2203d84a2f",
+          "gold": "13",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 9152,
+          "used_tokens": 1024
+        },
+        {
+          "id": "dfff1cac4104be0d174c9f486a6ebb48b862a397cee631c4",
+          "gold": "44",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 22676,
+          "used_tokens": 1015
+        },
+        {
+          "id": "870d882bf3ca7872472e9616aa87dc8871e722243ad4c3e9",
+          "gold": "2",
+          "pred": "29",
+          "correct": false,
+          "full_tokens": 29538,
+          "used_tokens": 1022
+        },
+        {
+          "id": "d28282eded860607e75bed90ce7af09e05042b3142190e9c",
+          "gold": "7",
+          "pred": "29",
+          "correct": false,
+          "full_tokens": 12120,
+          "used_tokens": 1018
+        },
+        {
+          "id": "c4af14def5df38d2eedc972316d077547529ed5885636d3f",
+          "gold": "7",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 7281,
+          "used_tokens": 1023
+        },
+        {
+          "id": "96ba7321f31f1e7791d8b8b233be77a34dcb873be323c9a0",
+          "gold": "45",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 18752,
+          "used_tokens": 1024
+        },
+        {
+          "id": "5e0337f2c813c22c9533897dd8fcfb9437dbb0c54b08a344",
+          "gold": "4",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 18772,
+          "used_tokens": 1021
+        },
+        {
+          "id": "31cc0c72ad372e19156f385c44f0c7d0b17dfa26e785048c",
+          "gold": "31",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 16607,
+          "used_tokens": 1019
+        },
+        {
+          "id": "4b8a572aef6a4886378fee8cc5c831dc15bcfd3ffabde924",
+          "gold": "4",
+          "pred": "45",
+          "correct": false,
+          "full_tokens": 21761,
+          "used_tokens": 1019
+        },
+        {
+          "id": "b789904ef73ecece88a2895495f07dae7e62dca902ff81b5",
+          "gold": "16",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14017,
+          "used_tokens": 1023
+        },
+        {
+          "id": "7355e5120c71a7041ad886fd9ae11f0a8209260e463603c0",
+          "gold": "5",
+          "pred": "5",
+          "correct": true,
+          "full_tokens": 5473,
+          "used_tokens": 843
+        },
+        {
+          "id": "0586f5721d72fec5a3eed0979362aa68940566d5c30ff5ff",
+          "gold": "44",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 23274,
+          "used_tokens": 1017
+        },
+        {
+          "id": "35255a988c0b67f602a22e118f57eee6b1896d3c0d25c5ae",
+          "gold": "19",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 15114,
+          "used_tokens": 1021
+        },
+        {
+          "id": "c6310da9962d623a5fe810e1035838d9bdb3bca9c4846a26",
+          "gold": "36",
+          "pred": "25",
+          "correct": false,
+          "full_tokens": 14091,
+          "used_tokens": 1021
+        },
+        {
+          "id": "d0b5bf43f0c340c83001951c8ace563be37e9eab856fc430",
+          "gold": "24",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 10614,
+          "used_tokens": 1024
+        },
+        {
+          "id": "fa9d5e74b045c3410dc06bf543c2694f5c39bec80300cfb0",
+          "gold": "12",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 12241,
+          "used_tokens": 1023
+        },
+        {
+          "id": "347225fc3e34bc69da82dbbddeedb7012f9a16051d1b633b",
+          "gold": "23",
+          "pred": "21",
+          "correct": false,
+          "full_tokens": 19248,
+          "used_tokens": 1022
+        },
+        {
+          "id": "218567d568976f46bbe34e41026a83c6ab3cde815cde04dd",
+          "gold": "14",
+          "pred": "22",
+          "correct": false,
+          "full_tokens": 7817,
+          "used_tokens": 1023
+        },
+        {
+          "id": "9776b3470c4b709a980f1bb88ad724396e59212b4ecee62f",
+          "gold": "18",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 19065,
+          "used_tokens": 1021
+        },
+        {
+          "id": "4242a257fb1a93126a0303219f5522eaed882d0c03c00787",
+          "gold": "29",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 20282,
+          "used_tokens": 1020
+        },
+        {
+          "id": "c8fb2e7da26b4f6a903416b626c0554f4452e0372bc8f74f",
+          "gold": "22",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 17961,
+          "used_tokens": 1018
+        },
+        {
+          "id": "bab4f698b21e56226fa93064b94c74092ffc69b605ad9f5d",
+          "gold": "6",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 9207,
+          "used_tokens": 1024
+        },
+        {
+          "id": "862486acbc407c9393f07be8d024f4636fd10418a1c9edfe",
+          "gold": "8",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 8771,
+          "used_tokens": 1018
+        },
+        {
+          "id": "3e65c7d99ffec49fd5de3fcd75f55dac918618962f55e4fc",
+          "gold": "9",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 17163,
+          "used_tokens": 1016
+        },
+        {
+          "id": "dce037b41070d4bde52e7191d49f0e3982e2a959a36986bd",
+          "gold": "26",
+          "pred": "27",
+          "correct": false,
+          "full_tokens": 7391,
+          "used_tokens": 1022
+        },
+        {
+          "id": "05778a8db1c3fcd589e2d28b3cebf7e50d3287f421cf0654",
+          "gold": "26",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 23987,
+          "used_tokens": 1024
+        },
+        {
+          "id": "bc6f6e35d7693929477458e35f64047609943757931cf783",
+          "gold": "28",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14924,
+          "used_tokens": 1022
+        },
+        {
+          "id": "6deb1a1340401ebbeb1a836d9f4278a1c9b6fec6e8bd89f3",
+          "gold": "43",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 17962,
+          "used_tokens": 1023
+        },
+        {
+          "id": "b05c71cd34fde95b99067bb292061a0877fa88d42c768007",
+          "gold": "34",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 17573,
+          "used_tokens": 1020
+        },
+        {
+          "id": "2a1f4ae2449c2acf522c600872032ee42819d41f76a2de2b",
+          "gold": "19",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 13448,
+          "used_tokens": 1024
+        },
+        {
+          "id": "8b97adebd90c3313fa7eb5ae877bd01ca5fc9e36e0098857",
+          "gold": "9",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 13966,
+          "used_tokens": 1019
+        },
+        {
+          "id": "1114d16b3f4cb8d78a35cf7208e4e911f8014d51f725e54e",
+          "gold": "40",
+          "pred": "20",
+          "correct": false,
+          "full_tokens": 15753,
+          "used_tokens": 1019
+        },
+        {
+          "id": "13ad5e56bfc8116b07d1c4419732238a6278b4ee35887b9b",
+          "gold": "14",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 23735,
+          "used_tokens": 1022
+        },
+        {
+          "id": "3180cae59fcd1efb0b792fe34af1e96770e0013807d50026",
+          "gold": "26",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14816,
+          "used_tokens": 1020
+        },
+        {
+          "id": "1db1724f003aaf71774f6a87f5d382cae7eaa24abe34f234",
+          "gold": "25",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 18224,
+          "used_tokens": 1024
+        },
+        {
+          "id": "648bccaaa67271142018890ab6f19abd68abefbfb90ad795",
+          "gold": "13",
+          "pred": "29",
+          "correct": false,
+          "full_tokens": 24805,
+          "used_tokens": 1021
+        },
+        {
+          "id": "89a834965de6ea1d16fd851d7b1d24c3aa3d66fb0b0d4b36",
+          "gold": "35",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 16883,
+          "used_tokens": 1017
+        },
+        {
+          "id": "ded5aee61cf4e0f9d90ad1ae1a355aaf32dc66a67876bd79",
+          "gold": "20",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 15567,
+          "used_tokens": 1023
+        }
+      ]
+    },
+    {
+      "strategy": "attention_sink",
+      "budget": 1024,
+      "accuracy": 0.025,
+      "correct": 1,
+      "total": 40,
+      "avg_latency_s": 0.09,
+      "per_item": [
+        {
+          "id": "96387e4ae15da043d51ef61053087ad39e7b4f01fba3f2a2",
+          "gold": "8",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 16238,
+          "used_tokens": 1020
+        },
+        {
+          "id": "15103103336cc36442b0c42f3458b745a0dff917705e78dd",
+          "gold": "11",
+          "pred": "5",
+          "correct": false,
+          "full_tokens": 13459,
+          "used_tokens": 1021
+        },
+        {
+          "id": "a3c722ad83ccdf65bf5185f0f8ae4c7f35e62d2203d84a2f",
+          "gold": "13",
+          "pred": "20",
+          "correct": false,
+          "full_tokens": 9152,
+          "used_tokens": 1007
+        },
+        {
+          "id": "dfff1cac4104be0d174c9f486a6ebb48b862a397cee631c4",
+          "gold": "44",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 22676,
+          "used_tokens": 1016
+        },
+        {
+          "id": "870d882bf3ca7872472e9616aa87dc8871e722243ad4c3e9",
+          "gold": "2",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 29538,
+          "used_tokens": 1023
+        },
+        {
+          "id": "d28282eded860607e75bed90ce7af09e05042b3142190e9c",
+          "gold": "7",
+          "pred": "29",
+          "correct": false,
+          "full_tokens": 12120,
+          "used_tokens": 1019
+        },
+        {
+          "id": "c4af14def5df38d2eedc972316d077547529ed5885636d3f",
+          "gold": "7",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 7281,
+          "used_tokens": 1003
+        },
+        {
+          "id": "96ba7321f31f1e7791d8b8b233be77a34dcb873be323c9a0",
+          "gold": "45",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 18752,
+          "used_tokens": 1023
+        },
+        {
+          "id": "5e0337f2c813c22c9533897dd8fcfb9437dbb0c54b08a344",
+          "gold": "4",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 18772,
+          "used_tokens": 1022
+        },
+        {
+          "id": "31cc0c72ad372e19156f385c44f0c7d0b17dfa26e785048c",
+          "gold": "31",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 16607,
+          "used_tokens": 1020
+        },
+        {
+          "id": "4b8a572aef6a4886378fee8cc5c831dc15bcfd3ffabde924",
+          "gold": "4",
+          "pred": "25",
+          "correct": false,
+          "full_tokens": 21761,
+          "used_tokens": 1020
+        },
+        {
+          "id": "b789904ef73ecece88a2895495f07dae7e62dca902ff81b5",
+          "gold": "16",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14017,
+          "used_tokens": 1012
+        },
+        {
+          "id": "7355e5120c71a7041ad886fd9ae11f0a8209260e463603c0",
+          "gold": "5",
+          "pred": "5",
+          "correct": true,
+          "full_tokens": 5473,
+          "used_tokens": 844
+        },
+        {
+          "id": "0586f5721d72fec5a3eed0979362aa68940566d5c30ff5ff",
+          "gold": "44",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 23274,
+          "used_tokens": 1018
+        },
+        {
+          "id": "35255a988c0b67f602a22e118f57eee6b1896d3c0d25c5ae",
+          "gold": "19",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 15114,
+          "used_tokens": 1022
+        },
+        {
+          "id": "c6310da9962d623a5fe810e1035838d9bdb3bca9c4846a26",
+          "gold": "36",
+          "pred": "25",
+          "correct": false,
+          "full_tokens": 14091,
+          "used_tokens": 1022
+        },
+        {
+          "id": "d0b5bf43f0c340c83001951c8ace563be37e9eab856fc430",
+          "gold": "24",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 10614,
+          "used_tokens": 1015
+        },
+        {
+          "id": "fa9d5e74b045c3410dc06bf543c2694f5c39bec80300cfb0",
+          "gold": "12",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 12241,
+          "used_tokens": 1021
+        },
+        {
+          "id": "347225fc3e34bc69da82dbbddeedb7012f9a16051d1b633b",
+          "gold": "23",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 19248,
+          "used_tokens": 1023
+        },
+        {
+          "id": "218567d568976f46bbe34e41026a83c6ab3cde815cde04dd",
+          "gold": "14",
+          "pred": "22",
+          "correct": false,
+          "full_tokens": 7817,
+          "used_tokens": 1023
+        },
+        {
+          "id": "9776b3470c4b709a980f1bb88ad724396e59212b4ecee62f",
+          "gold": "18",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 19065,
+          "used_tokens": 1022
+        },
+        {
+          "id": "4242a257fb1a93126a0303219f5522eaed882d0c03c00787",
+          "gold": "29",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 20282,
+          "used_tokens": 1021
+        },
+        {
+          "id": "c8fb2e7da26b4f6a903416b626c0554f4452e0372bc8f74f",
+          "gold": "22",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 17961,
+          "used_tokens": 1019
+        },
+        {
+          "id": "bab4f698b21e56226fa93064b94c74092ffc69b605ad9f5d",
+          "gold": "6",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 9207,
+          "used_tokens": 1016
+        },
+        {
+          "id": "862486acbc407c9393f07be8d024f4636fd10418a1c9edfe",
+          "gold": "8",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 8771,
+          "used_tokens": 1019
+        },
+        {
+          "id": "3e65c7d99ffec49fd5de3fcd75f55dac918618962f55e4fc",
+          "gold": "9",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 17163,
+          "used_tokens": 1017
+        },
+        {
+          "id": "dce037b41070d4bde52e7191d49f0e3982e2a959a36986bd",
+          "gold": "26",
+          "pred": "27",
+          "correct": false,
+          "full_tokens": 7391,
+          "used_tokens": 1023
+        },
+        {
+          "id": "05778a8db1c3fcd589e2d28b3cebf7e50d3287f421cf0654",
+          "gold": "26",
+          "pred": "29",
+          "correct": false,
+          "full_tokens": 23987,
+          "used_tokens": 1019
+        },
+        {
+          "id": "bc6f6e35d7693929477458e35f64047609943757931cf783",
+          "gold": "28",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14924,
+          "used_tokens": 1023
+        },
+        {
+          "id": "6deb1a1340401ebbeb1a836d9f4278a1c9b6fec6e8bd89f3",
+          "gold": "43",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 17962,
+          "used_tokens": 1023
+        },
+        {
+          "id": "b05c71cd34fde95b99067bb292061a0877fa88d42c768007",
+          "gold": "34",
+          "pred": "20",
+          "correct": false,
+          "full_tokens": 17573,
+          "used_tokens": 1021
+        },
+        {
+          "id": "2a1f4ae2449c2acf522c600872032ee42819d41f76a2de2b",
+          "gold": "19",
+          "pred": "27",
+          "correct": false,
+          "full_tokens": 13448,
+          "used_tokens": 1023
+        },
+        {
+          "id": "8b97adebd90c3313fa7eb5ae877bd01ca5fc9e36e0098857",
+          "gold": "9",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 13966,
+          "used_tokens": 1020
+        },
+        {
+          "id": "1114d16b3f4cb8d78a35cf7208e4e911f8014d51f725e54e",
+          "gold": "40",
+          "pred": "20",
+          "correct": false,
+          "full_tokens": 15753,
+          "used_tokens": 1020
+        },
+        {
+          "id": "13ad5e56bfc8116b07d1c4419732238a6278b4ee35887b9b",
+          "gold": "14",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 23735,
+          "used_tokens": 1023
+        },
+        {
+          "id": "3180cae59fcd1efb0b792fe34af1e96770e0013807d50026",
+          "gold": "26",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14816,
+          "used_tokens": 1021
+        },
+        {
+          "id": "1db1724f003aaf71774f6a87f5d382cae7eaa24abe34f234",
+          "gold": "25",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 18224,
+          "used_tokens": 1018
+        },
+        {
+          "id": "648bccaaa67271142018890ab6f19abd68abefbfb90ad795",
+          "gold": "13",
+          "pred": "29",
+          "correct": false,
+          "full_tokens": 24805,
+          "used_tokens": 1022
+        },
+        {
+          "id": "89a834965de6ea1d16fd851d7b1d24c3aa3d66fb0b0d4b36",
+          "gold": "35",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 16883,
+          "used_tokens": 1018
+        },
+        {
+          "id": "ded5aee61cf4e0f9d90ad1ae1a355aaf32dc66a67876bd79",
+          "gold": "20",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 15567,
+          "used_tokens": 1023
+        }
+      ]
+    },
+    {
+      "strategy": "sink_topic",
+      "budget": 1024,
+      "accuracy": 0.025,
+      "correct": 1,
+      "total": 40,
+      "avg_latency_s": 0.09,
+      "per_item": [
+        {
+          "id": "96387e4ae15da043d51ef61053087ad39e7b4f01fba3f2a2",
+          "gold": "8",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 16238,
+          "used_tokens": 1020
+        },
+        {
+          "id": "15103103336cc36442b0c42f3458b745a0dff917705e78dd",
+          "gold": "11",
+          "pred": "5",
+          "correct": false,
+          "full_tokens": 13459,
+          "used_tokens": 1021
+        },
+        {
+          "id": "a3c722ad83ccdf65bf5185f0f8ae4c7f35e62d2203d84a2f",
+          "gold": "13",
+          "pred": "20",
+          "correct": false,
+          "full_tokens": 9152,
+          "used_tokens": 1007
+        },
+        {
+          "id": "dfff1cac4104be0d174c9f486a6ebb48b862a397cee631c4",
+          "gold": "44",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 22676,
+          "used_tokens": 1016
+        },
+        {
+          "id": "870d882bf3ca7872472e9616aa87dc8871e722243ad4c3e9",
+          "gold": "2",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 29538,
+          "used_tokens": 1023
+        },
+        {
+          "id": "d28282eded860607e75bed90ce7af09e05042b3142190e9c",
+          "gold": "7",
+          "pred": "29",
+          "correct": false,
+          "full_tokens": 12120,
+          "used_tokens": 1019
+        },
+        {
+          "id": "c4af14def5df38d2eedc972316d077547529ed5885636d3f",
+          "gold": "7",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 7281,
+          "used_tokens": 1003
+        },
+        {
+          "id": "96ba7321f31f1e7791d8b8b233be77a34dcb873be323c9a0",
+          "gold": "45",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 18752,
+          "used_tokens": 1023
+        },
+        {
+          "id": "5e0337f2c813c22c9533897dd8fcfb9437dbb0c54b08a344",
+          "gold": "4",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 18772,
+          "used_tokens": 1022
+        },
+        {
+          "id": "31cc0c72ad372e19156f385c44f0c7d0b17dfa26e785048c",
+          "gold": "31",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 16607,
+          "used_tokens": 1020
+        },
+        {
+          "id": "4b8a572aef6a4886378fee8cc5c831dc15bcfd3ffabde924",
+          "gold": "4",
+          "pred": "25",
+          "correct": false,
+          "full_tokens": 21761,
+          "used_tokens": 1020
+        },
+        {
+          "id": "b789904ef73ecece88a2895495f07dae7e62dca902ff81b5",
+          "gold": "16",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14017,
+          "used_tokens": 1012
+        },
+        {
+          "id": "7355e5120c71a7041ad886fd9ae11f0a8209260e463603c0",
+          "gold": "5",
+          "pred": "5",
+          "correct": true,
+          "full_tokens": 5473,
+          "used_tokens": 844
+        },
+        {
+          "id": "0586f5721d72fec5a3eed0979362aa68940566d5c30ff5ff",
+          "gold": "44",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 23274,
+          "used_tokens": 1018
+        },
+        {
+          "id": "35255a988c0b67f602a22e118f57eee6b1896d3c0d25c5ae",
+          "gold": "19",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 15114,
+          "used_tokens": 1022
+        },
+        {
+          "id": "c6310da9962d623a5fe810e1035838d9bdb3bca9c4846a26",
+          "gold": "36",
+          "pred": "25",
+          "correct": false,
+          "full_tokens": 14091,
+          "used_tokens": 1022
+        },
+        {
+          "id": "d0b5bf43f0c340c83001951c8ace563be37e9eab856fc430",
+          "gold": "24",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 10614,
+          "used_tokens": 1015
+        },
+        {
+          "id": "fa9d5e74b045c3410dc06bf543c2694f5c39bec80300cfb0",
+          "gold": "12",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 12241,
+          "used_tokens": 1021
+        },
+        {
+          "id": "347225fc3e34bc69da82dbbddeedb7012f9a16051d1b633b",
+          "gold": "23",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 19248,
+          "used_tokens": 1023
+        },
+        {
+          "id": "218567d568976f46bbe34e41026a83c6ab3cde815cde04dd",
+          "gold": "14",
+          "pred": "22",
+          "correct": false,
+          "full_tokens": 7817,
+          "used_tokens": 1023
+        },
+        {
+          "id": "9776b3470c4b709a980f1bb88ad724396e59212b4ecee62f",
+          "gold": "18",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 19065,
+          "used_tokens": 1022
+        },
+        {
+          "id": "4242a257fb1a93126a0303219f5522eaed882d0c03c00787",
+          "gold": "29",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 20282,
+          "used_tokens": 1021
+        },
+        {
+          "id": "c8fb2e7da26b4f6a903416b626c0554f4452e0372bc8f74f",
+          "gold": "22",
+          "pred": "28",
+          "correct": false,
+          "full_tokens": 17961,
+          "used_tokens": 1019
+        },
+        {
+          "id": "bab4f698b21e56226fa93064b94c74092ffc69b605ad9f5d",
+          "gold": "6",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 9207,
+          "used_tokens": 1016
+        },
+        {
+          "id": "862486acbc407c9393f07be8d024f4636fd10418a1c9edfe",
+          "gold": "8",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 8771,
+          "used_tokens": 1019
+        },
+        {
+          "id": "3e65c7d99ffec49fd5de3fcd75f55dac918618962f55e4fc",
+          "gold": "9",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 17163,
+          "used_tokens": 1017
+        },
+        {
+          "id": "dce037b41070d4bde52e7191d49f0e3982e2a959a36986bd",
+          "gold": "26",
+          "pred": "27",
+          "correct": false,
+          "full_tokens": 7391,
+          "used_tokens": 1023
+        },
+        {
+          "id": "05778a8db1c3fcd589e2d28b3cebf7e50d3287f421cf0654",
+          "gold": "26",
+          "pred": "29",
+          "correct": false,
+          "full_tokens": 23987,
+          "used_tokens": 1019
+        },
+        {
+          "id": "bc6f6e35d7693929477458e35f64047609943757931cf783",
+          "gold": "28",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14924,
+          "used_tokens": 1023
+        },
+        {
+          "id": "6deb1a1340401ebbeb1a836d9f4278a1c9b6fec6e8bd89f3",
+          "gold": "43",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 17962,
+          "used_tokens": 1023
+        },
+        {
+          "id": "b05c71cd34fde95b99067bb292061a0877fa88d42c768007",
+          "gold": "34",
+          "pred": "20",
+          "correct": false,
+          "full_tokens": 17573,
+          "used_tokens": 1021
+        },
+        {
+          "id": "2a1f4ae2449c2acf522c600872032ee42819d41f76a2de2b",
+          "gold": "19",
+          "pred": "27",
+          "correct": false,
+          "full_tokens": 13448,
+          "used_tokens": 1023
+        },
+        {
+          "id": "8b97adebd90c3313fa7eb5ae877bd01ca5fc9e36e0098857",
+          "gold": "9",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 13966,
+          "used_tokens": 1020
+        },
+        {
+          "id": "1114d16b3f4cb8d78a35cf7208e4e911f8014d51f725e54e",
+          "gold": "40",
+          "pred": "20",
+          "correct": false,
+          "full_tokens": 15753,
+          "used_tokens": 1020
+        },
+        {
+          "id": "13ad5e56bfc8116b07d1c4419732238a6278b4ee35887b9b",
+          "gold": "14",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 23735,
+          "used_tokens": 1023
+        },
+        {
+          "id": "3180cae59fcd1efb0b792fe34af1e96770e0013807d50026",
+          "gold": "26",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 14816,
+          "used_tokens": 1021
+        },
+        {
+          "id": "1db1724f003aaf71774f6a87f5d382cae7eaa24abe34f234",
+          "gold": "25",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 18224,
+          "used_tokens": 1018
+        },
+        {
+          "id": "648bccaaa67271142018890ab6f19abd68abefbfb90ad795",
+          "gold": "13",
+          "pred": "29",
+          "correct": false,
+          "full_tokens": 24805,
+          "used_tokens": 1022
+        },
+        {
+          "id": "89a834965de6ea1d16fd851d7b1d24c3aa3d66fb0b0d4b36",
+          "gold": "35",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 16883,
+          "used_tokens": 1018
+        },
+        {
+          "id": "ded5aee61cf4e0f9d90ad1ae1a355aaf32dc66a67876bd79",
+          "gold": "20",
+          "pred": "2",
+          "correct": false,
+          "full_tokens": 15567,
+          "used_tokens": 1023
+        }
+      ]
+    }
+  ]
+}
