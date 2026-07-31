@@ -1,0 +1,56 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "book": "pride_and_prejudice"
+  },
+  "measurements": {
+    "batch_decode": [
+      {
+        "batch_size": 1,
+        "total_ms_for_batch": 1247.5,
+        "tokens_per_second": 25.7,
+        "per_request_ms": 1247.5,
+        "throughput_vs_batch1": 1.0
+      },
+      {
+        "batch_size": 2,
+        "total_ms_for_batch": 1367.6,
+        "tokens_per_second": 46.8,
+        "per_request_ms": 683.8,
+        "throughput_vs_batch1": 1.82
+      },
+      {
+        "batch_size": 4,
+        "total_ms_for_batch": 1458.2,
+        "tokens_per_second": 87.8,
+        "per_request_ms": 364.5,
+        "throughput_vs_batch1": 3.42
+      },
+      {
+        "batch_size": 8,
+        "total_ms_for_batch": 1600.2,
+        "tokens_per_second": 160.0,
+        "per_request_ms": 200.0,
+        "throughput_vs_batch1": 6.23
+      }
+    ],
+    "quantized_decode": {
+      "fp16": {
+        "max_new": 32,
+        "total_ms": 1233.1,
+        "tpot_ms": 38.53
+      },
+      "int8": {
+        "note": "bitsandbytes INT8 on A6000 (Ampere, no native INT8 matmul)",
+        "total_ms": 6982.0,
+        "tpot_ms": 218.2,
+        "slower_than_fp16": 5.7
+      }
+    }
+  },
+  "analysis": {
+    "batch_scaling": "memory-bound bandwidth amortization: batch 8 achieves 6.23x throughput vs batch 1",
+    "int8_finding": "bitsandbytes INT8 is 5.7x SLOWER on A6000 due to dequantization overhead; INT8 value is memory reduction, not speed on this hardware",
+    "conclusion": "real decode speedup comes from batching (6.23x), not INT8 quantization on Ampere"
+  }
+}
