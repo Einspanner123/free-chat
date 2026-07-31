@@ -4,7 +4,7 @@
 
 A framework for extending the effective context length of small language models (0.5B-3B) through optimized context management, memory reconstruction, and inference acceleration. Go control plane, Python compute plane.
 
-The core claim: with the right context pipeline, a 0.5B model can retrieve information from contexts up to 8K+ tokens, matching the long-context recall of uncompressed 7B models on certain tasks.
+The core claim: with the right context pipeline, a small model (0.5B-0.6B) can improve information recall from long contexts (8K-24K tokens) compared to feeding the full context uncompressed. Measured on real hardware: see [Benchmarks](#benchmarks).
 
 ---
 
@@ -12,9 +12,9 @@ The core claim: with the right context pipeline, a 0.5B model can retrieve infor
 
 Small models have three interrelated limitations with long contexts:
 
-1. **Finite context window** -- A 0.5B model typically supports 4K-8K tokens. Beyond that, the conversation breaks.
+1. **Finite context window** -- Small models support finite contexts (e.g. Qwen2.5-0.5B: 32K, Qwen3-0.6B: 128K). Long conversations eventually exceed practical budgets, and cost grows with token count.
 2. **Attention dilution** -- Small models have fewer attention heads, making it harder to focus on relevant information in long contexts.
-3. **KV cache pressure** -- Long contexts generate large KV caches. On a 24GB GPU, 32K context can consume 12GB just for cache, leaving no room for the model.
+3. **KV cache pressure** -- Long contexts generate large KV caches. For a 7B model at 32K context, KV cache can exceed 12GB (estimated from the memory model), leaving less room for the model weights and batch.
 
 Standard solutions (upgrade to a larger model, truncate the context) either increase cost or lose information.
 
@@ -47,7 +47,7 @@ Messages are compressed based on distance from the current turn, not just trunca
 | Medium | Turns 21-50 | 50 chars | ~6:1 |
 | Heavy | Turns 51+ | "[compressed]" | ~100:1 |
 
-For a 50-turn conversation (12,847 tokens), this reduces to 3,824 tokens (70.2%) with 94% entity recall.
+Compression levels are configurable via budget. Real-model validation of information retention is measured in the [Benchmarks](#benchmarks) section below.
 
 ### (2) Topic-Aware Memory Reconstruction
 
