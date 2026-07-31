@@ -56,7 +56,7 @@ def load_items() -> List[Dict]:
 
 
 def assemble_context(item: Dict, docs: Dict[str, str]) -> str:
-    """按 prompt_template 组装上下文。"""
+    """按 prompt_template 组装上下文，带标题标识每篇文书。"""
     doc_texts = []
     for dname in item["doc"]:
         d = docs.get(dname)
@@ -64,10 +64,12 @@ def assemble_context(item: Dict, docs: Dict[str, str]) -> str:
             continue
         if isinstance(d, dict):
             content = d.get("content", str(d))
+            title = d.get("title", dname)
         else:
             content = str(d)
-        # 中文文书：doc 字段是标题，内容在 legal.json 的 key 里
-        doc_texts.append(f"<di> {content}")
+            title = dname
+        # 每篇文书带标题标识，让模型能引用真实文书名
+        doc_texts.append(f"<di> 《{title}》\n{content}")
     return "\n".join(doc_texts)
 
 
@@ -79,14 +81,19 @@ def choose_strategy(text: str, tokenizer, budget: int, strategy: str, question: 
             return text
         return tokenizer.decode(tokens[-budget:], skip_special_tokens=True)
 
-    sentences = re.split(r'(?<=[。！？.!?])\s*', text)
-    if not sentences:
+    # 文档标题行（<di> 《标题》）必须保留——它们是定位文书的关键
+    title_lines = re.findall(r'<di> 《[^》]+》', text)
+    # 按文档切分：每个 <di> 块是一个文档
+    doc_blocks = re.split(r'(?=<di>)', text)
+    doc_blocks = [b for b in doc_blocks if b.strip()]
+    if not doc_blocks:
         return text[:budget] if len(text) > budget else text
 
-    # 从问题提取关键实体
+    # 从问题提取关键实体（案由关键词）
     question_words = [w for w in re.findall(r'[\u4e00-\u9fa5]{2,}', question) if len(w) > 1]
-    key = [s for s in sentences if any(w in s for w in question_words[:5])]
-    other = [s for s in sentences if s not in key]
+    # 关键块：含案由关键词的文档块
+    key = [b for b in doc_blocks if any(w in b for w in question_words[:5])]
+    other = [b for b in doc_blocks if b not in key]
 
     if strategy == "project_topic":
         result = list(key)
