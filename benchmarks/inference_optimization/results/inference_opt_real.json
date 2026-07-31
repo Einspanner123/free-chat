@@ -1,0 +1,70 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "book": "pride_and_prejudice"
+  },
+  "measurements": {
+    "prefill_scaling": [
+      {
+        "input_tokens": 256,
+        "prefill_ms": 480.5
+      },
+      {
+        "input_tokens": 512,
+        "prefill_ms": 39.3
+      },
+      {
+        "input_tokens": 1024,
+        "prefill_ms": 34.4
+      },
+      {
+        "input_tokens": 2048,
+        "prefill_ms": 58.5
+      },
+      {
+        "input_tokens": 4096,
+        "prefill_ms": 123.3
+      }
+    ],
+    "decode_scaling": [
+      {
+        "context_tokens": 256,
+        "tpot_ms": 35.68,
+        "gen_ms": 1141.6
+      },
+      {
+        "context_tokens": 1024,
+        "tpot_ms": 31.11,
+        "gen_ms": 995.5
+      },
+      {
+        "context_tokens": 4096,
+        "tpot_ms": 33.63,
+        "gen_ms": 1076.0
+      }
+    ],
+    "prefix_cache_suffix_A": {
+      "prefix_tokens": 2048,
+      "suffix_tokens": 7,
+      "full_prefill_ms": 61.3,
+      "cached_prefill_ms": 61.6,
+      "prefill_saved_ms": -0.3,
+      "speedup": 1.0
+    },
+    "prefix_cache_suffix_B": {
+      "prefix_tokens": 2048,
+      "suffix_tokens": 5,
+      "full_prefill_ms": 58.6,
+      "cached_prefill_ms": 34.9,
+      "prefill_saved_ms": 23.7,
+      "speedup": 1.68
+    },
+    "e2e_compression": {
+      "full_tokens": 4102,
+      "compressed_tokens": 90,
+      "full_total_ms": 1200.5,
+      "compressed_total_ms": 1027.1,
+      "speedup": 1.17
+    }
+  }
+}
