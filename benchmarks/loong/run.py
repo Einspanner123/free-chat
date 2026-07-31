@@ -96,8 +96,10 @@ def choose_strategy(text: str, tokenizer, budget: int, strategy: str, question: 
     other = [b for b in doc_blocks if b not in key]
 
     if strategy == "project_topic":
+        # 关键块在前，其他块压缩后追加到尾部（保持关键信息在开头）
         result = list(key)
         total = sum(len(tokenizer.encode(s, add_special_tokens=False)) for s in result)
+        tail = []
         for i, s in enumerate(reversed(other)):
             turn = i + 1
             ct = s if turn <= 5 else (s[:100] if turn <= 20 else (s[:50] if turn <= 50 else ""))
@@ -105,9 +107,9 @@ def choose_strategy(text: str, tokenizer, budget: int, strategy: str, question: 
                 continue
             nt = len(tokenizer.encode(ct, add_special_tokens=False))
             if total + nt <= budget:
-                result.insert(0, ct)
+                tail.insert(0, ct)
                 total += nt
-        return " ".join(result)
+        return " ".join(result + tail)
 
     elif strategy == "attention_sink":
         key_text = "\n\n".join(key)
