@@ -1,0 +1,2149 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "samples": 21,
+    "budgets": [
+      512,
+      1024,
+      2048
+    ]
+  },
+  "strategies": [
+    {
+      "strategy": "truncation",
+      "budget": 512,
+      "accuracy": 0.23809523809523808,
+      "correct": 5,
+      "total": 21,
+      "avg_latency_s": 0.37,
+      "per_item": [
+        {
+          "id": "62139_J05FWZR6_1",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6985,
+          "used_tokens": 512
+        },
+        {
+          "id": "52855_MV65I88C_9",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7272,
+          "used_tokens": 512
+        },
+        {
+          "id": "62085_C1SL2YBE_3",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6114,
+          "used_tokens": 512
+        },
+        {
+          "id": "63616_MQ1O9T2Q_6",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6899,
+          "used_tokens": 512
+        },
+        {
+          "id": "63833_V187YO4H_2",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6553,
+          "used_tokens": 512
+        },
+        {
+          "id": "63392_7YS4HHFI_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6775,
+          "used_tokens": 512
+        },
+        {
+          "id": "63473_1VIHQ8TY_4",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7050,
+          "used_tokens": 512
+        },
+        {
+          "id": "51650_B3KKWWD1_7",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7742,
+          "used_tokens": 512
+        },
+        {
+          "id": "51274_8Q2YNHG5_6",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 7787,
+          "used_tokens": 512
+        },
+        {
+          "id": "20077_ZF5G55FD_1",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 2800,
+          "used_tokens": 512
+        },
+        {
+          "id": "22579_RQ3GB4A1_3",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7789,
+          "used_tokens": 512
+        },
+        {
+          "id": "22867_TJ9SPIHC_9",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8332,
+          "used_tokens": 512
+        },
+        {
+          "id": "22875_L821878U_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3516,
+          "used_tokens": 512
+        },
+        {
+          "id": "22967_0XT2L7PI_7",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6334,
+          "used_tokens": 512
+        },
+        {
+          "id": "22867_IZGAWLCJ_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 8332,
+          "used_tokens": 512
+        },
+        {
+          "id": "22462_BUA2LH2S_5",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7143,
+          "used_tokens": 512
+        },
+        {
+          "id": "31736_TV0CUXDH_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6960,
+          "used_tokens": 512
+        },
+        {
+          "id": "99927_EVLEI3Q2_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 4333,
+          "used_tokens": 512
+        },
+        {
+          "id": "31282_BQYW9TCH_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8076,
+          "used_tokens": 512
+        },
+        {
+          "id": "99914_0Q5X8VEX_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3176,
+          "used_tokens": 512
+        },
+        {
+          "id": "32665_VRYQXG3Y_9",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 4518,
+          "used_tokens": 512
+        }
+      ]
+    },
+    {
+      "strategy": "project_topic",
+      "budget": 512,
+      "accuracy": 0.23809523809523808,
+      "correct": 5,
+      "total": 21,
+      "avg_latency_s": 0.32,
+      "per_item": [
+        {
+          "id": "62139_J05FWZR6_1",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6985,
+          "used_tokens": 511
+        },
+        {
+          "id": "52855_MV65I88C_9",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7272,
+          "used_tokens": 2598
+        },
+        {
+          "id": "62085_C1SL2YBE_3",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6114,
+          "used_tokens": 1200
+        },
+        {
+          "id": "63616_MQ1O9T2Q_6",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6899,
+          "used_tokens": 2299
+        },
+        {
+          "id": "63833_V187YO4H_2",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6553,
+          "used_tokens": 1381
+        },
+        {
+          "id": "63392_7YS4HHFI_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6775,
+          "used_tokens": 1809
+        },
+        {
+          "id": "63473_1VIHQ8TY_4",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7050,
+          "used_tokens": 2510
+        },
+        {
+          "id": "51650_B3KKWWD1_7",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7742,
+          "used_tokens": 1657
+        },
+        {
+          "id": "51274_8Q2YNHG5_6",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 7787,
+          "used_tokens": 2527
+        },
+        {
+          "id": "20077_ZF5G55FD_1",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 2800,
+          "used_tokens": 510
+        },
+        {
+          "id": "22579_RQ3GB4A1_3",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7789,
+          "used_tokens": 1306
+        },
+        {
+          "id": "22867_TJ9SPIHC_9",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8332,
+          "used_tokens": 1213
+        },
+        {
+          "id": "22875_L821878U_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3516,
+          "used_tokens": 1037
+        },
+        {
+          "id": "22967_0XT2L7PI_7",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6334,
+          "used_tokens": 1478
+        },
+        {
+          "id": "22867_IZGAWLCJ_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 8332,
+          "used_tokens": 1316
+        },
+        {
+          "id": "22462_BUA2LH2S_5",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7143,
+          "used_tokens": 1745
+        },
+        {
+          "id": "31736_TV0CUXDH_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6960,
+          "used_tokens": 3301
+        },
+        {
+          "id": "99927_EVLEI3Q2_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 4333,
+          "used_tokens": 573
+        },
+        {
+          "id": "31282_BQYW9TCH_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8076,
+          "used_tokens": 2052
+        },
+        {
+          "id": "99914_0Q5X8VEX_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3176,
+          "used_tokens": 736
+        },
+        {
+          "id": "32665_VRYQXG3Y_9",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 4518,
+          "used_tokens": 519
+        }
+      ]
+    },
+    {
+      "strategy": "attention_sink",
+      "budget": 512,
+      "accuracy": 0.23809523809523808,
+      "correct": 5,
+      "total": 21,
+      "avg_latency_s": 0.31,
+      "per_item": [
+        {
+          "id": "62139_J05FWZR6_1",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6985,
+          "used_tokens": 511
+        },
+        {
+          "id": "52855_MV65I88C_9",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7272,
+          "used_tokens": 2599
+        },
+        {
+          "id": "62085_C1SL2YBE_3",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6114,
+          "used_tokens": 1201
+        },
+        {
+          "id": "63616_MQ1O9T2Q_6",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6899,
+          "used_tokens": 2300
+        },
+        {
+          "id": "63833_V187YO4H_2",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6553,
+          "used_tokens": 1382
+        },
+        {
+          "id": "63392_7YS4HHFI_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6775,
+          "used_tokens": 1810
+        },
+        {
+          "id": "63473_1VIHQ8TY_4",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7050,
+          "used_tokens": 2511
+        },
+        {
+          "id": "51650_B3KKWWD1_7",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7742,
+          "used_tokens": 1658
+        },
+        {
+          "id": "51274_8Q2YNHG5_6",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 7787,
+          "used_tokens": 2528
+        },
+        {
+          "id": "20077_ZF5G55FD_1",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 2800,
+          "used_tokens": 508
+        },
+        {
+          "id": "22579_RQ3GB4A1_3",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7789,
+          "used_tokens": 1307
+        },
+        {
+          "id": "22867_TJ9SPIHC_9",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8332,
+          "used_tokens": 1214
+        },
+        {
+          "id": "22875_L821878U_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3516,
+          "used_tokens": 1038
+        },
+        {
+          "id": "22967_0XT2L7PI_7",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6334,
+          "used_tokens": 1479
+        },
+        {
+          "id": "22867_IZGAWLCJ_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 8332,
+          "used_tokens": 1317
+        },
+        {
+          "id": "22462_BUA2LH2S_5",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7143,
+          "used_tokens": 1746
+        },
+        {
+          "id": "31736_TV0CUXDH_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6960,
+          "used_tokens": 3302
+        },
+        {
+          "id": "99927_EVLEI3Q2_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 4333,
+          "used_tokens": 574
+        },
+        {
+          "id": "31282_BQYW9TCH_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8076,
+          "used_tokens": 2053
+        },
+        {
+          "id": "99914_0Q5X8VEX_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3176,
+          "used_tokens": 737
+        },
+        {
+          "id": "32665_VRYQXG3Y_9",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 4518,
+          "used_tokens": 518
+        }
+      ]
+    },
+    {
+      "strategy": "sink_topic",
+      "budget": 512,
+      "accuracy": 0.23809523809523808,
+      "correct": 5,
+      "total": 21,
+      "avg_latency_s": 0.31,
+      "per_item": [
+        {
+          "id": "62139_J05FWZR6_1",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6985,
+          "used_tokens": 511
+        },
+        {
+          "id": "52855_MV65I88C_9",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7272,
+          "used_tokens": 2583
+        },
+        {
+          "id": "62085_C1SL2YBE_3",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6114,
+          "used_tokens": 1200
+        },
+        {
+          "id": "63616_MQ1O9T2Q_6",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6899,
+          "used_tokens": 2289
+        },
+        {
+          "id": "63833_V187YO4H_2",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6553,
+          "used_tokens": 1380
+        },
+        {
+          "id": "63392_7YS4HHFI_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6775,
+          "used_tokens": 1799
+        },
+        {
+          "id": "63473_1VIHQ8TY_4",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7050,
+          "used_tokens": 2502
+        },
+        {
+          "id": "51650_B3KKWWD1_7",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7742,
+          "used_tokens": 1648
+        },
+        {
+          "id": "51274_8Q2YNHG5_6",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 7787,
+          "used_tokens": 2510
+        },
+        {
+          "id": "20077_ZF5G55FD_1",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 2800,
+          "used_tokens": 508
+        },
+        {
+          "id": "22579_RQ3GB4A1_3",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7789,
+          "used_tokens": 1304
+        },
+        {
+          "id": "22867_TJ9SPIHC_9",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8332,
+          "used_tokens": 1218
+        },
+        {
+          "id": "22875_L821878U_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3516,
+          "used_tokens": 1033
+        },
+        {
+          "id": "22967_0XT2L7PI_7",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6334,
+          "used_tokens": 1474
+        },
+        {
+          "id": "22867_IZGAWLCJ_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 8332,
+          "used_tokens": 1316
+        },
+        {
+          "id": "22462_BUA2LH2S_5",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7143,
+          "used_tokens": 1752
+        },
+        {
+          "id": "31736_TV0CUXDH_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6960,
+          "used_tokens": 3294
+        },
+        {
+          "id": "99927_EVLEI3Q2_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 4333,
+          "used_tokens": 576
+        },
+        {
+          "id": "31282_BQYW9TCH_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8076,
+          "used_tokens": 2054
+        },
+        {
+          "id": "99914_0Q5X8VEX_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3176,
+          "used_tokens": 737
+        },
+        {
+          "id": "32665_VRYQXG3Y_9",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 4518,
+          "used_tokens": 518
+        }
+      ]
+    },
+    {
+      "strategy": "truncation",
+      "budget": 1024,
+      "accuracy": 0.23809523809523808,
+      "correct": 5,
+      "total": 21,
+      "avg_latency_s": 0.31,
+      "per_item": [
+        {
+          "id": "62139_J05FWZR6_1",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6985,
+          "used_tokens": 1024
+        },
+        {
+          "id": "52855_MV65I88C_9",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7272,
+          "used_tokens": 1024
+        },
+        {
+          "id": "62085_C1SL2YBE_3",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6114,
+          "used_tokens": 1024
+        },
+        {
+          "id": "63616_MQ1O9T2Q_6",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6899,
+          "used_tokens": 1024
+        },
+        {
+          "id": "63833_V187YO4H_2",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6553,
+          "used_tokens": 1024
+        },
+        {
+          "id": "63392_7YS4HHFI_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6775,
+          "used_tokens": 1024
+        },
+        {
+          "id": "63473_1VIHQ8TY_4",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7050,
+          "used_tokens": 1024
+        },
+        {
+          "id": "51650_B3KKWWD1_7",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7742,
+          "used_tokens": 1024
+        },
+        {
+          "id": "51274_8Q2YNHG5_6",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 7787,
+          "used_tokens": 1024
+        },
+        {
+          "id": "20077_ZF5G55FD_1",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 2800,
+          "used_tokens": 1024
+        },
+        {
+          "id": "22579_RQ3GB4A1_3",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7789,
+          "used_tokens": 1024
+        },
+        {
+          "id": "22867_TJ9SPIHC_9",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8332,
+          "used_tokens": 1024
+        },
+        {
+          "id": "22875_L821878U_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3516,
+          "used_tokens": 1024
+        },
+        {
+          "id": "22967_0XT2L7PI_7",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6334,
+          "used_tokens": 1024
+        },
+        {
+          "id": "22867_IZGAWLCJ_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 8332,
+          "used_tokens": 1024
+        },
+        {
+          "id": "22462_BUA2LH2S_5",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7143,
+          "used_tokens": 1024
+        },
+        {
+          "id": "31736_TV0CUXDH_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6960,
+          "used_tokens": 1024
+        },
+        {
+          "id": "99927_EVLEI3Q2_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 4333,
+          "used_tokens": 1024
+        },
+        {
+          "id": "31282_BQYW9TCH_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8076,
+          "used_tokens": 1024
+        },
+        {
+          "id": "99914_0Q5X8VEX_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3176,
+          "used_tokens": 1024
+        },
+        {
+          "id": "32665_VRYQXG3Y_9",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 4518,
+          "used_tokens": 1024
+        }
+      ]
+    },
+    {
+      "strategy": "project_topic",
+      "budget": 1024,
+      "accuracy": 0.23809523809523808,
+      "correct": 5,
+      "total": 21,
+      "avg_latency_s": 0.32,
+      "per_item": [
+        {
+          "id": "62139_J05FWZR6_1",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6985,
+          "used_tokens": 934
+        },
+        {
+          "id": "52855_MV65I88C_9",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7272,
+          "used_tokens": 2598
+        },
+        {
+          "id": "62085_C1SL2YBE_3",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6114,
+          "used_tokens": 1200
+        },
+        {
+          "id": "63616_MQ1O9T2Q_6",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6899,
+          "used_tokens": 2299
+        },
+        {
+          "id": "63833_V187YO4H_2",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6553,
+          "used_tokens": 1381
+        },
+        {
+          "id": "63392_7YS4HHFI_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6775,
+          "used_tokens": 1809
+        },
+        {
+          "id": "63473_1VIHQ8TY_4",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7050,
+          "used_tokens": 2510
+        },
+        {
+          "id": "51650_B3KKWWD1_7",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7742,
+          "used_tokens": 1657
+        },
+        {
+          "id": "51274_8Q2YNHG5_6",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 7787,
+          "used_tokens": 2527
+        },
+        {
+          "id": "20077_ZF5G55FD_1",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 2800,
+          "used_tokens": 1016
+        },
+        {
+          "id": "22579_RQ3GB4A1_3",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7789,
+          "used_tokens": 1306
+        },
+        {
+          "id": "22867_TJ9SPIHC_9",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8332,
+          "used_tokens": 1213
+        },
+        {
+          "id": "22875_L821878U_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3516,
+          "used_tokens": 1037
+        },
+        {
+          "id": "22967_0XT2L7PI_7",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6334,
+          "used_tokens": 1478
+        },
+        {
+          "id": "22867_IZGAWLCJ_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 8332,
+          "used_tokens": 1316
+        },
+        {
+          "id": "22462_BUA2LH2S_5",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7143,
+          "used_tokens": 1745
+        },
+        {
+          "id": "31736_TV0CUXDH_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6960,
+          "used_tokens": 3301
+        },
+        {
+          "id": "99927_EVLEI3Q2_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 4333,
+          "used_tokens": 1021
+        },
+        {
+          "id": "31282_BQYW9TCH_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8076,
+          "used_tokens": 2052
+        },
+        {
+          "id": "99914_0Q5X8VEX_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3176,
+          "used_tokens": 1019
+        },
+        {
+          "id": "32665_VRYQXG3Y_9",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 4518,
+          "used_tokens": 789
+        }
+      ]
+    },
+    {
+      "strategy": "attention_sink",
+      "budget": 1024,
+      "accuracy": 0.23809523809523808,
+      "correct": 5,
+      "total": 21,
+      "avg_latency_s": 0.31,
+      "per_item": [
+        {
+          "id": "62139_J05FWZR6_1",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6985,
+          "used_tokens": 935
+        },
+        {
+          "id": "52855_MV65I88C_9",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7272,
+          "used_tokens": 2599
+        },
+        {
+          "id": "62085_C1SL2YBE_3",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6114,
+          "used_tokens": 1201
+        },
+        {
+          "id": "63616_MQ1O9T2Q_6",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6899,
+          "used_tokens": 2300
+        },
+        {
+          "id": "63833_V187YO4H_2",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6553,
+          "used_tokens": 1382
+        },
+        {
+          "id": "63392_7YS4HHFI_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6775,
+          "used_tokens": 1810
+        },
+        {
+          "id": "63473_1VIHQ8TY_4",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7050,
+          "used_tokens": 2511
+        },
+        {
+          "id": "51650_B3KKWWD1_7",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7742,
+          "used_tokens": 1658
+        },
+        {
+          "id": "51274_8Q2YNHG5_6",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 7787,
+          "used_tokens": 2528
+        },
+        {
+          "id": "20077_ZF5G55FD_1",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 2800,
+          "used_tokens": 1017
+        },
+        {
+          "id": "22579_RQ3GB4A1_3",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7789,
+          "used_tokens": 1307
+        },
+        {
+          "id": "22867_TJ9SPIHC_9",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8332,
+          "used_tokens": 1214
+        },
+        {
+          "id": "22875_L821878U_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3516,
+          "used_tokens": 1038
+        },
+        {
+          "id": "22967_0XT2L7PI_7",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6334,
+          "used_tokens": 1479
+        },
+        {
+          "id": "22867_IZGAWLCJ_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 8332,
+          "used_tokens": 1317
+        },
+        {
+          "id": "22462_BUA2LH2S_5",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7143,
+          "used_tokens": 1746
+        },
+        {
+          "id": "31736_TV0CUXDH_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6960,
+          "used_tokens": 3302
+        },
+        {
+          "id": "99927_EVLEI3Q2_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 4333,
+          "used_tokens": 1022
+        },
+        {
+          "id": "31282_BQYW9TCH_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8076,
+          "used_tokens": 2053
+        },
+        {
+          "id": "99914_0Q5X8VEX_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3176,
+          "used_tokens": 1020
+        },
+        {
+          "id": "32665_VRYQXG3Y_9",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 4518,
+          "used_tokens": 790
+        }
+      ]
+    },
+    {
+      "strategy": "sink_topic",
+      "budget": 1024,
+      "accuracy": 0.23809523809523808,
+      "correct": 5,
+      "total": 21,
+      "avg_latency_s": 0.31,
+      "per_item": [
+        {
+          "id": "62139_J05FWZR6_1",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6985,
+          "used_tokens": 935
+        },
+        {
+          "id": "52855_MV65I88C_9",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7272,
+          "used_tokens": 2583
+        },
+        {
+          "id": "62085_C1SL2YBE_3",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6114,
+          "used_tokens": 1200
+        },
+        {
+          "id": "63616_MQ1O9T2Q_6",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6899,
+          "used_tokens": 2289
+        },
+        {
+          "id": "63833_V187YO4H_2",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6553,
+          "used_tokens": 1380
+        },
+        {
+          "id": "63392_7YS4HHFI_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6775,
+          "used_tokens": 1799
+        },
+        {
+          "id": "63473_1VIHQ8TY_4",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7050,
+          "used_tokens": 2502
+        },
+        {
+          "id": "51650_B3KKWWD1_7",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7742,
+          "used_tokens": 1648
+        },
+        {
+          "id": "51274_8Q2YNHG5_6",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 7787,
+          "used_tokens": 2510
+        },
+        {
+          "id": "20077_ZF5G55FD_1",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 2800,
+          "used_tokens": 1017
+        },
+        {
+          "id": "22579_RQ3GB4A1_3",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7789,
+          "used_tokens": 1304
+        },
+        {
+          "id": "22867_TJ9SPIHC_9",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8332,
+          "used_tokens": 1218
+        },
+        {
+          "id": "22875_L821878U_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3516,
+          "used_tokens": 1033
+        },
+        {
+          "id": "22967_0XT2L7PI_7",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6334,
+          "used_tokens": 1474
+        },
+        {
+          "id": "22867_IZGAWLCJ_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 8332,
+          "used_tokens": 1316
+        },
+        {
+          "id": "22462_BUA2LH2S_5",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7143,
+          "used_tokens": 1752
+        },
+        {
+          "id": "31736_TV0CUXDH_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6960,
+          "used_tokens": 3294
+        },
+        {
+          "id": "99927_EVLEI3Q2_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 4333,
+          "used_tokens": 1019
+        },
+        {
+          "id": "31282_BQYW9TCH_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8076,
+          "used_tokens": 2054
+        },
+        {
+          "id": "99914_0Q5X8VEX_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3176,
+          "used_tokens": 1020
+        },
+        {
+          "id": "32665_VRYQXG3Y_9",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 4518,
+          "used_tokens": 790
+        }
+      ]
+    },
+    {
+      "strategy": "truncation",
+      "budget": 2048,
+      "accuracy": 0.23809523809523808,
+      "correct": 5,
+      "total": 21,
+      "avg_latency_s": 0.33,
+      "per_item": [
+        {
+          "id": "62139_J05FWZR6_1",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6985,
+          "used_tokens": 2048
+        },
+        {
+          "id": "52855_MV65I88C_9",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7272,
+          "used_tokens": 2048
+        },
+        {
+          "id": "62085_C1SL2YBE_3",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6114,
+          "used_tokens": 2048
+        },
+        {
+          "id": "63616_MQ1O9T2Q_6",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6899,
+          "used_tokens": 2048
+        },
+        {
+          "id": "63833_V187YO4H_2",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6553,
+          "used_tokens": 2048
+        },
+        {
+          "id": "63392_7YS4HHFI_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6775,
+          "used_tokens": 2048
+        },
+        {
+          "id": "63473_1VIHQ8TY_4",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7050,
+          "used_tokens": 2048
+        },
+        {
+          "id": "51650_B3KKWWD1_7",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7742,
+          "used_tokens": 2048
+        },
+        {
+          "id": "51274_8Q2YNHG5_6",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 7787,
+          "used_tokens": 2048
+        },
+        {
+          "id": "20077_ZF5G55FD_1",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 2800,
+          "used_tokens": 2048
+        },
+        {
+          "id": "22579_RQ3GB4A1_3",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7789,
+          "used_tokens": 2048
+        },
+        {
+          "id": "22867_TJ9SPIHC_9",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8332,
+          "used_tokens": 2048
+        },
+        {
+          "id": "22875_L821878U_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3516,
+          "used_tokens": 2048
+        },
+        {
+          "id": "22967_0XT2L7PI_7",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6334,
+          "used_tokens": 2048
+        },
+        {
+          "id": "22867_IZGAWLCJ_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 8332,
+          "used_tokens": 2048
+        },
+        {
+          "id": "22462_BUA2LH2S_5",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7143,
+          "used_tokens": 2048
+        },
+        {
+          "id": "31736_TV0CUXDH_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6960,
+          "used_tokens": 2048
+        },
+        {
+          "id": "99927_EVLEI3Q2_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 4333,
+          "used_tokens": 2048
+        },
+        {
+          "id": "31282_BQYW9TCH_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8076,
+          "used_tokens": 2048
+        },
+        {
+          "id": "99914_0Q5X8VEX_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3176,
+          "used_tokens": 2048
+        },
+        {
+          "id": "32665_VRYQXG3Y_9",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 4518,
+          "used_tokens": 2048
+        }
+      ]
+    },
+    {
+      "strategy": "project_topic",
+      "budget": 2048,
+      "accuracy": 0.23809523809523808,
+      "correct": 5,
+      "total": 21,
+      "avg_latency_s": 0.32,
+      "per_item": [
+        {
+          "id": "62139_J05FWZR6_1",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6985,
+          "used_tokens": 934
+        },
+        {
+          "id": "52855_MV65I88C_9",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7272,
+          "used_tokens": 2598
+        },
+        {
+          "id": "62085_C1SL2YBE_3",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6114,
+          "used_tokens": 1856
+        },
+        {
+          "id": "63616_MQ1O9T2Q_6",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6899,
+          "used_tokens": 2299
+        },
+        {
+          "id": "63833_V187YO4H_2",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6553,
+          "used_tokens": 1951
+        },
+        {
+          "id": "63392_7YS4HHFI_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6775,
+          "used_tokens": 2059
+        },
+        {
+          "id": "63473_1VIHQ8TY_4",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7050,
+          "used_tokens": 2510
+        },
+        {
+          "id": "51650_B3KKWWD1_7",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7742,
+          "used_tokens": 2063
+        },
+        {
+          "id": "51274_8Q2YNHG5_6",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 7787,
+          "used_tokens": 2527
+        },
+        {
+          "id": "20077_ZF5G55FD_1",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 2800,
+          "used_tokens": 1120
+        },
+        {
+          "id": "22579_RQ3GB4A1_3",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7789,
+          "used_tokens": 2055
+        },
+        {
+          "id": "22867_TJ9SPIHC_9",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8332,
+          "used_tokens": 1837
+        },
+        {
+          "id": "22875_L821878U_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3516,
+          "used_tokens": 1605
+        },
+        {
+          "id": "22967_0XT2L7PI_7",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6334,
+          "used_tokens": 2053
+        },
+        {
+          "id": "22867_IZGAWLCJ_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 8332,
+          "used_tokens": 1940
+        },
+        {
+          "id": "22462_BUA2LH2S_5",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7143,
+          "used_tokens": 2042
+        },
+        {
+          "id": "31736_TV0CUXDH_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6960,
+          "used_tokens": 3301
+        },
+        {
+          "id": "99927_EVLEI3Q2_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 4333,
+          "used_tokens": 1279
+        },
+        {
+          "id": "31282_BQYW9TCH_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8076,
+          "used_tokens": 2052
+        },
+        {
+          "id": "99914_0Q5X8VEX_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3176,
+          "used_tokens": 1440
+        },
+        {
+          "id": "32665_VRYQXG3Y_9",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 4518,
+          "used_tokens": 789
+        }
+      ]
+    },
+    {
+      "strategy": "attention_sink",
+      "budget": 2048,
+      "accuracy": 0.23809523809523808,
+      "correct": 5,
+      "total": 21,
+      "avg_latency_s": 0.32,
+      "per_item": [
+        {
+          "id": "62139_J05FWZR6_1",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6985,
+          "used_tokens": 935
+        },
+        {
+          "id": "52855_MV65I88C_9",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7272,
+          "used_tokens": 2599
+        },
+        {
+          "id": "62085_C1SL2YBE_3",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6114,
+          "used_tokens": 1857
+        },
+        {
+          "id": "63616_MQ1O9T2Q_6",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6899,
+          "used_tokens": 2300
+        },
+        {
+          "id": "63833_V187YO4H_2",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6553,
+          "used_tokens": 1952
+        },
+        {
+          "id": "63392_7YS4HHFI_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6775,
+          "used_tokens": 2048
+        },
+        {
+          "id": "63473_1VIHQ8TY_4",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7050,
+          "used_tokens": 2511
+        },
+        {
+          "id": "51650_B3KKWWD1_7",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7742,
+          "used_tokens": 2052
+        },
+        {
+          "id": "51274_8Q2YNHG5_6",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 7787,
+          "used_tokens": 2528
+        },
+        {
+          "id": "20077_ZF5G55FD_1",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 2800,
+          "used_tokens": 1121
+        },
+        {
+          "id": "22579_RQ3GB4A1_3",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7789,
+          "used_tokens": 2043
+        },
+        {
+          "id": "22867_TJ9SPIHC_9",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8332,
+          "used_tokens": 1837
+        },
+        {
+          "id": "22875_L821878U_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3516,
+          "used_tokens": 1606
+        },
+        {
+          "id": "22967_0XT2L7PI_7",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6334,
+          "used_tokens": 2048
+        },
+        {
+          "id": "22867_IZGAWLCJ_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 8332,
+          "used_tokens": 1940
+        },
+        {
+          "id": "22462_BUA2LH2S_5",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7143,
+          "used_tokens": 2046
+        },
+        {
+          "id": "31736_TV0CUXDH_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6960,
+          "used_tokens": 3302
+        },
+        {
+          "id": "99927_EVLEI3Q2_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 4333,
+          "used_tokens": 1281
+        },
+        {
+          "id": "31282_BQYW9TCH_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8076,
+          "used_tokens": 2053
+        },
+        {
+          "id": "99914_0Q5X8VEX_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3176,
+          "used_tokens": 1441
+        },
+        {
+          "id": "32665_VRYQXG3Y_9",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 4518,
+          "used_tokens": 790
+        }
+      ]
+    },
+    {
+      "strategy": "sink_topic",
+      "budget": 2048,
+      "accuracy": 0.23809523809523808,
+      "correct": 5,
+      "total": 21,
+      "avg_latency_s": 0.32,
+      "per_item": [
+        {
+          "id": "62139_J05FWZR6_1",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6985,
+          "used_tokens": 935
+        },
+        {
+          "id": "52855_MV65I88C_9",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7272,
+          "used_tokens": 2583
+        },
+        {
+          "id": "62085_C1SL2YBE_3",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6114,
+          "used_tokens": 1856
+        },
+        {
+          "id": "63616_MQ1O9T2Q_6",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6899,
+          "used_tokens": 2289
+        },
+        {
+          "id": "63833_V187YO4H_2",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6553,
+          "used_tokens": 1950
+        },
+        {
+          "id": "63392_7YS4HHFI_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6775,
+          "used_tokens": 2048
+        },
+        {
+          "id": "63473_1VIHQ8TY_4",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7050,
+          "used_tokens": 2502
+        },
+        {
+          "id": "51650_B3KKWWD1_7",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7742,
+          "used_tokens": 2053
+        },
+        {
+          "id": "51274_8Q2YNHG5_6",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 7787,
+          "used_tokens": 2510
+        },
+        {
+          "id": "20077_ZF5G55FD_1",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 2800,
+          "used_tokens": 1121
+        },
+        {
+          "id": "22579_RQ3GB4A1_3",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7789,
+          "used_tokens": 2050
+        },
+        {
+          "id": "22867_TJ9SPIHC_9",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8332,
+          "used_tokens": 1841
+        },
+        {
+          "id": "22875_L821878U_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3516,
+          "used_tokens": 1601
+        },
+        {
+          "id": "22967_0XT2L7PI_7",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 6334,
+          "used_tokens": 2047
+        },
+        {
+          "id": "22867_IZGAWLCJ_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 8332,
+          "used_tokens": 1939
+        },
+        {
+          "id": "22462_BUA2LH2S_5",
+          "gold": "B",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 7143,
+          "used_tokens": 2048
+        },
+        {
+          "id": "31736_TV0CUXDH_4",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 6960,
+          "used_tokens": 3294
+        },
+        {
+          "id": "99927_EVLEI3Q2_6",
+          "gold": "C",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 4333,
+          "used_tokens": 1283
+        },
+        {
+          "id": "31282_BQYW9TCH_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 8076,
+          "used_tokens": 2054
+        },
+        {
+          "id": "99914_0Q5X8VEX_4",
+          "gold": "D",
+          "pred": "A",
+          "correct": false,
+          "full_tokens": 3176,
+          "used_tokens": 1441
+        },
+        {
+          "id": "32665_VRYQXG3Y_9",
+          "gold": "A",
+          "pred": "A",
+          "correct": true,
+          "full_tokens": 4518,
+          "used_tokens": 790
+        }
+      ]
+    }
+  ]
+}
