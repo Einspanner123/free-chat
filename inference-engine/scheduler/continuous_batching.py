@@ -14,6 +14,18 @@ Key idea:
   Continuous: A B C → A B D → A E D → each step reconfigures the batch
 """
 
+# =============================================================================
+# WARNING: SIMULATION / ESTIMATION ONLY
+#
+# The numbers produced by this script are analytical estimates or simulated
+# results, NOT real hardware measurements. Do NOT cite these numbers in
+# documentation, README, or resumes as measured performance.
+#
+# Real measured results live in benchmarks/long_context/results/ and were
+# obtained by running actual models (Qwen2.5-0.5B, Qwen3-0.6B) on NVIDIA RTX
+# A6000 hardware.
+# =============================================================================
+
 import time
 import heapq
 from dataclasses import dataclass, field
