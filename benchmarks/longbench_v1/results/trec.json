@@ -1,0 +1,2029 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "task": "trec",
+    "samples": 30,
+    "budgets": [
+      512,
+      1024
+    ]
+  },
+  "strategies": [
+    {
+      "strategy": "truncation",
+      "budget": 512,
+      "task": "trec",
+      "metric": 0.0,
+      "correct": 0,
+      "total": 30,
+      "metric_type": "accuracy",
+      "avg_latency_s": 0.67,
+      "per_item": [
+        {
+          "id": "bb86302b1936b14c09091143ce6e0d4d4013c4789ece0230",
+          "gold": "Other location",
+          "pred": "The first golf course in the United Stat",
+          "correct": false,
+          "full_tokens": 4971,
+          "used_tokens": 512
+        },
+        {
+          "id": "be63e2d9490453d1b939ba8f850a386c7828f776df937d8c",
+          "gold": "Individual",
+          "pred": "Answer: Mrs. Bridges is a TV host known ",
+          "correct": false,
+          "full_tokens": 10253,
+          "used_tokens": 512
+        },
+        {
+          "id": "1e8eb08f71a04cd4391fcaa7d98a166627d65284c467a318",
+          "gold": "Color",
+          "pred": "Answer: blue",
+          "correct": false,
+          "full_tokens": 5503,
+          "used_tokens": 512
+        },
+        {
+          "id": "e8c5eb156625bc57f11c1f0c6e9ba97abb46b8672aefb2df",
+          "gold": "Date",
+          "pred": "When President Kennedy was shot, the ans",
+          "correct": false,
+          "full_tokens": 8018,
+          "used_tokens": 512
+        },
+        {
+          "id": "9587abceff7bb3b9e0f0df6a0a040945a27b7e1eb67c64e5",
+          "gold": "Currency name",
+          "pred": "Answer: USD",
+          "correct": false,
+          "full_tokens": 7145,
+          "used_tokens": 512
+        },
+        {
+          "id": "3e7d6a53447488a4bf1b9e9e08ea589028f3b4197d92f5a4",
+          "gold": "Definition of something",
+          "pred": "A biosphere is a large, interconnected s",
+          "correct": false,
+          "full_tokens": 11156,
+          "used_tokens": 512
+        },
+        {
+          "id": "53314ceb95fb9a488c88d21402e09c826d927f9c7402d0cf",
+          "gold": "Other location",
+          "pred": "Answer: Tiberina River",
+          "correct": false,
+          "full_tokens": 2761,
+          "used_tokens": 512
+        },
+        {
+          "id": "dc7348606b7d50383c1e69a0ea2787da8a4506114fad6f2a",
+          "gold": "Definition of something",
+          "pred": "The answer is: Sitting Shiva is a religi",
+          "correct": false,
+          "full_tokens": 5922,
+          "used_tokens": 512
+        },
+        {
+          "id": "6c5121b0b6fd45c4c437d96cad36c46dffa122fabb7cf8eb",
+          "gold": "Currency name",
+          "pred": "Answer: Brazilian Real",
+          "correct": false,
+          "full_tokens": 6341,
+          "used_tokens": 512
+        },
+        {
+          "id": "e55a65ad534b2649ceccf41cdcba863db7774efbd1408eed",
+          "gold": "Description of something",
+          "pred": "The effect of volcanoes on the climate i",
+          "correct": false,
+          "full_tokens": 3464,
+          "used_tokens": 512
+        },
+        {
+          "id": "c84d7df6e4889807a25b8fb80db29c8c3d419c09387ef9e1",
+          "gold": "Definition of something",
+          "pred": "Valentine's Day is on February 14th.",
+          "correct": false,
+          "full_tokens": 7186,
+          "used_tokens": 512
+        },
+        {
+          "id": "f03199226a1925234dde134936aea510c2f331e636106781",
+          "gold": "Date",
+          "pred": "When was the Boston tea party?  \nAnswer:",
+          "correct": false,
+          "full_tokens": 7110,
+          "used_tokens": 512
+        },
+        {
+          "id": "ed3fccd0229defe456bc01dd48d59cd62d04b49f1b1b1e0a",
+          "gold": "Other location",
+          "pred": "The rainiest place on Earth is **Guayaqu",
+          "correct": false,
+          "full_tokens": 6662,
+          "used_tokens": 512
+        },
+        {
+          "id": "4a198f563d6897cf45a1acd7af747ea3ac8e73698d1a94e7",
+          "gold": "Individual",
+          "pred": "Answer: Barbara Jordan",
+          "correct": false,
+          "full_tokens": 10382,
+          "used_tokens": 512
+        },
+        {
+          "id": "31277bc109b79395bbaed904e4696eceefe807fe63e6d375",
+          "gold": "Date",
+          "pred": "When Abraham Lincoln was born, it was in",
+          "correct": false,
+          "full_tokens": 7181,
+          "used_tokens": 512
+        },
+        {
+          "id": "fe48b8be1c5cc6e474c04f8b96b1f2a37095e7245594b2ad",
+          "gold": "Date",
+          "pred": "Answer: 1961",
+          "correct": false,
+          "full_tokens": 5823,
+          "used_tokens": 512
+        },
+        {
+          "id": "b19440bff3ae91b4ff667d2183b7e5b2b2b52df48ba53289",
+          "gold": "Other entity",
+          "pred": "Answer: The monastery was the Holy Grail",
+          "correct": false,
+          "full_tokens": 6121,
+          "used_tokens": 512
+        },
+        {
+          "id": "628dffa806ccbd5b0d3ea898071a5bba1fa322937a13b3d0",
+          "gold": "Number of something",
+          "pred": "Answer: 5280",
+          "correct": false,
+          "full_tokens": 7283,
+          "used_tokens": 512
+        },
+        {
+          "id": "f9666d6736c07d6af8c7599e04e37f230b63e032bc2b3cc8",
+          "gold": "Other location",
+          "pred": "Answer: The Eiffel Tower is located in P",
+          "correct": false,
+          "full_tokens": 2029,
+          "used_tokens": 512
+        },
+        {
+          "id": "ae345fc2a13db040fb296e9d819edf26ac19cadfcd1a1ba6",
+          "gold": "Definition of something",
+          "pred": "Nepotism is the practice of favoring som",
+          "correct": false,
+          "full_tokens": 3034,
+          "used_tokens": 512
+        },
+        {
+          "id": "0b6cb30081f15859876d46020fca4dd45fb6fc0f24b33a07",
+          "gold": "Other number",
+          "pred": "The sales tax rate in New York is 5.5%.",
+          "correct": false,
+          "full_tokens": 11029,
+          "used_tokens": 512
+        },
+        {
+          "id": "8b55d14186093e0012da5a7cd1b800d04704364bc6ce3686",
+          "gold": "Definition of something",
+          "pred": "Autism is a neurodevelopmental disorder ",
+          "correct": false,
+          "full_tokens": 3657,
+          "used_tokens": 512
+        },
+        {
+          "id": "5164362f6132cb801e1d5df1c2c6356ea8bf16e9a4402a1e",
+          "gold": "Distance, linear measure",
+          "pred": "The Gateway Arch in St. Louis, MO, is 93",
+          "correct": false,
+          "full_tokens": 4822,
+          "used_tokens": 512
+        },
+        {
+          "id": "e7e40bf7a9ac82f5a438c6fc369d3208e12296907e42c62a",
+          "gold": "Expression abbreviated",
+          "pred": "CPR stands for **Cardiopulmonary Resusci",
+          "correct": false,
+          "full_tokens": 4996,
+          "used_tokens": 512
+        },
+        {
+          "id": "a20b33a8a018d27269d286e9ff805f8fbf1a370f080a14cd",
+          "gold": "Date",
+          "pred": "Answer: January 1, 1801",
+          "correct": false,
+          "full_tokens": 2452,
+          "used_tokens": 512
+        },
+        {
+          "id": "c49fd9c1e59b10bfe04e25ca13954f4cbf77c64beb67df64",
+          "gold": "Reason",
+          "pred": "The esophagus is used for carrying food ",
+          "correct": false,
+          "full_tokens": 8831,
+          "used_tokens": 512
+        },
+        {
+          "id": "389ce23ee7c00b34a1cdbd9b6ccec47778541a5b4b2a6861",
+          "gold": "Description of something",
+          "pred": "A defibrillator is used to restore the h",
+          "correct": false,
+          "full_tokens": 9995,
+          "used_tokens": 512
+        },
+        {
+          "id": "2515df579016f05f203679b9925e33d885985054564b2c62",
+          "gold": "Other location",
+          "pred": "The planet with the strongest magnetic f",
+          "correct": false,
+          "full_tokens": 6304,
+          "used_tokens": 512
+        },
+        {
+          "id": "e0508a69f493c99a55708cb841b5db4e350dd0cd2e3dce2d",
+          "gold": "Other entity",
+          "pred": "The major fault line near Kentucky is th",
+          "correct": false,
+          "full_tokens": 5304,
+          "used_tokens": 512
+        },
+        {
+          "id": "40889e3cd2e32438572f29c578c29cdecb3b112ccf9952f6",
+          "gold": "Date",
+          "pred": "The year the Titanic sank is **1912**.",
+          "correct": false,
+          "full_tokens": 8036,
+          "used_tokens": 512
+        }
+      ]
+    },
+    {
+      "strategy": "project_topic",
+      "budget": 512,
+      "task": "trec",
+      "metric": 0.0667,
+      "correct": 2,
+      "total": 30,
+      "metric_type": "accuracy",
+      "avg_latency_s": 0.62,
+      "per_item": [
+        {
+          "id": "bb86302b1936b14c09091143ce6e0d4d4013c4789ece0230",
+          "gold": "Other location",
+          "pred": "The first golf course in the United Stat",
+          "correct": false,
+          "full_tokens": 4971,
+          "used_tokens": 4909
+        },
+        {
+          "id": "be63e2d9490453d1b939ba8f850a386c7828f776df937d8c",
+          "gold": "Individual",
+          "pred": "Answer: Elizabethan",
+          "correct": false,
+          "full_tokens": 10253,
+          "used_tokens": 10028
+        },
+        {
+          "id": "1e8eb08f71a04cd4391fcaa7d98a166627d65284c467a318",
+          "gold": "Color",
+          "pred": "Answer: blue",
+          "correct": false,
+          "full_tokens": 5503,
+          "used_tokens": 5416
+        },
+        {
+          "id": "e8c5eb156625bc57f11c1f0c6e9ba97abb46b8672aefb2df",
+          "gold": "Date",
+          "pred": "When President Kennedy was shot, the eve",
+          "correct": false,
+          "full_tokens": 8018,
+          "used_tokens": 7867
+        },
+        {
+          "id": "9587abceff7bb3b9e0f0df6a0a040945a27b7e1eb67c64e5",
+          "gold": "Currency name",
+          "pred": "Answer: USD",
+          "correct": false,
+          "full_tokens": 7145,
+          "used_tokens": 6944
+        },
+        {
+          "id": "3e7d6a53447488a4bf1b9e9e08ea589028f3b4197d92f5a4",
+          "gold": "Definition of something",
+          "pred": "The biosphere is the Earth's atmosphere,",
+          "correct": false,
+          "full_tokens": 11156,
+          "used_tokens": 10971
+        },
+        {
+          "id": "53314ceb95fb9a488c88d21402e09c826d927f9c7402d0cf",
+          "gold": "Other location",
+          "pred": "Other location",
+          "correct": true,
+          "full_tokens": 2761,
+          "used_tokens": 2673
+        },
+        {
+          "id": "dc7348606b7d50383c1e69a0ea2787da8a4506114fad6f2a",
+          "gold": "Definition of something",
+          "pred": "The answer is: **Sitting Shiva** means t",
+          "correct": false,
+          "full_tokens": 5922,
+          "used_tokens": 5796
+        },
+        {
+          "id": "6c5121b0b6fd45c4c437d96cad36c46dffa122fabb7cf8eb",
+          "gold": "Currency name",
+          "pred": "Answer: Brazil uses the Brazilian Real.",
+          "correct": false,
+          "full_tokens": 6341,
+          "used_tokens": 6208
+        },
+        {
+          "id": "e55a65ad534b2649ceccf41cdcba863db7774efbd1408eed",
+          "gold": "Description of something",
+          "pred": "The effect of volcanoes on the climate i",
+          "correct": false,
+          "full_tokens": 3464,
+          "used_tokens": 3320
+        },
+        {
+          "id": "c84d7df6e4889807a25b8fb80db29c8c3d419c09387ef9e1",
+          "gold": "Definition of something",
+          "pred": "Valentine's Day is celebrated on Februar",
+          "correct": false,
+          "full_tokens": 7186,
+          "used_tokens": 7032
+        },
+        {
+          "id": "f03199226a1925234dde134936aea510c2f331e636106781",
+          "gold": "Date",
+          "pred": "When was the Boston Tea Party?",
+          "correct": false,
+          "full_tokens": 7110,
+          "used_tokens": 6981
+        },
+        {
+          "id": "ed3fccd0229defe456bc01dd48d59cd62d04b49f1b1b1e0a",
+          "gold": "Other location",
+          "pred": "The rainiest place on Earth is the Amazo",
+          "correct": false,
+          "full_tokens": 6662,
+          "used_tokens": 6467
+        },
+        {
+          "id": "4a198f563d6897cf45a1acd7af747ea3ac8e73698d1a94e7",
+          "gold": "Individual",
+          "pred": "The first woman killed in the Vietnam Wa",
+          "correct": false,
+          "full_tokens": 10382,
+          "used_tokens": 10263
+        },
+        {
+          "id": "31277bc109b79395bbaed904e4696eceefe807fe63e6d375",
+          "gold": "Date",
+          "pred": "Abraham Lincoln was born on **January 15",
+          "correct": false,
+          "full_tokens": 7181,
+          "used_tokens": 7023
+        },
+        {
+          "id": "fe48b8be1c5cc6e474c04f8b96b1f2a37095e7245594b2ad",
+          "gold": "Date",
+          "pred": "Dwight D. Eisenhower was born on **Janua",
+          "correct": false,
+          "full_tokens": 5823,
+          "used_tokens": 5635
+        },
+        {
+          "id": "b19440bff3ae91b4ff667d2183b7e5b2b2b52df48ba53289",
+          "gold": "Other entity",
+          "pred": "Answer: The monastery is the Holy Grail.",
+          "correct": false,
+          "full_tokens": 6121,
+          "used_tokens": 6050
+        },
+        {
+          "id": "628dffa806ccbd5b0d3ea898071a5bba1fa322937a13b3d0",
+          "gold": "Number of something",
+          "pred": "Number of something",
+          "correct": true,
+          "full_tokens": 7283,
+          "used_tokens": 7032
+        },
+        {
+          "id": "f9666d6736c07d6af8c7599e04e37f230b63e032bc2b3cc8",
+          "gold": "Other location",
+          "pred": "Eiffel Tower is located in Paris, France",
+          "correct": false,
+          "full_tokens": 2029,
+          "used_tokens": 1961
+        },
+        {
+          "id": "ae345fc2a13db040fb296e9d819edf26ac19cadfcd1a1ba6",
+          "gold": "Definition of something",
+          "pred": "Nepotism is the practice of favoring som",
+          "correct": false,
+          "full_tokens": 3034,
+          "used_tokens": 2979
+        },
+        {
+          "id": "0b6cb30081f15859876d46020fca4dd45fb6fc0f24b33a07",
+          "gold": "Other number",
+          "pred": "Answer: 10%",
+          "correct": false,
+          "full_tokens": 11029,
+          "used_tokens": 10797
+        },
+        {
+          "id": "8b55d14186093e0012da5a7cd1b800d04704364bc6ce3686",
+          "gold": "Definition of something",
+          "pred": "The answer is: **Autism**.",
+          "correct": false,
+          "full_tokens": 3657,
+          "used_tokens": 3585
+        },
+        {
+          "id": "5164362f6132cb801e1d5df1c2c6356ea8bf16e9a4402a1e",
+          "gold": "Distance, linear measure",
+          "pred": "The Gateway Arch in St. Louis, MO, is 1,",
+          "correct": false,
+          "full_tokens": 4822,
+          "used_tokens": 4696
+        },
+        {
+          "id": "e7e40bf7a9ac82f5a438c6fc369d3208e12296907e42c62a",
+          "gold": "Expression abbreviated",
+          "pred": "CPR stands for **Cardiopulmonary Resusci",
+          "correct": false,
+          "full_tokens": 4996,
+          "used_tokens": 4844
+        },
+        {
+          "id": "a20b33a8a018d27269d286e9ff805f8fbf1a370f080a14cd",
+          "gold": "Date",
+          "pred": "Answer: January 1, 1850",
+          "correct": false,
+          "full_tokens": 2452,
+          "used_tokens": 2401
+        },
+        {
+          "id": "c49fd9c1e59b10bfe04e25ca13954f4cbf77c64beb67df64",
+          "gold": "Reason",
+          "pred": "The esophagus is used for **inhaling**.",
+          "correct": false,
+          "full_tokens": 8831,
+          "used_tokens": 8635
+        },
+        {
+          "id": "389ce23ee7c00b34a1cdbd9b6ccec47778541a5b4b2a6861",
+          "gold": "Description of something",
+          "pred": "A defibrillator is used to restore the h",
+          "correct": false,
+          "full_tokens": 9995,
+          "used_tokens": 9716
+        },
+        {
+          "id": "2515df579016f05f203679b9925e33d885985054564b2c62",
+          "gold": "Other location",
+          "pred": "The planet with the strongest magnetic f",
+          "correct": false,
+          "full_tokens": 6304,
+          "used_tokens": 6184
+        },
+        {
+          "id": "e0508a69f493c99a55708cb841b5db4e350dd0cd2e3dce2d",
+          "gold": "Other entity",
+          "pred": "The major fault line near Kentucky is th",
+          "correct": false,
+          "full_tokens": 5304,
+          "used_tokens": 5173
+        },
+        {
+          "id": "40889e3cd2e32438572f29c578c29cdecb3b112ccf9952f6",
+          "gold": "Date",
+          "pred": "Answer: 1912",
+          "correct": false,
+          "full_tokens": 8036,
+          "used_tokens": 7895
+        }
+      ]
+    },
+    {
+      "strategy": "attention_sink",
+      "budget": 512,
+      "task": "trec",
+      "metric": 0.0333,
+      "correct": 1,
+      "total": 30,
+      "metric_type": "accuracy",
+      "avg_latency_s": 0.63,
+      "per_item": [
+        {
+          "id": "bb86302b1936b14c09091143ce6e0d4d4013c4789ece0230",
+          "gold": "Other location",
+          "pred": "The first golf course in the United Stat",
+          "correct": false,
+          "full_tokens": 4971,
+          "used_tokens": 4911
+        },
+        {
+          "id": "be63e2d9490453d1b939ba8f850a386c7828f776df937d8c",
+          "gold": "Individual",
+          "pred": "The name of J.F.K.'s wife is **Lena**.",
+          "correct": false,
+          "full_tokens": 10253,
+          "used_tokens": 10030
+        },
+        {
+          "id": "1e8eb08f71a04cd4391fcaa7d98a166627d65284c467a318",
+          "gold": "Color",
+          "pred": "Indigo is a deep blue color.",
+          "correct": false,
+          "full_tokens": 5503,
+          "used_tokens": 5418
+        },
+        {
+          "id": "e8c5eb156625bc57f11c1f0c6e9ba97abb46b8672aefb2df",
+          "gold": "Date",
+          "pred": "When President Kennedy was shot, the eve",
+          "correct": false,
+          "full_tokens": 8018,
+          "used_tokens": 7869
+        },
+        {
+          "id": "9587abceff7bb3b9e0f0df6a0a040945a27b7e1eb67c64e5",
+          "gold": "Currency name",
+          "pred": "Argentina uses the Argentine peso.",
+          "correct": false,
+          "full_tokens": 7145,
+          "used_tokens": 6946
+        },
+        {
+          "id": "3e7d6a53447488a4bf1b9e9e08ea589028f3b4197d92f5a4",
+          "gold": "Definition of something",
+          "pred": "The biosphere is the Earth's natural env",
+          "correct": false,
+          "full_tokens": 11156,
+          "used_tokens": 10973
+        },
+        {
+          "id": "53314ceb95fb9a488c88d21402e09c826d927f9c7402d0cf",
+          "gold": "Other location",
+          "pred": "The river that runs through Rowe, Italy,",
+          "correct": false,
+          "full_tokens": 2761,
+          "used_tokens": 2675
+        },
+        {
+          "id": "dc7348606b7d50383c1e69a0ea2787da8a4506114fad6f2a",
+          "gold": "Definition of something",
+          "pred": "The answer is: **Sitting Shiva** means t",
+          "correct": false,
+          "full_tokens": 5922,
+          "used_tokens": 5798
+        },
+        {
+          "id": "6c5121b0b6fd45c4c437d96cad36c46dffa122fabb7cf8eb",
+          "gold": "Currency name",
+          "pred": "Answer: Brazil uses the Brazilian Real.",
+          "correct": false,
+          "full_tokens": 6341,
+          "used_tokens": 6210
+        },
+        {
+          "id": "e55a65ad534b2649ceccf41cdcba863db7774efbd1408eed",
+          "gold": "Description of something",
+          "pred": "The effect of volcanoes on the climate i",
+          "correct": false,
+          "full_tokens": 3464,
+          "used_tokens": 3322
+        },
+        {
+          "id": "c84d7df6e4889807a25b8fb80db29c8c3d419c09387ef9e1",
+          "gold": "Definition of something",
+          "pred": "Valentine's Day is celebrated on Februar",
+          "correct": false,
+          "full_tokens": 7186,
+          "used_tokens": 7034
+        },
+        {
+          "id": "f03199226a1925234dde134936aea510c2f331e636106781",
+          "gold": "Date",
+          "pred": "When was the Boston Tea Party?",
+          "correct": false,
+          "full_tokens": 7110,
+          "used_tokens": 6983
+        },
+        {
+          "id": "ed3fccd0229defe456bc01dd48d59cd62d04b49f1b1b1e0a",
+          "gold": "Other location",
+          "pred": "Number of something",
+          "correct": false,
+          "full_tokens": 6662,
+          "used_tokens": 6469
+        },
+        {
+          "id": "4a198f563d6897cf45a1acd7af747ea3ac8e73698d1a94e7",
+          "gold": "Individual",
+          "pred": "The first woman killed in the Vietnam Wa",
+          "correct": false,
+          "full_tokens": 10382,
+          "used_tokens": 10265
+        },
+        {
+          "id": "31277bc109b79395bbaed904e4696eceefe807fe63e6d375",
+          "gold": "Date",
+          "pred": "Abraham Lincoln was born on **January 15",
+          "correct": false,
+          "full_tokens": 7181,
+          "used_tokens": 7025
+        },
+        {
+          "id": "fe48b8be1c5cc6e474c04f8b96b1f2a37095e7245594b2ad",
+          "gold": "Date",
+          "pred": "Dwight D. Eisenhower was born on **Janua",
+          "correct": false,
+          "full_tokens": 5823,
+          "used_tokens": 5637
+        },
+        {
+          "id": "b19440bff3ae91b4ff667d2183b7e5b2b2b52df48ba53289",
+          "gold": "Other entity",
+          "pred": "The answer is: **Baalbek**.",
+          "correct": false,
+          "full_tokens": 6121,
+          "used_tokens": 6052
+        },
+        {
+          "id": "628dffa806ccbd5b0d3ea898071a5bba1fa322937a13b3d0",
+          "gold": "Number of something",
+          "pred": "Number of something",
+          "correct": true,
+          "full_tokens": 7283,
+          "used_tokens": 7034
+        },
+        {
+          "id": "f9666d6736c07d6af8c7599e04e37f230b63e032bc2b3cc8",
+          "gold": "Other location",
+          "pred": "The Eiffel Tower is located in Paris, Fr",
+          "correct": false,
+          "full_tokens": 2029,
+          "used_tokens": 1963
+        },
+        {
+          "id": "ae345fc2a13db040fb296e9d819edf26ac19cadfcd1a1ba6",
+          "gold": "Definition of something",
+          "pred": "Nepotism is the practice of favoring som",
+          "correct": false,
+          "full_tokens": 3034,
+          "used_tokens": 2981
+        },
+        {
+          "id": "0b6cb30081f15859876d46020fca4dd45fb6fc0f24b33a07",
+          "gold": "Other number",
+          "pred": "The sales tax rate in New York is 5.0%.",
+          "correct": false,
+          "full_tokens": 11029,
+          "used_tokens": 10799
+        },
+        {
+          "id": "8b55d14186093e0012da5a7cd1b800d04704364bc6ce3686",
+          "gold": "Definition of something",
+          "pred": "Autism is a neurodevelopmental disorder ",
+          "correct": false,
+          "full_tokens": 3657,
+          "used_tokens": 3587
+        },
+        {
+          "id": "5164362f6132cb801e1d5df1c2c6356ea8bf16e9a4402a1e",
+          "gold": "Distance, linear measure",
+          "pred": "The Gateway Arch in St. Louis, MO, is 1,",
+          "correct": false,
+          "full_tokens": 4822,
+          "used_tokens": 4698
+        },
+        {
+          "id": "e7e40bf7a9ac82f5a438c6fc369d3208e12296907e42c62a",
+          "gold": "Expression abbreviated",
+          "pred": "CPR stands for **Cardiopulmonary Resusci",
+          "correct": false,
+          "full_tokens": 4996,
+          "used_tokens": 4846
+        },
+        {
+          "id": "a20b33a8a018d27269d286e9ff805f8fbf1a370f080a14cd",
+          "gold": "Date",
+          "pred": "January 1, 1850",
+          "correct": false,
+          "full_tokens": 2452,
+          "used_tokens": 2403
+        },
+        {
+          "id": "c49fd9c1e59b10bfe04e25ca13954f4cbf77c64beb67df64",
+          "gold": "Reason",
+          "pred": "The esophagus is used for carrying food ",
+          "correct": false,
+          "full_tokens": 8831,
+          "used_tokens": 8637
+        },
+        {
+          "id": "389ce23ee7c00b34a1cdbd9b6ccec47778541a5b4b2a6861",
+          "gold": "Description of something",
+          "pred": "A defibrillator is used to restore norma",
+          "correct": false,
+          "full_tokens": 9995,
+          "used_tokens": 9718
+        },
+        {
+          "id": "2515df579016f05f203679b9925e33d885985054564b2c62",
+          "gold": "Other location",
+          "pred": "The planet with the strongest magnetic f",
+          "correct": false,
+          "full_tokens": 6304,
+          "used_tokens": 6186
+        },
+        {
+          "id": "e0508a69f493c99a55708cb841b5db4e350dd0cd2e3dce2d",
+          "gold": "Other entity",
+          "pred": "The major fault line near Kentucky is th",
+          "correct": false,
+          "full_tokens": 5304,
+          "used_tokens": 5175
+        },
+        {
+          "id": "40889e3cd2e32438572f29c578c29cdecb3b112ccf9952f6",
+          "gold": "Date",
+          "pred": "1912",
+          "correct": false,
+          "full_tokens": 8036,
+          "used_tokens": 7897
+        }
+      ]
+    },
+    {
+      "strategy": "sink_topic",
+      "budget": 512,
+      "task": "trec",
+      "metric": 0.0,
+      "correct": 0,
+      "total": 30,
+      "metric_type": "accuracy",
+      "avg_latency_s": 0.7,
+      "per_item": [
+        {
+          "id": "bb86302b1936b14c09091143ce6e0d4d4013c4789ece0230",
+          "gold": "Other location",
+          "pred": "The first golf course in the United Stat",
+          "correct": false,
+          "full_tokens": 4971,
+          "used_tokens": 4911
+        },
+        {
+          "id": "be63e2d9490453d1b939ba8f850a386c7828f776df937d8c",
+          "gold": "Individual",
+          "pred": "The answer is: **Mary Jane K.**",
+          "correct": false,
+          "full_tokens": 10253,
+          "used_tokens": 10030
+        },
+        {
+          "id": "1e8eb08f71a04cd4391fcaa7d98a166627d65284c467a318",
+          "gold": "Color",
+          "pred": "Indigo is a deep blue color.",
+          "correct": false,
+          "full_tokens": 5503,
+          "used_tokens": 5418
+        },
+        {
+          "id": "e8c5eb156625bc57f11c1f0c6e9ba97abb46b8672aefb2df",
+          "gold": "Date",
+          "pred": "When President Kennedy was shot, the eve",
+          "correct": false,
+          "full_tokens": 8018,
+          "used_tokens": 7870
+        },
+        {
+          "id": "9587abceff7bb3b9e0f0df6a0a040945a27b7e1eb67c64e5",
+          "gold": "Currency name",
+          "pred": "Argentina uses the Argentine peso ( peso",
+          "correct": false,
+          "full_tokens": 7145,
+          "used_tokens": 6946
+        },
+        {
+          "id": "3e7d6a53447488a4bf1b9e9e08ea589028f3b4197d92f5a4",
+          "gold": "Definition of something",
+          "pred": "The biosphere is the Earth's natural env",
+          "correct": false,
+          "full_tokens": 11156,
+          "used_tokens": 10973
+        },
+        {
+          "id": "53314ceb95fb9a488c88d21402e09c826d927f9c7402d0cf",
+          "gold": "Other location",
+          "pred": "The river that runs through Rowe, Italy,",
+          "correct": false,
+          "full_tokens": 2761,
+          "used_tokens": 2675
+        },
+        {
+          "id": "dc7348606b7d50383c1e69a0ea2787da8a4506114fad6f2a",
+          "gold": "Definition of something",
+          "pred": "The answer is: **Sitting Shiva** is a Hi",
+          "correct": false,
+          "full_tokens": 5922,
+          "used_tokens": 5798
+        },
+        {
+          "id": "6c5121b0b6fd45c4c437d96cad36c46dffa122fabb7cf8eb",
+          "gold": "Currency name",
+          "pred": "The answer is: Brazil uses the Brazilian",
+          "correct": false,
+          "full_tokens": 6341,
+          "used_tokens": 6210
+        },
+        {
+          "id": "e55a65ad534b2649ceccf41cdcba863db7774efbd1408eed",
+          "gold": "Description of something",
+          "pred": "The effect of volcanoes on the climate i",
+          "correct": false,
+          "full_tokens": 3464,
+          "used_tokens": 3322
+        },
+        {
+          "id": "c84d7df6e4889807a25b8fb80db29c8c3d419c09387ef9e1",
+          "gold": "Definition of something",
+          "pred": "Valentine's Day is celebrated on **Febru",
+          "correct": false,
+          "full_tokens": 7186,
+          "used_tokens": 7034
+        },
+        {
+          "id": "f03199226a1925234dde134936aea510c2f331e636106781",
+          "gold": "Date",
+          "pred": "The Boston Tea Party was held on **May 1",
+          "correct": false,
+          "full_tokens": 7110,
+          "used_tokens": 6983
+        },
+        {
+          "id": "ed3fccd0229defe456bc01dd48d59cd62d04b49f1b1b1e0a",
+          "gold": "Other location",
+          "pred": "The rainiest place on Earth is the Amazo",
+          "correct": false,
+          "full_tokens": 6662,
+          "used_tokens": 6469
+        },
+        {
+          "id": "4a198f563d6897cf45a1acd7af747ea3ac8e73698d1a94e7",
+          "gold": "Individual",
+          "pred": "The first woman killed in the Vietnam Wa",
+          "correct": false,
+          "full_tokens": 10382,
+          "used_tokens": 10265
+        },
+        {
+          "id": "31277bc109b79395bbaed904e4696eceefe807fe63e6d375",
+          "gold": "Date",
+          "pred": "Abraham Lincoln was born on **January 15",
+          "correct": false,
+          "full_tokens": 7181,
+          "used_tokens": 7026
+        },
+        {
+          "id": "fe48b8be1c5cc6e474c04f8b96b1f2a37095e7245594b2ad",
+          "gold": "Date",
+          "pred": "Dwight D. Eisenhower was born on **Janua",
+          "correct": false,
+          "full_tokens": 5823,
+          "used_tokens": 5637
+        },
+        {
+          "id": "b19440bff3ae91b4ff667d2183b7e5b2b2b52df48ba53289",
+          "gold": "Other entity",
+          "pred": "The answer is: **Walden Abbey**.",
+          "correct": false,
+          "full_tokens": 6121,
+          "used_tokens": 6052
+        },
+        {
+          "id": "628dffa806ccbd5b0d3ea898071a5bba1fa322937a13b3d0",
+          "gold": "Number of something",
+          "pred": "A mile is 5,280 feet.",
+          "correct": false,
+          "full_tokens": 7283,
+          "used_tokens": 7034
+        },
+        {
+          "id": "f9666d6736c07d6af8c7599e04e37f230b63e032bc2b3cc8",
+          "gold": "Other location",
+          "pred": "The Eiffel Tower is located in Paris, Fr",
+          "correct": false,
+          "full_tokens": 2029,
+          "used_tokens": 1963
+        },
+        {
+          "id": "ae345fc2a13db040fb296e9d819edf26ac19cadfcd1a1ba6",
+          "gold": "Definition of something",
+          "pred": "Nepotism is the practice of favoring som",
+          "correct": false,
+          "full_tokens": 3034,
+          "used_tokens": 2981
+        },
+        {
+          "id": "0b6cb30081f15859876d46020fca4dd45fb6fc0f24b33a07",
+          "gold": "Other number",
+          "pred": "The sales tax rate in New York is 5.5%.",
+          "correct": false,
+          "full_tokens": 11029,
+          "used_tokens": 10800
+        },
+        {
+          "id": "8b55d14186093e0012da5a7cd1b800d04704364bc6ce3686",
+          "gold": "Definition of something",
+          "pred": "Autism is a neurodevelopmental disorder ",
+          "correct": false,
+          "full_tokens": 3657,
+          "used_tokens": 3587
+        },
+        {
+          "id": "5164362f6132cb801e1d5df1c2c6356ea8bf16e9a4402a1e",
+          "gold": "Distance, linear measure",
+          "pred": "The Gateway Arch in St. Louis, MO, is 1,",
+          "correct": false,
+          "full_tokens": 4822,
+          "used_tokens": 4698
+        },
+        {
+          "id": "e7e40bf7a9ac82f5a438c6fc369d3208e12296907e42c62a",
+          "gold": "Expression abbreviated",
+          "pred": "CPR stands for **Cardiopulmonary Resusci",
+          "correct": false,
+          "full_tokens": 4996,
+          "used_tokens": 4846
+        },
+        {
+          "id": "a20b33a8a018d27269d286e9ff805f8fbf1a370f080a14cd",
+          "gold": "Date",
+          "pred": "Susan B. Anthony was born on **January 2",
+          "correct": false,
+          "full_tokens": 2452,
+          "used_tokens": 2403
+        },
+        {
+          "id": "c49fd9c1e59b10bfe04e25ca13954f4cbf77c64beb67df64",
+          "gold": "Reason",
+          "pred": "The esophagus is used for **inhaling** a",
+          "correct": false,
+          "full_tokens": 8831,
+          "used_tokens": 8637
+        },
+        {
+          "id": "389ce23ee7c00b34a1cdbd9b6ccec47778541a5b4b2a6861",
+          "gold": "Description of something",
+          "pred": "A defibrillator is used to restore norma",
+          "correct": false,
+          "full_tokens": 9995,
+          "used_tokens": 9718
+        },
+        {
+          "id": "2515df579016f05f203679b9925e33d885985054564b2c62",
+          "gold": "Other location",
+          "pred": "The planet with the strongest magnetic f",
+          "correct": false,
+          "full_tokens": 6304,
+          "used_tokens": 6186
+        },
+        {
+          "id": "e0508a69f493c99a55708cb841b5db4e350dd0cd2e3dce2d",
+          "gold": "Other entity",
+          "pred": "The major fault line near Kentucky is th",
+          "correct": false,
+          "full_tokens": 5304,
+          "used_tokens": 5175
+        },
+        {
+          "id": "40889e3cd2e32438572f29c578c29cdecb3b112ccf9952f6",
+          "gold": "Date",
+          "pred": "The year the Titanic sank is **1912**.",
+          "correct": false,
+          "full_tokens": 8036,
+          "used_tokens": 7897
+        }
+      ]
+    },
+    {
+      "strategy": "truncation",
+      "budget": 1024,
+      "task": "trec",
+      "metric": 0.0,
+      "correct": 0,
+      "total": 30,
+      "metric_type": "accuracy",
+      "avg_latency_s": 0.43,
+      "per_item": [
+        {
+          "id": "bb86302b1936b14c09091143ce6e0d4d4013c4789ece0230",
+          "gold": "Other location",
+          "pred": "The first golf course in the United Stat",
+          "correct": false,
+          "full_tokens": 4971,
+          "used_tokens": 1024
+        },
+        {
+          "id": "be63e2d9490453d1b939ba8f850a386c7828f776df937d8c",
+          "gold": "Individual",
+          "pred": "Answer: Elizabeth Alexandra",
+          "correct": false,
+          "full_tokens": 10253,
+          "used_tokens": 1024
+        },
+        {
+          "id": "1e8eb08f71a04cd4391fcaa7d98a166627d65284c467a318",
+          "gold": "Color",
+          "pred": "The color of indigo is blue.",
+          "correct": false,
+          "full_tokens": 5503,
+          "used_tokens": 1024
+        },
+        {
+          "id": "e8c5eb156625bc57f11c1f0c6e9ba97abb46b8672aefb2df",
+          "gold": "Date",
+          "pred": "When President Kennedy was shot, the ans",
+          "correct": false,
+          "full_tokens": 8018,
+          "used_tokens": 1024
+        },
+        {
+          "id": "9587abceff7bb3b9e0f0df6a0a040945a27b7e1eb67c64e5",
+          "gold": "Currency name",
+          "pred": "Answer: USD",
+          "correct": false,
+          "full_tokens": 7145,
+          "used_tokens": 1024
+        },
+        {
+          "id": "3e7d6a53447488a4bf1b9e9e08ea589028f3b4197d92f5a4",
+          "gold": "Definition of something",
+          "pred": "Answer: A biosphere is a large, intercon",
+          "correct": false,
+          "full_tokens": 11156,
+          "used_tokens": 1024
+        },
+        {
+          "id": "53314ceb95fb9a488c88d21402e09c826d927f9c7402d0cf",
+          "gold": "Other location",
+          "pred": "Answer: Tiberius",
+          "correct": false,
+          "full_tokens": 2761,
+          "used_tokens": 1024
+        },
+        {
+          "id": "dc7348606b7d50383c1e69a0ea2787da8a4506114fad6f2a",
+          "gold": "Definition of something",
+          "pred": "The meaning of \"Sitting Shiva\" is that i",
+          "correct": false,
+          "full_tokens": 5922,
+          "used_tokens": 1024
+        },
+        {
+          "id": "6c5121b0b6fd45c4c437d96cad36c46dffa122fabb7cf8eb",
+          "gold": "Currency name",
+          "pred": "Currency",
+          "correct": false,
+          "full_tokens": 6341,
+          "used_tokens": 1024
+        },
+        {
+          "id": "e55a65ad534b2649ceccf41cdcba863db7774efbd1408eed",
+          "gold": "Description of something",
+          "pred": "Number of something",
+          "correct": false,
+          "full_tokens": 3464,
+          "used_tokens": 1024
+        },
+        {
+          "id": "c84d7df6e4889807a25b8fb80db29c8c3d419c09387ef9e1",
+          "gold": "Definition of something",
+          "pred": "Valentine's Day is a day on which people",
+          "correct": false,
+          "full_tokens": 7186,
+          "used_tokens": 1024
+        },
+        {
+          "id": "f03199226a1925234dde134936aea510c2f331e636106781",
+          "gold": "Date",
+          "pred": "The Boston Tea Party was on **October 16",
+          "correct": false,
+          "full_tokens": 7110,
+          "used_tokens": 1024
+        },
+        {
+          "id": "ed3fccd0229defe456bc01dd48d59cd62d04b49f1b1b1e0a",
+          "gold": "Other location",
+          "pred": "The rainiest place on Earth is **Guayaqu",
+          "correct": false,
+          "full_tokens": 6662,
+          "used_tokens": 1024
+        },
+        {
+          "id": "4a198f563d6897cf45a1acd7af747ea3ac8e73698d1a94e7",
+          "gold": "Individual",
+          "pred": "Answer: Barbara Jordan",
+          "correct": false,
+          "full_tokens": 10382,
+          "used_tokens": 1024
+        },
+        {
+          "id": "31277bc109b79395bbaed904e4696eceefe807fe63e6d375",
+          "gold": "Date",
+          "pred": "When Abraham Lincoln was born, the answe",
+          "correct": false,
+          "full_tokens": 7181,
+          "used_tokens": 1024
+        },
+        {
+          "id": "fe48b8be1c5cc6e474c04f8b96b1f2a37095e7245594b2ad",
+          "gold": "Date",
+          "pred": "The date Eisenhower was born is **May 19",
+          "correct": false,
+          "full_tokens": 5823,
+          "used_tokens": 1024
+        },
+        {
+          "id": "b19440bff3ae91b4ff667d2183b7e5b2b2b52df48ba53289",
+          "gold": "Other entity",
+          "pred": "Answer: The monastery of Kallikanti in I",
+          "correct": false,
+          "full_tokens": 6121,
+          "used_tokens": 1024
+        },
+        {
+          "id": "628dffa806ccbd5b0d3ea898071a5bba1fa322937a13b3d0",
+          "gold": "Number of something",
+          "pred": "1 mile = 5280 feet.",
+          "correct": false,
+          "full_tokens": 7283,
+          "used_tokens": 1024
+        },
+        {
+          "id": "f9666d6736c07d6af8c7599e04e37f230b63e032bc2b3cc8",
+          "gold": "Other location",
+          "pred": "The Eiffel Tower is located in Paris, Fr",
+          "correct": false,
+          "full_tokens": 2029,
+          "used_tokens": 1024
+        },
+        {
+          "id": "ae345fc2a13db040fb296e9d819edf26ac19cadfcd1a1ba6",
+          "gold": "Definition of something",
+          "pred": "Nepotism is the practice of favoring som",
+          "correct": false,
+          "full_tokens": 3034,
+          "used_tokens": 1024
+        },
+        {
+          "id": "0b6cb30081f15859876d46020fca4dd45fb6fc0f24b33a07",
+          "gold": "Other number",
+          "pred": "Number of something",
+          "correct": false,
+          "full_tokens": 11029,
+          "used_tokens": 1024
+        },
+        {
+          "id": "8b55d14186093e0012da5a7cd1b800d04704364bc6ce3686",
+          "gold": "Definition of something",
+          "pred": "Autism is a neurodevelopmental disorder ",
+          "correct": false,
+          "full_tokens": 3657,
+          "used_tokens": 1024
+        },
+        {
+          "id": "5164362f6132cb801e1d5df1c2c6356ea8bf16e9a4402a1e",
+          "gold": "Distance, linear measure",
+          "pred": "The Gateway Arch in St. Louis, MO, is 93",
+          "correct": false,
+          "full_tokens": 4822,
+          "used_tokens": 1024
+        },
+        {
+          "id": "e7e40bf7a9ac82f5a438c6fc369d3208e12296907e42c62a",
+          "gold": "Expression abbreviated",
+          "pred": "CPR stands for **Cardiopulmonary Resusci",
+          "correct": false,
+          "full_tokens": 4996,
+          "used_tokens": 1024
+        },
+        {
+          "id": "a20b33a8a018d27269d286e9ff805f8fbf1a370f080a14cd",
+          "gold": "Date",
+          "pred": "Answer: January 1, 1876",
+          "correct": false,
+          "full_tokens": 2452,
+          "used_tokens": 1024
+        },
+        {
+          "id": "c49fd9c1e59b10bfe04e25ca13954f4cbf77c64beb67df64",
+          "gold": "Reason",
+          "pred": "The esophagus is used for carrying food ",
+          "correct": false,
+          "full_tokens": 8831,
+          "used_tokens": 1024
+        },
+        {
+          "id": "389ce23ee7c00b34a1cdbd9b6ccec47778541a5b4b2a6861",
+          "gold": "Description of something",
+          "pred": "A defibrillator is used to restore norma",
+          "correct": false,
+          "full_tokens": 9995,
+          "used_tokens": 1024
+        },
+        {
+          "id": "2515df579016f05f203679b9925e33d885985054564b2c62",
+          "gold": "Other location",
+          "pred": "The planet with the strongest magnetic f",
+          "correct": false,
+          "full_tokens": 6304,
+          "used_tokens": 1024
+        },
+        {
+          "id": "e0508a69f493c99a55708cb841b5db4e350dd0cd2e3dce2d",
+          "gold": "Other entity",
+          "pred": "The major fault line near Kentucky is th",
+          "correct": false,
+          "full_tokens": 5304,
+          "used_tokens": 1024
+        },
+        {
+          "id": "40889e3cd2e32438572f29c578c29cdecb3b112ccf9952f6",
+          "gold": "Date",
+          "pred": "The Titanic sank in 1912.",
+          "correct": false,
+          "full_tokens": 8036,
+          "used_tokens": 1024
+        }
+      ]
+    },
+    {
+      "strategy": "project_topic",
+      "budget": 1024,
+      "task": "trec",
+      "metric": 0.0667,
+      "correct": 2,
+      "total": 30,
+      "metric_type": "accuracy",
+      "avg_latency_s": 0.57,
+      "per_item": [
+        {
+          "id": "bb86302b1936b14c09091143ce6e0d4d4013c4789ece0230",
+          "gold": "Other location",
+          "pred": "The first golf course in the United Stat",
+          "correct": false,
+          "full_tokens": 4971,
+          "used_tokens": 4909
+        },
+        {
+          "id": "be63e2d9490453d1b939ba8f850a386c7828f776df937d8c",
+          "gold": "Individual",
+          "pred": "Answer: Elizabethan",
+          "correct": false,
+          "full_tokens": 10253,
+          "used_tokens": 10028
+        },
+        {
+          "id": "1e8eb08f71a04cd4391fcaa7d98a166627d65284c467a318",
+          "gold": "Color",
+          "pred": "Answer: blue",
+          "correct": false,
+          "full_tokens": 5503,
+          "used_tokens": 5416
+        },
+        {
+          "id": "e8c5eb156625bc57f11c1f0c6e9ba97abb46b8672aefb2df",
+          "gold": "Date",
+          "pred": "When President Kennedy was shot, the eve",
+          "correct": false,
+          "full_tokens": 8018,
+          "used_tokens": 7867
+        },
+        {
+          "id": "9587abceff7bb3b9e0f0df6a0a040945a27b7e1eb67c64e5",
+          "gold": "Currency name",
+          "pred": "Answer: USD",
+          "correct": false,
+          "full_tokens": 7145,
+          "used_tokens": 6944
+        },
+        {
+          "id": "3e7d6a53447488a4bf1b9e9e08ea589028f3b4197d92f5a4",
+          "gold": "Definition of something",
+          "pred": "The biosphere is the Earth's atmosphere,",
+          "correct": false,
+          "full_tokens": 11156,
+          "used_tokens": 10971
+        },
+        {
+          "id": "53314ceb95fb9a488c88d21402e09c826d927f9c7402d0cf",
+          "gold": "Other location",
+          "pred": "Other location",
+          "correct": true,
+          "full_tokens": 2761,
+          "used_tokens": 2673
+        },
+        {
+          "id": "dc7348606b7d50383c1e69a0ea2787da8a4506114fad6f2a",
+          "gold": "Definition of something",
+          "pred": "The answer is: **Sitting Shiva** means t",
+          "correct": false,
+          "full_tokens": 5922,
+          "used_tokens": 5796
+        },
+        {
+          "id": "6c5121b0b6fd45c4c437d96cad36c46dffa122fabb7cf8eb",
+          "gold": "Currency name",
+          "pred": "Answer: Brazil uses the Brazilian Real.",
+          "correct": false,
+          "full_tokens": 6341,
+          "used_tokens": 6208
+        },
+        {
+          "id": "e55a65ad534b2649ceccf41cdcba863db7774efbd1408eed",
+          "gold": "Description of something",
+          "pred": "The effect of volcanoes on the climate i",
+          "correct": false,
+          "full_tokens": 3464,
+          "used_tokens": 3320
+        },
+        {
+          "id": "c84d7df6e4889807a25b8fb80db29c8c3d419c09387ef9e1",
+          "gold": "Definition of something",
+          "pred": "Valentine's Day is celebrated on Februar",
+          "correct": false,
+          "full_tokens": 7186,
+          "used_tokens": 7032
+        },
+        {
+          "id": "f03199226a1925234dde134936aea510c2f331e636106781",
+          "gold": "Date",
+          "pred": "When was the Boston Tea Party?",
+          "correct": false,
+          "full_tokens": 7110,
+          "used_tokens": 6981
+        },
+        {
+          "id": "ed3fccd0229defe456bc01dd48d59cd62d04b49f1b1b1e0a",
+          "gold": "Other location",
+          "pred": "The rainiest place on Earth is the Amazo",
+          "correct": false,
+          "full_tokens": 6662,
+          "used_tokens": 6467
+        },
+        {
+          "id": "4a198f563d6897cf45a1acd7af747ea3ac8e73698d1a94e7",
+          "gold": "Individual",
+          "pred": "The first woman killed in the Vietnam Wa",
+          "correct": false,
+          "full_tokens": 10382,
+          "used_tokens": 10263
+        },
+        {
+          "id": "31277bc109b79395bbaed904e4696eceefe807fe63e6d375",
+          "gold": "Date",
+          "pred": "Abraham Lincoln was born on **January 15",
+          "correct": false,
+          "full_tokens": 7181,
+          "used_tokens": 7023
+        },
+        {
+          "id": "fe48b8be1c5cc6e474c04f8b96b1f2a37095e7245594b2ad",
+          "gold": "Date",
+          "pred": "Dwight D. Eisenhower was born on **Janua",
+          "correct": false,
+          "full_tokens": 5823,
+          "used_tokens": 5635
+        },
+        {
+          "id": "b19440bff3ae91b4ff667d2183b7e5b2b2b52df48ba53289",
+          "gold": "Other entity",
+          "pred": "Answer: The monastery is the Holy Grail.",
+          "correct": false,
+          "full_tokens": 6121,
+          "used_tokens": 6050
+        },
+        {
+          "id": "628dffa806ccbd5b0d3ea898071a5bba1fa322937a13b3d0",
+          "gold": "Number of something",
+          "pred": "Number of something",
+          "correct": true,
+          "full_tokens": 7283,
+          "used_tokens": 7032
+        },
+        {
+          "id": "f9666d6736c07d6af8c7599e04e37f230b63e032bc2b3cc8",
+          "gold": "Other location",
+          "pred": "Eiffel Tower is located in Paris, France",
+          "correct": false,
+          "full_tokens": 2029,
+          "used_tokens": 1961
+        },
+        {
+          "id": "ae345fc2a13db040fb296e9d819edf26ac19cadfcd1a1ba6",
+          "gold": "Definition of something",
+          "pred": "Nepotism is the practice of favoring som",
+          "correct": false,
+          "full_tokens": 3034,
+          "used_tokens": 2979
+        },
+        {
+          "id": "0b6cb30081f15859876d46020fca4dd45fb6fc0f24b33a07",
+          "gold": "Other number",
+          "pred": "Answer: 10%",
+          "correct": false,
+          "full_tokens": 11029,
+          "used_tokens": 10797
+        },
+        {
+          "id": "8b55d14186093e0012da5a7cd1b800d04704364bc6ce3686",
+          "gold": "Definition of something",
+          "pred": "The answer is: **Autism**.",
+          "correct": false,
+          "full_tokens": 3657,
+          "used_tokens": 3585
+        },
+        {
+          "id": "5164362f6132cb801e1d5df1c2c6356ea8bf16e9a4402a1e",
+          "gold": "Distance, linear measure",
+          "pred": "The Gateway Arch in St. Louis, MO, is 1,",
+          "correct": false,
+          "full_tokens": 4822,
+          "used_tokens": 4696
+        },
+        {
+          "id": "e7e40bf7a9ac82f5a438c6fc369d3208e12296907e42c62a",
+          "gold": "Expression abbreviated",
+          "pred": "CPR stands for **Cardiopulmonary Resusci",
+          "correct": false,
+          "full_tokens": 4996,
+          "used_tokens": 4844
+        },
+        {
+          "id": "a20b33a8a018d27269d286e9ff805f8fbf1a370f080a14cd",
+          "gold": "Date",
+          "pred": "Answer: January 1, 1850",
+          "correct": false,
+          "full_tokens": 2452,
+          "used_tokens": 2401
+        },
+        {
+          "id": "c49fd9c1e59b10bfe04e25ca13954f4cbf77c64beb67df64",
+          "gold": "Reason",
+          "pred": "The esophagus is used for **inhaling**.",
+          "correct": false,
+          "full_tokens": 8831,
+          "used_tokens": 8635
+        },
+        {
+          "id": "389ce23ee7c00b34a1cdbd9b6ccec47778541a5b4b2a6861",
+          "gold": "Description of something",
+          "pred": "A defibrillator is used to restore the h",
+          "correct": false,
+          "full_tokens": 9995,
+          "used_tokens": 9716
+        },
+        {
+          "id": "2515df579016f05f203679b9925e33d885985054564b2c62",
+          "gold": "Other location",
+          "pred": "The planet with the strongest magnetic f",
+          "correct": false,
+          "full_tokens": 6304,
+          "used_tokens": 6184
+        },
+        {
+          "id": "e0508a69f493c99a55708cb841b5db4e350dd0cd2e3dce2d",
+          "gold": "Other entity",
+          "pred": "The major fault line near Kentucky is th",
+          "correct": false,
+          "full_tokens": 5304,
+          "used_tokens": 5173
+        },
+        {
+          "id": "40889e3cd2e32438572f29c578c29cdecb3b112ccf9952f6",
+          "gold": "Date",
+          "pred": "Answer: 1912",
+          "correct": false,
+          "full_tokens": 8036,
+          "used_tokens": 7895
+        }
+      ]
+    },
+    {
+      "strategy": "attention_sink",
+      "budget": 1024,
+      "task": "trec",
+      "metric": 0.0333,
+      "correct": 1,
+      "total": 30,
+      "metric_type": "accuracy",
+      "avg_latency_s": 0.64,
+      "per_item": [
+        {
+          "id": "bb86302b1936b14c09091143ce6e0d4d4013c4789ece0230",
+          "gold": "Other location",
+          "pred": "The first golf course in the United Stat",
+          "correct": false,
+          "full_tokens": 4971,
+          "used_tokens": 4911
+        },
+        {
+          "id": "be63e2d9490453d1b939ba8f850a386c7828f776df937d8c",
+          "gold": "Individual",
+          "pred": "The name of J.F.K.'s wife is **Lena**.",
+          "correct": false,
+          "full_tokens": 10253,
+          "used_tokens": 10030
+        },
+        {
+          "id": "1e8eb08f71a04cd4391fcaa7d98a166627d65284c467a318",
+          "gold": "Color",
+          "pred": "Indigo is a deep blue color.",
+          "correct": false,
+          "full_tokens": 5503,
+          "used_tokens": 5418
+        },
+        {
+          "id": "e8c5eb156625bc57f11c1f0c6e9ba97abb46b8672aefb2df",
+          "gold": "Date",
+          "pred": "When President Kennedy was shot, the eve",
+          "correct": false,
+          "full_tokens": 8018,
+          "used_tokens": 7869
+        },
+        {
+          "id": "9587abceff7bb3b9e0f0df6a0a040945a27b7e1eb67c64e5",
+          "gold": "Currency name",
+          "pred": "Argentina uses the Argentine peso.",
+          "correct": false,
+          "full_tokens": 7145,
+          "used_tokens": 6946
+        },
+        {
+          "id": "3e7d6a53447488a4bf1b9e9e08ea589028f3b4197d92f5a4",
+          "gold": "Definition of something",
+          "pred": "The biosphere is the Earth's natural env",
+          "correct": false,
+          "full_tokens": 11156,
+          "used_tokens": 10973
+        },
+        {
+          "id": "53314ceb95fb9a488c88d21402e09c826d927f9c7402d0cf",
+          "gold": "Other location",
+          "pred": "The river that runs through Rowe, Italy,",
+          "correct": false,
+          "full_tokens": 2761,
+          "used_tokens": 2675
+        },
+        {
+          "id": "dc7348606b7d50383c1e69a0ea2787da8a4506114fad6f2a",
+          "gold": "Definition of something",
+          "pred": "The answer is: **Sitting Shiva** means t",
+          "correct": false,
+          "full_tokens": 5922,
+          "used_tokens": 5798
+        },
+        {
+          "id": "6c5121b0b6fd45c4c437d96cad36c46dffa122fabb7cf8eb",
+          "gold": "Currency name",
+          "pred": "Answer: Brazil uses the Brazilian Real.",
+          "correct": false,
+          "full_tokens": 6341,
+          "used_tokens": 6210
+        },
+        {
+          "id": "e55a65ad534b2649ceccf41cdcba863db7774efbd1408eed",
+          "gold": "Description of something",
+          "pred": "The effect of volcanoes on the climate i",
+          "correct": false,
+          "full_tokens": 3464,
+          "used_tokens": 3322
+        },
+        {
+          "id": "c84d7df6e4889807a25b8fb80db29c8c3d419c09387ef9e1",
+          "gold": "Definition of something",
+          "pred": "Valentine's Day is celebrated on Februar",
+          "correct": false,
+          "full_tokens": 7186,
+          "used_tokens": 7034
+        },
+        {
+          "id": "f03199226a1925234dde134936aea510c2f331e636106781",
+          "gold": "Date",
+          "pred": "When was the Boston Tea Party?",
+          "correct": false,
+          "full_tokens": 7110,
+          "used_tokens": 6983
+        },
+        {
+          "id": "ed3fccd0229defe456bc01dd48d59cd62d04b49f1b1b1e0a",
+          "gold": "Other location",
+          "pred": "Number of something",
+          "correct": false,
+          "full_tokens": 6662,
+          "used_tokens": 6469
+        },
+        {
+          "id": "4a198f563d6897cf45a1acd7af747ea3ac8e73698d1a94e7",
+          "gold": "Individual",
+          "pred": "The first woman killed in the Vietnam Wa",
+          "correct": false,
+          "full_tokens": 10382,
+          "used_tokens": 10265
+        },
+        {
+          "id": "31277bc109b79395bbaed904e4696eceefe807fe63e6d375",
+          "gold": "Date",
+          "pred": "Abraham Lincoln was born on **January 15",
+          "correct": false,
+          "full_tokens": 7181,
+          "used_tokens": 7025
+        },
+        {
+          "id": "fe48b8be1c5cc6e474c04f8b96b1f2a37095e7245594b2ad",
+          "gold": "Date",
+          "pred": "Dwight D. Eisenhower was born on **Janua",
+          "correct": false,
+          "full_tokens": 5823,
+          "used_tokens": 5637
+        },
+        {
+          "id": "b19440bff3ae91b4ff667d2183b7e5b2b2b52df48ba53289",
+          "gold": "Other entity",
+          "pred": "The answer is: **Baalbek**.",
+          "correct": false,
+          "full_tokens": 6121,
+          "used_tokens": 6052
+        },
+        {
+          "id": "628dffa806ccbd5b0d3ea898071a5bba1fa322937a13b3d0",
+          "gold": "Number of something",
+          "pred": "Number of something",
+          "correct": true,
+          "full_tokens": 7283,
+          "used_tokens": 7034
+        },
+        {
+          "id": "f9666d6736c07d6af8c7599e04e37f230b63e032bc2b3cc8",
+          "gold": "Other location",
+          "pred": "The Eiffel Tower is located in Paris, Fr",
+          "correct": false,
+          "full_tokens": 2029,
+          "used_tokens": 1963
+        },
+        {
+          "id": "ae345fc2a13db040fb296e9d819edf26ac19cadfcd1a1ba6",
+          "gold": "Definition of something",
+          "pred": "Nepotism is the practice of favoring som",
+          "correct": false,
+          "full_tokens": 3034,
+          "used_tokens": 2981
+        },
+        {
+          "id": "0b6cb30081f15859876d46020fca4dd45fb6fc0f24b33a07",
+          "gold": "Other number",
+          "pred": "The sales tax rate in New York is 5.0%.",
+          "correct": false,
+          "full_tokens": 11029,
+          "used_tokens": 10799
+        },
+        {
+          "id": "8b55d14186093e0012da5a7cd1b800d04704364bc6ce3686",
+          "gold": "Definition of something",
+          "pred": "Autism is a neurodevelopmental disorder ",
+          "correct": false,
+          "full_tokens": 3657,
+          "used_tokens": 3587
+        },
+        {
+          "id": "5164362f6132cb801e1d5df1c2c6356ea8bf16e9a4402a1e",
+          "gold": "Distance, linear measure",
+          "pred": "The Gateway Arch in St. Louis, MO, is 1,",
+          "correct": false,
+          "full_tokens": 4822,
+          "used_tokens": 4698
+        },
+        {
+          "id": "e7e40bf7a9ac82f5a438c6fc369d3208e12296907e42c62a",
+          "gold": "Expression abbreviated",
+          "pred": "CPR stands for **Cardiopulmonary Resusci",
+          "correct": false,
+          "full_tokens": 4996,
+          "used_tokens": 4846
+        },
+        {
+          "id": "a20b33a8a018d27269d286e9ff805f8fbf1a370f080a14cd",
+          "gold": "Date",
+          "pred": "January 1, 1850",
+          "correct": false,
+          "full_tokens": 2452,
+          "used_tokens": 2403
+        },
+        {
+          "id": "c49fd9c1e59b10bfe04e25ca13954f4cbf77c64beb67df64",
+          "gold": "Reason",
+          "pred": "The esophagus is used for carrying food ",
+          "correct": false,
+          "full_tokens": 8831,
+          "used_tokens": 8637
+        },
+        {
+          "id": "389ce23ee7c00b34a1cdbd9b6ccec47778541a5b4b2a6861",
+          "gold": "Description of something",
+          "pred": "A defibrillator is used to restore norma",
+          "correct": false,
+          "full_tokens": 9995,
+          "used_tokens": 9718
+        },
+        {
+          "id": "2515df579016f05f203679b9925e33d885985054564b2c62",
+          "gold": "Other location",
+          "pred": "The planet with the strongest magnetic f",
+          "correct": false,
+          "full_tokens": 6304,
+          "used_tokens": 6186
+        },
+        {
+          "id": "e0508a69f493c99a55708cb841b5db4e350dd0cd2e3dce2d",
+          "gold": "Other entity",
+          "pred": "The major fault line near Kentucky is th",
+          "correct": false,
+          "full_tokens": 5304,
+          "used_tokens": 5175
+        },
+        {
+          "id": "40889e3cd2e32438572f29c578c29cdecb3b112ccf9952f6",
+          "gold": "Date",
+          "pred": "1912",
+          "correct": false,
+          "full_tokens": 8036,
+          "used_tokens": 7897
+        }
+      ]
+    },
+    {
+      "strategy": "sink_topic",
+      "budget": 1024,
+      "task": "trec",
+      "metric": 0.0,
+      "correct": 0,
+      "total": 30,
+      "metric_type": "accuracy",
+      "avg_latency_s": 0.7,
+      "per_item": [
+        {
+          "id": "bb86302b1936b14c09091143ce6e0d4d4013c4789ece0230",
+          "gold": "Other location",
+          "pred": "The first golf course in the United Stat",
+          "correct": false,
+          "full_tokens": 4971,
+          "used_tokens": 4911
+        },
+        {
+          "id": "be63e2d9490453d1b939ba8f850a386c7828f776df937d8c",
+          "gold": "Individual",
+          "pred": "The answer is: **Mary Jane K.**",
+          "correct": false,
+          "full_tokens": 10253,
+          "used_tokens": 10030
+        },
+        {
+          "id": "1e8eb08f71a04cd4391fcaa7d98a166627d65284c467a318",
+          "gold": "Color",
+          "pred": "Indigo is a deep blue color.",
+          "correct": false,
+          "full_tokens": 5503,
+          "used_tokens": 5418
+        },
+        {
+          "id": "e8c5eb156625bc57f11c1f0c6e9ba97abb46b8672aefb2df",
+          "gold": "Date",
+          "pred": "When President Kennedy was shot, the eve",
+          "correct": false,
+          "full_tokens": 8018,
+          "used_tokens": 7870
+        },
+        {
+          "id": "9587abceff7bb3b9e0f0df6a0a040945a27b7e1eb67c64e5",
+          "gold": "Currency name",
+          "pred": "Argentina uses the Argentine peso ( peso",
+          "correct": false,
+          "full_tokens": 7145,
+          "used_tokens": 6946
+        },
+        {
+          "id": "3e7d6a53447488a4bf1b9e9e08ea589028f3b4197d92f5a4",
+          "gold": "Definition of something",
+          "pred": "The biosphere is the Earth's natural env",
+          "correct": false,
+          "full_tokens": 11156,
+          "used_tokens": 10973
+        },
+        {
+          "id": "53314ceb95fb9a488c88d21402e09c826d927f9c7402d0cf",
+          "gold": "Other location",
+          "pred": "The river that runs through Rowe, Italy,",
+          "correct": false,
+          "full_tokens": 2761,
+          "used_tokens": 2675
+        },
+        {
+          "id": "dc7348606b7d50383c1e69a0ea2787da8a4506114fad6f2a",
+          "gold": "Definition of something",
+          "pred": "The answer is: **Sitting Shiva** is a Hi",
+          "correct": false,
+          "full_tokens": 5922,
+          "used_tokens": 5798
+        },
+        {
+          "id": "6c5121b0b6fd45c4c437d96cad36c46dffa122fabb7cf8eb",
+          "gold": "Currency name",
+          "pred": "The answer is: Brazil uses the Brazilian",
+          "correct": false,
+          "full_tokens": 6341,
+          "used_tokens": 6210
+        },
+        {
+          "id": "e55a65ad534b2649ceccf41cdcba863db7774efbd1408eed",
+          "gold": "Description of something",
+          "pred": "The effect of volcanoes on the climate i",
+          "correct": false,
+          "full_tokens": 3464,
+          "used_tokens": 3322
+        },
+        {
+          "id": "c84d7df6e4889807a25b8fb80db29c8c3d419c09387ef9e1",
+          "gold": "Definition of something",
+          "pred": "Valentine's Day is celebrated on **Febru",
+          "correct": false,
+          "full_tokens": 7186,
+          "used_tokens": 7034
+        },
+        {
+          "id": "f03199226a1925234dde134936aea510c2f331e636106781",
+          "gold": "Date",
+          "pred": "The Boston Tea Party was held on **May 1",
+          "correct": false,
+          "full_tokens": 7110,
+          "used_tokens": 6983
+        },
+        {
+          "id": "ed3fccd0229defe456bc01dd48d59cd62d04b49f1b1b1e0a",
+          "gold": "Other location",
+          "pred": "The rainiest place on Earth is the Amazo",
+          "correct": false,
+          "full_tokens": 6662,
+          "used_tokens": 6469
+        },
+        {
+          "id": "4a198f563d6897cf45a1acd7af747ea3ac8e73698d1a94e7",
+          "gold": "Individual",
+          "pred": "The first woman killed in the Vietnam Wa",
+          "correct": false,
+          "full_tokens": 10382,
+          "used_tokens": 10265
+        },
+        {
+          "id": "31277bc109b79395bbaed904e4696eceefe807fe63e6d375",
+          "gold": "Date",
+          "pred": "Abraham Lincoln was born on **January 15",
+          "correct": false,
+          "full_tokens": 7181,
+          "used_tokens": 7026
+        },
+        {
+          "id": "fe48b8be1c5cc6e474c04f8b96b1f2a37095e7245594b2ad",
+          "gold": "Date",
+          "pred": "Dwight D. Eisenhower was born on **Janua",
+          "correct": false,
+          "full_tokens": 5823,
+          "used_tokens": 5637
+        },
+        {
+          "id": "b19440bff3ae91b4ff667d2183b7e5b2b2b52df48ba53289",
+          "gold": "Other entity",
+          "pred": "The answer is: **Walden Abbey**.",
+          "correct": false,
+          "full_tokens": 6121,
+          "used_tokens": 6052
+        },
+        {
+          "id": "628dffa806ccbd5b0d3ea898071a5bba1fa322937a13b3d0",
+          "gold": "Number of something",
+          "pred": "A mile is 5,280 feet.",
+          "correct": false,
+          "full_tokens": 7283,
+          "used_tokens": 7034
+        },
+        {
+          "id": "f9666d6736c07d6af8c7599e04e37f230b63e032bc2b3cc8",
+          "gold": "Other location",
+          "pred": "The Eiffel Tower is located in Paris, Fr",
+          "correct": false,
+          "full_tokens": 2029,
+          "used_tokens": 1963
+        },
+        {
+          "id": "ae345fc2a13db040fb296e9d819edf26ac19cadfcd1a1ba6",
+          "gold": "Definition of something",
+          "pred": "Nepotism is the practice of favoring som",
+          "correct": false,
+          "full_tokens": 3034,
+          "used_tokens": 2981
+        },
+        {
+          "id": "0b6cb30081f15859876d46020fca4dd45fb6fc0f24b33a07",
+          "gold": "Other number",
+          "pred": "The sales tax rate in New York is 5.5%.",
+          "correct": false,
+          "full_tokens": 11029,
+          "used_tokens": 10800
+        },
+        {
+          "id": "8b55d14186093e0012da5a7cd1b800d04704364bc6ce3686",
+          "gold": "Definition of something",
+          "pred": "Autism is a neurodevelopmental disorder ",
+          "correct": false,
+          "full_tokens": 3657,
+          "used_tokens": 3587
+        },
+        {
+          "id": "5164362f6132cb801e1d5df1c2c6356ea8bf16e9a4402a1e",
+          "gold": "Distance, linear measure",
+          "pred": "The Gateway Arch in St. Louis, MO, is 1,",
+          "correct": false,
+          "full_tokens": 4822,
+          "used_tokens": 4698
+        },
+        {
+          "id": "e7e40bf7a9ac82f5a438c6fc369d3208e12296907e42c62a",
+          "gold": "Expression abbreviated",
+          "pred": "CPR stands for **Cardiopulmonary Resusci",
+          "correct": false,
+          "full_tokens": 4996,
+          "used_tokens": 4846
+        },
+        {
+          "id": "a20b33a8a018d27269d286e9ff805f8fbf1a370f080a14cd",
+          "gold": "Date",
+          "pred": "Susan B. Anthony was born on **January 2",
+          "correct": false,
+          "full_tokens": 2452,
+          "used_tokens": 2403
+        },
+        {
+          "id": "c49fd9c1e59b10bfe04e25ca13954f4cbf77c64beb67df64",
+          "gold": "Reason",
+          "pred": "The esophagus is used for **inhaling** a",
+          "correct": false,
+          "full_tokens": 8831,
+          "used_tokens": 8637
+        },
+        {
+          "id": "389ce23ee7c00b34a1cdbd9b6ccec47778541a5b4b2a6861",
+          "gold": "Description of something",
+          "pred": "A defibrillator is used to restore norma",
+          "correct": false,
+          "full_tokens": 9995,
+          "used_tokens": 9718
+        },
+        {
+          "id": "2515df579016f05f203679b9925e33d885985054564b2c62",
+          "gold": "Other location",
+          "pred": "The planet with the strongest magnetic f",
+          "correct": false,
+          "full_tokens": 6304,
+          "used_tokens": 6186
+        },
+        {
+          "id": "e0508a69f493c99a55708cb841b5db4e350dd0cd2e3dce2d",
+          "gold": "Other entity",
+          "pred": "The major fault line near Kentucky is th",
+          "correct": false,
+          "full_tokens": 5304,
+          "used_tokens": 5175
+        },
+        {
+          "id": "40889e3cd2e32438572f29c578c29cdecb3b112ccf9952f6",
+          "gold": "Date",
+          "pred": "The year the Titanic sank is **1912**.",
+          "correct": false,
+          "full_tokens": 8036,
+          "used_tokens": 7897
+        }
+      ]
+    }
+  ]
+}

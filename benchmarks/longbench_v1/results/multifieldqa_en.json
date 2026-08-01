@@ -1,0 +1,2029 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "task": "multifieldqa_en",
+    "samples": 30,
+    "budgets": [
+      512,
+      1024
+    ]
+  },
+  "strategies": [
+    {
+      "strategy": "truncation",
+      "budget": 512,
+      "task": "multifieldqa_en",
+      "metric": 0.1743,
+      "correct": 2,
+      "total": 30,
+      "metric_type": "f1",
+      "avg_latency_s": 0.98,
+      "per_item": [
+        {
+          "id": "c29e95ab6195406aceecf3874186150cb1b8b26db5bcd0e4",
+          "gold": "South West Ultras fan club.",
+          "pred": "The most active fan club is **Weltfussba",
+          "correct": false,
+          "full_tokens": 1670,
+          "used_tokens": 512
+        },
+        {
+          "id": "1d46294ee8fcc0a64828778b04198fcbe4f75841775e1205",
+          "gold": "No, it is not necessary.",
+          "pred": "No, the ISR (Inhibitory Signal Regulator",
+          "correct": false,
+          "full_tokens": 11388,
+          "used_tokens": 512
+        },
+        {
+          "id": "5b978c8d5792b07ad99da0fc2639c6046051e9c29825ad25",
+          "gold": "Low temperature scanning tunneling micro",
+          "pred": "The experimental techniques used to stud",
+          "correct": false,
+          "full_tokens": 8277,
+          "used_tokens": 512
+        },
+        {
+          "id": "2f73cf12085e3fb879c775fc4851b72092a060cad5a927c6",
+          "gold": "Implantable Cardioverter Defibrillator (",
+          "pred": "The purpose of an ICD (International Cla",
+          "correct": false,
+          "full_tokens": 12004,
+          "used_tokens": 512
+        },
+        {
+          "id": "41e27260a12cc40a778f8c1ba8bf643ee655871a458e5e1c",
+          "gold": "The sides of the fuselage are sloped to ",
+          "pred": "It is important for the sides of the fus",
+          "correct": false,
+          "full_tokens": 7577,
+          "used_tokens": 512
+        },
+        {
+          "id": "917f18543035ee1b9161cded1d3352531dbf3b249b5f0a18",
+          "gold": "It tends to suppress the Kondo effect.",
+          "pred": "The proximity of superconductivity to th",
+          "correct": false,
+          "full_tokens": 10789,
+          "used_tokens": 512
+        },
+        {
+          "id": "b5b0eb150f44a4d7641b9adf9267ca0c2492ea46626449b3",
+          "gold": "Electricity is used for transport, heati",
+          "pred": "Electricity is used in everyday life in ",
+          "correct": false,
+          "full_tokens": 8188,
+          "used_tokens": 512
+        },
+        {
+          "id": "e02f6a69d7b2a96a3aa6cd84a9189c2d552f6fb089f216e1",
+          "gold": "Vice Admiral.",
+          "pred": "Vice admiral Hugh H. Goodwin was a **Vic",
+          "correct": false,
+          "full_tokens": 3112,
+          "used_tokens": 512
+        },
+        {
+          "id": "ed61bdde19a3446389e989c06ab4209f464f9484d42dbd1c",
+          "gold": "They won their first game with a score o",
+          "pred": "The Buckeyes' record in their first game",
+          "correct": false,
+          "full_tokens": 1953,
+          "used_tokens": 512
+        },
+        {
+          "id": "c7ad556387e8215bae3f8ccd30ba35e0093218fe48168718",
+          "gold": "Vitamins K3, K4, and K5.",
+          "pred": "The three synthetic types of vitamin K a",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 512
+        },
+        {
+          "id": "566881d2138d7e29cd6dd2b661b6f7ffe4c515c92fdaf837",
+          "gold": "Yes, individual molecules of indeno[1,2-",
+          "pred": "No, individual molecules of indeno[1,2-a",
+          "correct": true,
+          "full_tokens": 9488,
+          "used_tokens": 512
+        },
+        {
+          "id": "0f101ee4ea9d1d88998598e0405367ad95912c92a7d7a31d",
+          "gold": "3-D printing and software development.",
+          "pred": "Danny works in the field of **psychology",
+          "correct": false,
+          "full_tokens": 9849,
+          "used_tokens": 512
+        },
+        {
+          "id": "b3f3be2f0b46c0df08868f749519635186e6e22cf054ca79",
+          "gold": "90 \u03bcg for women and 120 \u03bcg for men.",
+          "pred": "The recommended daily intake of vitamin ",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 512
+        },
+        {
+          "id": "4c7891d780eb3f45e8c4e5bf14fd9ed6c0bf898fb159b329",
+          "gold": "Watt, one joule per second.",
+          "pred": "The SI unit of power is the watt (W).",
+          "correct": false,
+          "full_tokens": 8188,
+          "used_tokens": 512
+        },
+        {
+          "id": "04b588ff2dea15f4a9c4fdbaabc55aaad1ba3446114d6741",
+          "gold": "Flexibility.",
+          "pred": "The main advantage of a horizontal busin",
+          "correct": false,
+          "full_tokens": 9577,
+          "used_tokens": 512
+        },
+        {
+          "id": "470018af720bc15decf8f7a9643250c9a6548c8efeb394cd",
+          "gold": "Jacob C. Landau.",
+          "pred": "Brooksley Elizabeth's first husband was ",
+          "correct": false,
+          "full_tokens": 2837,
+          "used_tokens": 512
+        },
+        {
+          "id": "120cb783c796fbedbc76f04cf9be3318e54a63cd642c4401",
+          "gold": "An unsupervised method based on the info",
+          "pred": "The main methodology used in the researc",
+          "correct": false,
+          "full_tokens": 7856,
+          "used_tokens": 512
+        },
+        {
+          "id": "032ee1448dec7751d00cd9f752fc61c5843a47e49dd7fcb6",
+          "gold": "Using the vacuum Einstein equation and t",
+          "pred": "The function $\\beta(r)$ is determined by",
+          "correct": false,
+          "full_tokens": 8962,
+          "used_tokens": 512
+        },
+        {
+          "id": "18ef34b54d2ddc134e1be7cae3d6101432465011d016c77a",
+          "gold": "The water depth in the Greater Ekofisk A",
+          "pred": "The information provided does not mentio",
+          "correct": false,
+          "full_tokens": 10128,
+          "used_tokens": 512
+        },
+        {
+          "id": "74334862b5d8e2a02deb3c24aa90d5339e443fbc412453b8",
+          "gold": "Other toxic products.",
+          "pred": "The vaccines trialed against were **Gard",
+          "correct": false,
+          "full_tokens": 3813,
+          "used_tokens": 512
+        },
+        {
+          "id": "934162f30867844eb8d74c9d62c1e2aba3fca790b5b1d53e",
+          "gold": "Margaret Way was born in Brisbane and di",
+          "pred": "Margaret Way was born in **Australia** a",
+          "correct": true,
+          "full_tokens": 2493,
+          "used_tokens": 512
+        },
+        {
+          "id": "e568cc6d77a0a433937ab4bcf62e49b36a5cf7b3faa0d3ab",
+          "gold": "L = 8 and L = 14.",
+          "pred": "The size chains used in the benchmarking",
+          "correct": false,
+          "full_tokens": 7446,
+          "used_tokens": 512
+        },
+        {
+          "id": "daa4eb9d8b28a987b1c2c049200634cdc510636b19a64ccd",
+          "gold": "5.",
+          "pred": "The experiment demonstrated four experim",
+          "correct": false,
+          "full_tokens": 5635,
+          "used_tokens": 512
+        },
+        {
+          "id": "191c14b84f0c8cdad3297f2bee552fb089178995208d7185",
+          "gold": "Lasa, Gitastrophe, and Shadoks.",
+          "pred": "The three teams that used conflict optim",
+          "correct": false,
+          "full_tokens": 5113,
+          "used_tokens": 512
+        },
+        {
+          "id": "9831469b98405cd1fc1bee7de6f9630ae1cbb5946fd7ca0b",
+          "gold": "It required the transformation to be lim",
+          "pred": "The court in *In re Ferguson* concluded ",
+          "correct": false,
+          "full_tokens": 11011,
+          "used_tokens": 512
+        },
+        {
+          "id": "7ae0ad8d4ded2dee79251ff4f951ecfcabad31d8b4f896ae",
+          "gold": "As the transition probability increases,",
+          "pred": "The transition probability of the enviro",
+          "correct": false,
+          "full_tokens": 6380,
+          "used_tokens": 512
+        },
+        {
+          "id": "91c198d5820bfba5caf396532a0b30a531e9d09a7a9005a4",
+          "gold": "A subset that form via kinetic rate proc",
+          "pred": "The study focuses on **ultracold neutral",
+          "correct": false,
+          "full_tokens": 9366,
+          "used_tokens": 512
+        },
+        {
+          "id": "34f9b2c3d79ced580687f9653a6908215f79b1405a918cd0",
+          "gold": "Wearable sensors.",
+          "pred": "The sensors capable of estimating physic",
+          "correct": false,
+          "full_tokens": 13289,
+          "used_tokens": 512
+        },
+        {
+          "id": "8fbf0a6531d9250e6bcda0c7ba456441f6d4073bf08de826",
+          "gold": "Fairness.",
+          "pred": "The decision to base the water rates on ",
+          "correct": false,
+          "full_tokens": 7678,
+          "used_tokens": 512
+        },
+        {
+          "id": "d1f31d2998513a4552d0419e16f8eba896e9ea1c8403605b",
+          "gold": "\"I have seen the Lord.\".",
+          "pred": "The answer is: **Mary told the disciples",
+          "correct": false,
+          "full_tokens": 8548,
+          "used_tokens": 512
+        }
+      ]
+    },
+    {
+      "strategy": "project_topic",
+      "budget": 512,
+      "task": "multifieldqa_en",
+      "metric": 0.3566,
+      "correct": 9,
+      "total": 30,
+      "metric_type": "f1",
+      "avg_latency_s": 0.95,
+      "per_item": [
+        {
+          "id": "c29e95ab6195406aceecf3874186150cb1b8b26db5bcd0e4",
+          "gold": "South West Ultras fan club.",
+          "pred": "The most active fan club is the **South ",
+          "correct": false,
+          "full_tokens": 1670,
+          "used_tokens": 509
+        },
+        {
+          "id": "1d46294ee8fcc0a64828778b04198fcbe4f75841775e1205",
+          "gold": "No, it is not necessary.",
+          "pred": "The **ISR (Inhibitory Signal Regulator) ",
+          "correct": false,
+          "full_tokens": 11388,
+          "used_tokens": 3722
+        },
+        {
+          "id": "5b978c8d5792b07ad99da0fc2639c6046051e9c29825ad25",
+          "gold": "Low temperature scanning tunneling micro",
+          "pred": "The experimental techniques used to stud",
+          "correct": false,
+          "full_tokens": 8277,
+          "used_tokens": 1843
+        },
+        {
+          "id": "2f73cf12085e3fb879c775fc4851b72092a060cad5a927c6",
+          "gold": "Implantable Cardioverter Defibrillator (",
+          "pred": "The purpose of an ICD (International Cla",
+          "correct": false,
+          "full_tokens": 12004,
+          "used_tokens": 501
+        },
+        {
+          "id": "41e27260a12cc40a778f8c1ba8bf643ee655871a458e5e1c",
+          "gold": "The sides of the fuselage are sloped to ",
+          "pred": "The sides of the fuselage are sloped (tu",
+          "correct": true,
+          "full_tokens": 7577,
+          "used_tokens": 1217
+        },
+        {
+          "id": "917f18543035ee1b9161cded1d3352531dbf3b249b5f0a18",
+          "gold": "It tends to suppress the Kondo effect.",
+          "pred": "The proximity of superconductivity (SC) ",
+          "correct": false,
+          "full_tokens": 10789,
+          "used_tokens": 2914
+        },
+        {
+          "id": "b5b0eb150f44a4d7641b9adf9267ca0c2492ea46626449b3",
+          "gold": "Electricity is used for transport, heati",
+          "pred": "Electricity is used in everyday life in ",
+          "correct": true,
+          "full_tokens": 8188,
+          "used_tokens": 2123
+        },
+        {
+          "id": "e02f6a69d7b2a96a3aa6cd84a9189c2d552f6fb089f216e1",
+          "gold": "Vice Admiral.",
+          "pred": "Vice Admiral.",
+          "correct": true,
+          "full_tokens": 3112,
+          "used_tokens": 1877
+        },
+        {
+          "id": "ed61bdde19a3446389e989c06ab4209f464f9484d42dbd1c",
+          "gold": "They won their first game with a score o",
+          "pred": "The Buckeyes' record in their first game",
+          "correct": false,
+          "full_tokens": 1953,
+          "used_tokens": 469
+        },
+        {
+          "id": "c7ad556387e8215bae3f8ccd30ba35e0093218fe48168718",
+          "gold": "Vitamins K3, K4, and K5.",
+          "pred": "The three synthetic types of vitamin K a",
+          "correct": true,
+          "full_tokens": 14851,
+          "used_tokens": 5835
+        },
+        {
+          "id": "566881d2138d7e29cd6dd2b661b6f7ffe4c515c92fdaf837",
+          "gold": "Yes, individual molecules of indeno[1,2-",
+          "pred": "Yes, individual molecules of indeno[1,2-",
+          "correct": true,
+          "full_tokens": 9488,
+          "used_tokens": 3470
+        },
+        {
+          "id": "0f101ee4ea9d1d88998598e0405367ad95912c92a7d7a31d",
+          "gold": "3-D printing and software development.",
+          "pred": "Danny works in the field of **3-D printi",
+          "correct": false,
+          "full_tokens": 9849,
+          "used_tokens": 1631
+        },
+        {
+          "id": "b3f3be2f0b46c0df08868f749519635186e6e22cf054ca79",
+          "gold": "90 \u03bcg for women and 120 \u03bcg for men.",
+          "pred": "The recommended daily intake of vitamin ",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 5978
+        },
+        {
+          "id": "4c7891d780eb3f45e8c4e5bf14fd9ed6c0bf898fb159b329",
+          "gold": "Watt, one joule per second.",
+          "pred": "The SI unit of power is the watt, one jo",
+          "correct": true,
+          "full_tokens": 8188,
+          "used_tokens": 925
+        },
+        {
+          "id": "04b588ff2dea15f4a9c4fdbaabc55aaad1ba3446114d6741",
+          "gold": "Flexibility.",
+          "pred": "The main advantage of a horizontal busin",
+          "correct": false,
+          "full_tokens": 9577,
+          "used_tokens": 2138
+        },
+        {
+          "id": "470018af720bc15decf8f7a9643250c9a6548c8efeb394cd",
+          "gold": "Jacob C. Landau.",
+          "pred": "Brooksley Elizabeth Born's first husband",
+          "correct": false,
+          "full_tokens": 2837,
+          "used_tokens": 663
+        },
+        {
+          "id": "120cb783c796fbedbc76f04cf9be3318e54a63cd642c4401",
+          "gold": "An unsupervised method based on the info",
+          "pred": "The main methodology used in the researc",
+          "correct": false,
+          "full_tokens": 7856,
+          "used_tokens": 521
+        },
+        {
+          "id": "032ee1448dec7751d00cd9f752fc61c5843a47e49dd7fcb6",
+          "gold": "Using the vacuum Einstein equation and t",
+          "pred": "The function $\\beta(r)$ is determined by",
+          "correct": false,
+          "full_tokens": 8962,
+          "used_tokens": 2526
+        },
+        {
+          "id": "18ef34b54d2ddc134e1be7cae3d6101432465011d016c77a",
+          "gold": "The water depth in the Greater Ekofisk A",
+          "pred": "The water depth in the Greater Ekofisk A",
+          "correct": true,
+          "full_tokens": 10128,
+          "used_tokens": 2939
+        },
+        {
+          "id": "74334862b5d8e2a02deb3c24aa90d5339e443fbc412453b8",
+          "gold": "Other toxic products.",
+          "pred": "The vaccines trialed against were genuin",
+          "correct": false,
+          "full_tokens": 3813,
+          "used_tokens": 510
+        },
+        {
+          "id": "934162f30867844eb8d74c9d62c1e2aba3fca790b5b1d53e",
+          "gold": "Margaret Way was born in Brisbane and di",
+          "pred": "Margaret Way was born in Brisbane, Queen",
+          "correct": true,
+          "full_tokens": 2493,
+          "used_tokens": 1083
+        },
+        {
+          "id": "e568cc6d77a0a433937ab4bcf62e49b36a5cf7b3faa0d3ab",
+          "gold": "L = 8 and L = 14.",
+          "pred": "The size chains used in the benchmarking",
+          "correct": false,
+          "full_tokens": 7446,
+          "used_tokens": 511
+        },
+        {
+          "id": "daa4eb9d8b28a987b1c2c049200634cdc510636b19a64ccd",
+          "gold": "5.",
+          "pred": "The experiments demonstrated five differ",
+          "correct": false,
+          "full_tokens": 5635,
+          "used_tokens": 1940
+        },
+        {
+          "id": "191c14b84f0c8cdad3297f2bee552fb089178995208d7185",
+          "gold": "Lasa, Gitastrophe, and Shadoks.",
+          "pred": "The three teams that used conflict optim",
+          "correct": false,
+          "full_tokens": 5113,
+          "used_tokens": 2071
+        },
+        {
+          "id": "9831469b98405cd1fc1bee7de6f9630ae1cbb5946fd7ca0b",
+          "gold": "It required the transformation to be lim",
+          "pred": "The court in *In re Ferguson* concluded ",
+          "correct": false,
+          "full_tokens": 11011,
+          "used_tokens": 5122
+        },
+        {
+          "id": "7ae0ad8d4ded2dee79251ff4f951ecfcabad31d8b4f896ae",
+          "gold": "As the transition probability increases,",
+          "pred": "The transition probability of the enviro",
+          "correct": false,
+          "full_tokens": 6380,
+          "used_tokens": 4695
+        },
+        {
+          "id": "91c198d5820bfba5caf396532a0b30a531e9d09a7a9005a4",
+          "gold": "A subset that form via kinetic rate proc",
+          "pred": "The study focuses on ultracold neutral p",
+          "correct": false,
+          "full_tokens": 9366,
+          "used_tokens": 2084
+        },
+        {
+          "id": "34f9b2c3d79ced580687f9653a6908215f79b1405a918cd0",
+          "gold": "Wearable sensors.",
+          "pred": "The sensors capable of estimating physic",
+          "correct": false,
+          "full_tokens": 13289,
+          "used_tokens": 5647
+        },
+        {
+          "id": "8fbf0a6531d9250e6bcda0c7ba456441f6d4073bf08de826",
+          "gold": "Fairness.",
+          "pred": "The decision to base the water rates on ",
+          "correct": false,
+          "full_tokens": 7678,
+          "used_tokens": 1544
+        },
+        {
+          "id": "d1f31d2998513a4552d0419e16f8eba896e9ea1c8403605b",
+          "gold": "\"I have seen the Lord.\".",
+          "pred": "Mary told the disciples, \"I have seen th",
+          "correct": true,
+          "full_tokens": 8548,
+          "used_tokens": 512
+        }
+      ]
+    },
+    {
+      "strategy": "attention_sink",
+      "budget": 512,
+      "task": "multifieldqa_en",
+      "metric": 0.3208,
+      "correct": 7,
+      "total": 30,
+      "metric_type": "f1",
+      "avg_latency_s": 0.95,
+      "per_item": [
+        {
+          "id": "c29e95ab6195406aceecf3874186150cb1b8b26db5bcd0e4",
+          "gold": "South West Ultras fan club.",
+          "pred": "The most active fan club is the **South ",
+          "correct": false,
+          "full_tokens": 1670,
+          "used_tokens": 510
+        },
+        {
+          "id": "1d46294ee8fcc0a64828778b04198fcbe4f75841775e1205",
+          "gold": "No, it is not necessary.",
+          "pred": "Yes, the **ISR (Inhibitory Signal Regula",
+          "correct": false,
+          "full_tokens": 11388,
+          "used_tokens": 3723
+        },
+        {
+          "id": "5b978c8d5792b07ad99da0fc2639c6046051e9c29825ad25",
+          "gold": "Low temperature scanning tunneling micro",
+          "pred": "The experimental techniques used to stud",
+          "correct": false,
+          "full_tokens": 8277,
+          "used_tokens": 1844
+        },
+        {
+          "id": "2f73cf12085e3fb879c775fc4851b72092a060cad5a927c6",
+          "gold": "Implantable Cardioverter Defibrillator (",
+          "pred": "The purpose of an ICD (International Cla",
+          "correct": false,
+          "full_tokens": 12004,
+          "used_tokens": 502
+        },
+        {
+          "id": "41e27260a12cc40a778f8c1ba8bf643ee655871a458e5e1c",
+          "gold": "The sides of the fuselage are sloped to ",
+          "pred": "The sides of the fuselage are sloped (tu",
+          "correct": true,
+          "full_tokens": 7577,
+          "used_tokens": 1218
+        },
+        {
+          "id": "917f18543035ee1b9161cded1d3352531dbf3b249b5f0a18",
+          "gold": "It tends to suppress the Kondo effect.",
+          "pred": "The proximity of superconductivity (SC) ",
+          "correct": false,
+          "full_tokens": 10789,
+          "used_tokens": 2915
+        },
+        {
+          "id": "b5b0eb150f44a4d7641b9adf9267ca0c2492ea46626449b3",
+          "gold": "Electricity is used for transport, heati",
+          "pred": "Electricity is used in everyday life in ",
+          "correct": false,
+          "full_tokens": 8188,
+          "used_tokens": 2124
+        },
+        {
+          "id": "e02f6a69d7b2a96a3aa6cd84a9189c2d552f6fb089f216e1",
+          "gold": "Vice Admiral.",
+          "pred": "Vice Admiral.",
+          "correct": true,
+          "full_tokens": 3112,
+          "used_tokens": 1879
+        },
+        {
+          "id": "ed61bdde19a3446389e989c06ab4209f464f9484d42dbd1c",
+          "gold": "They won their first game with a score o",
+          "pred": "The Buckeyes' record in their first game",
+          "correct": false,
+          "full_tokens": 1953,
+          "used_tokens": 471
+        },
+        {
+          "id": "c7ad556387e8215bae3f8ccd30ba35e0093218fe48168718",
+          "gold": "Vitamins K3, K4, and K5.",
+          "pred": "The three synthetic types of vitamin K a",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 5836
+        },
+        {
+          "id": "566881d2138d7e29cd6dd2b661b6f7ffe4c515c92fdaf837",
+          "gold": "Yes, individual molecules of indeno[1,2-",
+          "pred": "Yes, individual molecules of indeno[1,2-",
+          "correct": true,
+          "full_tokens": 9488,
+          "used_tokens": 3471
+        },
+        {
+          "id": "0f101ee4ea9d1d88998598e0405367ad95912c92a7d7a31d",
+          "gold": "3-D printing and software development.",
+          "pred": "Danny works in the field of **3-D printi",
+          "correct": false,
+          "full_tokens": 9849,
+          "used_tokens": 1632
+        },
+        {
+          "id": "b3f3be2f0b46c0df08868f749519635186e6e22cf054ca79",
+          "gold": "90 \u03bcg for women and 120 \u03bcg for men.",
+          "pred": "The recommended daily intake of vitamin ",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 5979
+        },
+        {
+          "id": "4c7891d780eb3f45e8c4e5bf14fd9ed6c0bf898fb159b329",
+          "gold": "Watt, one joule per second.",
+          "pred": "The SI unit of power is the watt, one jo",
+          "correct": true,
+          "full_tokens": 8188,
+          "used_tokens": 926
+        },
+        {
+          "id": "04b588ff2dea15f4a9c4fdbaabc55aaad1ba3446114d6741",
+          "gold": "Flexibility.",
+          "pred": "The main advantage of a horizontal busin",
+          "correct": false,
+          "full_tokens": 9577,
+          "used_tokens": 2139
+        },
+        {
+          "id": "470018af720bc15decf8f7a9643250c9a6548c8efeb394cd",
+          "gold": "Jacob C. Landau.",
+          "pred": "Jacob C. Born.",
+          "correct": true,
+          "full_tokens": 2837,
+          "used_tokens": 664
+        },
+        {
+          "id": "120cb783c796fbedbc76f04cf9be3318e54a63cd642c4401",
+          "gold": "An unsupervised method based on the info",
+          "pred": "The main methodology used in the researc",
+          "correct": false,
+          "full_tokens": 7856,
+          "used_tokens": 519
+        },
+        {
+          "id": "032ee1448dec7751d00cd9f752fc61c5843a47e49dd7fcb6",
+          "gold": "Using the vacuum Einstein equation and t",
+          "pred": "The function $\\beta(r)$ is determined by",
+          "correct": false,
+          "full_tokens": 8962,
+          "used_tokens": 2527
+        },
+        {
+          "id": "18ef34b54d2ddc134e1be7cae3d6101432465011d016c77a",
+          "gold": "The water depth in the Greater Ekofisk A",
+          "pred": "The water depth in the Greater Ekofisk A",
+          "correct": true,
+          "full_tokens": 10128,
+          "used_tokens": 2940
+        },
+        {
+          "id": "74334862b5d8e2a02deb3c24aa90d5339e443fbc412453b8",
+          "gold": "Other toxic products.",
+          "pred": "The vaccines trialed against were **genu",
+          "correct": false,
+          "full_tokens": 3813,
+          "used_tokens": 511
+        },
+        {
+          "id": "934162f30867844eb8d74c9d62c1e2aba3fca790b5b1d53e",
+          "gold": "Margaret Way was born in Brisbane and di",
+          "pred": "Margaret Way was born in Brisbane, Queen",
+          "correct": true,
+          "full_tokens": 2493,
+          "used_tokens": 1085
+        },
+        {
+          "id": "e568cc6d77a0a433937ab4bcf62e49b36a5cf7b3faa0d3ab",
+          "gold": "L = 8 and L = 14.",
+          "pred": "The size chains used in the benchmarking",
+          "correct": false,
+          "full_tokens": 7446,
+          "used_tokens": 511
+        },
+        {
+          "id": "daa4eb9d8b28a987b1c2c049200634cdc510636b19a64ccd",
+          "gold": "5.",
+          "pred": "The controller was demonstrated in five ",
+          "correct": false,
+          "full_tokens": 5635,
+          "used_tokens": 1941
+        },
+        {
+          "id": "191c14b84f0c8cdad3297f2bee552fb089178995208d7185",
+          "gold": "Lasa, Gitastrophe, and Shadoks.",
+          "pred": "The three teams that used conflict optim",
+          "correct": false,
+          "full_tokens": 5113,
+          "used_tokens": 2072
+        },
+        {
+          "id": "9831469b98405cd1fc1bee7de6f9630ae1cbb5946fd7ca0b",
+          "gold": "It required the transformation to be lim",
+          "pred": "The court in *In re Ferguson* concluded ",
+          "correct": false,
+          "full_tokens": 11011,
+          "used_tokens": 5123
+        },
+        {
+          "id": "7ae0ad8d4ded2dee79251ff4f951ecfcabad31d8b4f896ae",
+          "gold": "As the transition probability increases,",
+          "pred": "The transition probability of the enviro",
+          "correct": false,
+          "full_tokens": 6380,
+          "used_tokens": 4696
+        },
+        {
+          "id": "91c198d5820bfba5caf396532a0b30a531e9d09a7a9005a4",
+          "gold": "A subset that form via kinetic rate proc",
+          "pred": "The study focuses on ultracold neutral p",
+          "correct": false,
+          "full_tokens": 9366,
+          "used_tokens": 2085
+        },
+        {
+          "id": "34f9b2c3d79ced580687f9653a6908215f79b1405a918cd0",
+          "gold": "Wearable sensors.",
+          "pred": "The sensors capable of estimating physic",
+          "correct": false,
+          "full_tokens": 13289,
+          "used_tokens": 5648
+        },
+        {
+          "id": "8fbf0a6531d9250e6bcda0c7ba456441f6d4073bf08de826",
+          "gold": "Fairness.",
+          "pred": "The decision to base the water rates on ",
+          "correct": false,
+          "full_tokens": 7678,
+          "used_tokens": 1545
+        },
+        {
+          "id": "d1f31d2998513a4552d0419e16f8eba896e9ea1c8403605b",
+          "gold": "\"I have seen the Lord.\".",
+          "pred": "Answer: Mary told the disciples that she",
+          "correct": false,
+          "full_tokens": 8548,
+          "used_tokens": 510
+        }
+      ]
+    },
+    {
+      "strategy": "sink_topic",
+      "budget": 512,
+      "task": "multifieldqa_en",
+      "metric": 0.3103,
+      "correct": 5,
+      "total": 30,
+      "metric_type": "f1",
+      "avg_latency_s": 1.0,
+      "per_item": [
+        {
+          "id": "c29e95ab6195406aceecf3874186150cb1b8b26db5bcd0e4",
+          "gold": "South West Ultras fan club.",
+          "pred": "The name of the most active fan club is ",
+          "correct": false,
+          "full_tokens": 1670,
+          "used_tokens": 510
+        },
+        {
+          "id": "1d46294ee8fcc0a64828778b04198fcbe4f75841775e1205",
+          "gold": "No, it is not necessary.",
+          "pred": "**Answer:**\n\nNo, the **ISR (Inhibitory S",
+          "correct": false,
+          "full_tokens": 11388,
+          "used_tokens": 3718
+        },
+        {
+          "id": "5b978c8d5792b07ad99da0fc2639c6046051e9c29825ad25",
+          "gold": "Low temperature scanning tunneling micro",
+          "pred": "The experimental techniques used to stud",
+          "correct": false,
+          "full_tokens": 8277,
+          "used_tokens": 1849
+        },
+        {
+          "id": "2f73cf12085e3fb879c775fc4851b72092a060cad5a927c6",
+          "gold": "Implantable Cardioverter Defibrillator (",
+          "pred": "The purpose of an ICD (International Cla",
+          "correct": false,
+          "full_tokens": 12004,
+          "used_tokens": 502
+        },
+        {
+          "id": "41e27260a12cc40a778f8c1ba8bf643ee655871a458e5e1c",
+          "gold": "The sides of the fuselage are sloped to ",
+          "pred": "The sides of the fuselage are sloped (tu",
+          "correct": false,
+          "full_tokens": 7577,
+          "used_tokens": 1217
+        },
+        {
+          "id": "917f18543035ee1b9161cded1d3352531dbf3b249b5f0a18",
+          "gold": "It tends to suppress the Kondo effect.",
+          "pred": "The proximity of superconductivity (SC) ",
+          "correct": false,
+          "full_tokens": 10789,
+          "used_tokens": 2933
+        },
+        {
+          "id": "b5b0eb150f44a4d7641b9adf9267ca0c2492ea46626449b3",
+          "gold": "Electricity is used for transport, heati",
+          "pred": "Electricity is used in everyday life in ",
+          "correct": false,
+          "full_tokens": 8188,
+          "used_tokens": 2143
+        },
+        {
+          "id": "e02f6a69d7b2a96a3aa6cd84a9189c2d552f6fb089f216e1",
+          "gold": "Vice Admiral.",
+          "pred": "Vice Admiral Hugh H. Goodwin was a decor",
+          "correct": false,
+          "full_tokens": 3112,
+          "used_tokens": 1882
+        },
+        {
+          "id": "ed61bdde19a3446389e989c06ab4209f464f9484d42dbd1c",
+          "gold": "They won their first game with a score o",
+          "pred": "The Buckeyes' record in their first game",
+          "correct": false,
+          "full_tokens": 1953,
+          "used_tokens": 471
+        },
+        {
+          "id": "c7ad556387e8215bae3f8ccd30ba35e0093218fe48168718",
+          "gold": "Vitamins K3, K4, and K5.",
+          "pred": "The three synthetic types of vitamin K a",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 5834
+        },
+        {
+          "id": "566881d2138d7e29cd6dd2b661b6f7ffe4c515c92fdaf837",
+          "gold": "Yes, individual molecules of indeno[1,2-",
+          "pred": "Yes, individual molecules of indeno[1,2-",
+          "correct": true,
+          "full_tokens": 9488,
+          "used_tokens": 3470
+        },
+        {
+          "id": "0f101ee4ea9d1d88998598e0405367ad95912c92a7d7a31d",
+          "gold": "3-D printing and software development.",
+          "pred": "Danny works in the field of **3-D printi",
+          "correct": false,
+          "full_tokens": 9849,
+          "used_tokens": 1633
+        },
+        {
+          "id": "b3f3be2f0b46c0df08868f749519635186e6e22cf054ca79",
+          "gold": "90 \u03bcg for women and 120 \u03bcg for men.",
+          "pred": "The recommended daily intake of vitamin ",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 5976
+        },
+        {
+          "id": "4c7891d780eb3f45e8c4e5bf14fd9ed6c0bf898fb159b329",
+          "gold": "Watt, one joule per second.",
+          "pred": "The SI unit of power is the watt, one jo",
+          "correct": true,
+          "full_tokens": 8188,
+          "used_tokens": 929
+        },
+        {
+          "id": "04b588ff2dea15f4a9c4fdbaabc55aaad1ba3446114d6741",
+          "gold": "Flexibility.",
+          "pred": "The main advantage of a horizontal busin",
+          "correct": false,
+          "full_tokens": 9577,
+          "used_tokens": 2141
+        },
+        {
+          "id": "470018af720bc15decf8f7a9643250c9a6548c8efeb394cd",
+          "gold": "Jacob C. Landau.",
+          "pred": "Jacob C.",
+          "correct": true,
+          "full_tokens": 2837,
+          "used_tokens": 664
+        },
+        {
+          "id": "120cb783c796fbedbc76f04cf9be3318e54a63cd642c4401",
+          "gold": "An unsupervised method based on the info",
+          "pred": "The main methodology used in the researc",
+          "correct": false,
+          "full_tokens": 7856,
+          "used_tokens": 519
+        },
+        {
+          "id": "032ee1448dec7751d00cd9f752fc61c5843a47e49dd7fcb6",
+          "gold": "Using the vacuum Einstein equation and t",
+          "pred": "The function $\\beta(r)$ is determined by",
+          "correct": false,
+          "full_tokens": 8962,
+          "used_tokens": 2533
+        },
+        {
+          "id": "18ef34b54d2ddc134e1be7cae3d6101432465011d016c77a",
+          "gold": "The water depth in the Greater Ekofisk A",
+          "pred": "The water depth in the Greater Ekofisk A",
+          "correct": true,
+          "full_tokens": 10128,
+          "used_tokens": 2943
+        },
+        {
+          "id": "74334862b5d8e2a02deb3c24aa90d5339e443fbc412453b8",
+          "gold": "Other toxic products.",
+          "pred": "The vaccines trialed against were **pert",
+          "correct": false,
+          "full_tokens": 3813,
+          "used_tokens": 509
+        },
+        {
+          "id": "934162f30867844eb8d74c9d62c1e2aba3fca790b5b1d53e",
+          "gold": "Margaret Way was born in Brisbane and di",
+          "pred": "Margaret Way was born in Brisbane, Queen",
+          "correct": true,
+          "full_tokens": 2493,
+          "used_tokens": 1087
+        },
+        {
+          "id": "e568cc6d77a0a433937ab4bcf62e49b36a5cf7b3faa0d3ab",
+          "gold": "L = 8 and L = 14.",
+          "pred": "The size chains used in the benchmarking",
+          "correct": false,
+          "full_tokens": 7446,
+          "used_tokens": 510
+        },
+        {
+          "id": "daa4eb9d8b28a987b1c2c049200634cdc510636b19a64ccd",
+          "gold": "5.",
+          "pred": "The answer is: **5 experiments**.",
+          "correct": false,
+          "full_tokens": 5635,
+          "used_tokens": 1939
+        },
+        {
+          "id": "191c14b84f0c8cdad3297f2bee552fb089178995208d7185",
+          "gold": "Lasa, Gitastrophe, and Shadoks.",
+          "pred": "The three teams that used conflict optim",
+          "correct": false,
+          "full_tokens": 5113,
+          "used_tokens": 2074
+        },
+        {
+          "id": "9831469b98405cd1fc1bee7de6f9630ae1cbb5946fd7ca0b",
+          "gold": "It required the transformation to be lim",
+          "pred": "The court in *In re Ferguson* concluded ",
+          "correct": false,
+          "full_tokens": 11011,
+          "used_tokens": 5099
+        },
+        {
+          "id": "7ae0ad8d4ded2dee79251ff4f951ecfcabad31d8b4f896ae",
+          "gold": "As the transition probability increases,",
+          "pred": "The transition probability $ p_{\\text{tr",
+          "correct": false,
+          "full_tokens": 6380,
+          "used_tokens": 4699
+        },
+        {
+          "id": "91c198d5820bfba5caf396532a0b30a531e9d09a7a9005a4",
+          "gold": "A subset that form via kinetic rate proc",
+          "pred": "The study focuses on ultracold neutral p",
+          "correct": false,
+          "full_tokens": 9366,
+          "used_tokens": 2100
+        },
+        {
+          "id": "34f9b2c3d79ced580687f9653a6908215f79b1405a918cd0",
+          "gold": "Wearable sensors.",
+          "pred": "The sensors capable of estimating physic",
+          "correct": false,
+          "full_tokens": 13289,
+          "used_tokens": 5665
+        },
+        {
+          "id": "8fbf0a6531d9250e6bcda0c7ba456441f6d4073bf08de826",
+          "gold": "Fairness.",
+          "pred": "The decision to base the water rates on ",
+          "correct": false,
+          "full_tokens": 7678,
+          "used_tokens": 1549
+        },
+        {
+          "id": "d1f31d2998513a4552d0419e16f8eba896e9ea1c8403605b",
+          "gold": "\"I have seen the Lord.\".",
+          "pred": "Mary told the disciples, **\"I have seen ",
+          "correct": false,
+          "full_tokens": 8548,
+          "used_tokens": 510
+        }
+      ]
+    },
+    {
+      "strategy": "truncation",
+      "budget": 1024,
+      "task": "multifieldqa_en",
+      "metric": 0.1907,
+      "correct": 2,
+      "total": 30,
+      "metric_type": "f1",
+      "avg_latency_s": 0.98,
+      "per_item": [
+        {
+          "id": "c29e95ab6195406aceecf3874186150cb1b8b26db5bcd0e4",
+          "gold": "South West Ultras fan club.",
+          "pred": "The name of the most active fan club is ",
+          "correct": false,
+          "full_tokens": 1670,
+          "used_tokens": 1024
+        },
+        {
+          "id": "1d46294ee8fcc0a64828778b04198fcbe4f75841775e1205",
+          "gold": "No, it is not necessary.",
+          "pred": "No, the GCN2 is not necessary for transg",
+          "correct": false,
+          "full_tokens": 11388,
+          "used_tokens": 1024
+        },
+        {
+          "id": "5b978c8d5792b07ad99da0fc2639c6046051e9c29825ad25",
+          "gold": "Low temperature scanning tunneling micro",
+          "pred": "The experimental techniques used to stud",
+          "correct": false,
+          "full_tokens": 8277,
+          "used_tokens": 1024
+        },
+        {
+          "id": "2f73cf12085e3fb879c775fc4851b72092a060cad5a927c6",
+          "gold": "Implantable Cardioverter Defibrillator (",
+          "pred": "The purpose of an ICD (International Cla",
+          "correct": false,
+          "full_tokens": 12004,
+          "used_tokens": 1024
+        },
+        {
+          "id": "41e27260a12cc40a778f8c1ba8bf643ee655871a458e5e1c",
+          "gold": "The sides of the fuselage are sloped to ",
+          "pred": "It is important for the sides of the fus",
+          "correct": false,
+          "full_tokens": 7577,
+          "used_tokens": 1024
+        },
+        {
+          "id": "917f18543035ee1b9161cded1d3352531dbf3b249b5f0a18",
+          "gold": "It tends to suppress the Kondo effect.",
+          "pred": "The proximity of superconductivity to th",
+          "correct": false,
+          "full_tokens": 10789,
+          "used_tokens": 1024
+        },
+        {
+          "id": "b5b0eb150f44a4d7641b9adf9267ca0c2492ea46626449b3",
+          "gold": "Electricity is used for transport, heati",
+          "pred": "Electricity is used in everyday life in ",
+          "correct": false,
+          "full_tokens": 8188,
+          "used_tokens": 1024
+        },
+        {
+          "id": "e02f6a69d7b2a96a3aa6cd84a9189c2d552f6fb089f216e1",
+          "gold": "Vice Admiral.",
+          "pred": "Vice admiral Hugh H. Goodwin was advance",
+          "correct": false,
+          "full_tokens": 3112,
+          "used_tokens": 1024
+        },
+        {
+          "id": "ed61bdde19a3446389e989c06ab4209f464f9484d42dbd1c",
+          "gold": "They won their first game with a score o",
+          "pred": "The Buckeyes' record in their first game",
+          "correct": false,
+          "full_tokens": 1953,
+          "used_tokens": 1024
+        },
+        {
+          "id": "c7ad556387e8215bae3f8ccd30ba35e0093218fe48168718",
+          "gold": "Vitamins K3, K4, and K5.",
+          "pred": "The three synthetic types of vitamin K a",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 1024
+        },
+        {
+          "id": "566881d2138d7e29cd6dd2b661b6f7ffe4c515c92fdaf837",
+          "gold": "Yes, individual molecules of indeno[1,2-",
+          "pred": "No, individual molecules of indeno[1,2-a",
+          "correct": true,
+          "full_tokens": 9488,
+          "used_tokens": 1024
+        },
+        {
+          "id": "0f101ee4ea9d1d88998598e0405367ad95912c92a7d7a31d",
+          "gold": "3-D printing and software development.",
+          "pred": "Danny works in the field of **child psyc",
+          "correct": false,
+          "full_tokens": 9849,
+          "used_tokens": 1024
+        },
+        {
+          "id": "b3f3be2f0b46c0df08868f749519635186e6e22cf054ca79",
+          "gold": "90 \u03bcg for women and 120 \u03bcg for men.",
+          "pred": "The recommended daily intake of vitamin ",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 1024
+        },
+        {
+          "id": "4c7891d780eb3f45e8c4e5bf14fd9ed6c0bf898fb159b329",
+          "gold": "Watt, one joule per second.",
+          "pred": "The SI unit of power is the watt (W).",
+          "correct": false,
+          "full_tokens": 8188,
+          "used_tokens": 1024
+        },
+        {
+          "id": "04b588ff2dea15f4a9c4fdbaabc55aaad1ba3446114d6741",
+          "gold": "Flexibility.",
+          "pred": "The main advantage of a horizontal busin",
+          "correct": false,
+          "full_tokens": 9577,
+          "used_tokens": 1024
+        },
+        {
+          "id": "470018af720bc15decf8f7a9643250c9a6548c8efeb394cd",
+          "gold": "Jacob C. Landau.",
+          "pred": "Brooksley Elizabeth's first husband was ",
+          "correct": false,
+          "full_tokens": 2837,
+          "used_tokens": 1024
+        },
+        {
+          "id": "120cb783c796fbedbc76f04cf9be3318e54a63cd642c4401",
+          "gold": "An unsupervised method based on the info",
+          "pred": "The main methodology used in the researc",
+          "correct": false,
+          "full_tokens": 7856,
+          "used_tokens": 1024
+        },
+        {
+          "id": "032ee1448dec7751d00cd9f752fc61c5843a47e49dd7fcb6",
+          "gold": "Using the vacuum Einstein equation and t",
+          "pred": "The function $\\beta(r)$ is determined by",
+          "correct": false,
+          "full_tokens": 8962,
+          "used_tokens": 1024
+        },
+        {
+          "id": "18ef34b54d2ddc134e1be7cae3d6101432465011d016c77a",
+          "gold": "The water depth in the Greater Ekofisk A",
+          "pred": "The water depth in the Greater Ekofisk A",
+          "correct": true,
+          "full_tokens": 10128,
+          "used_tokens": 1024
+        },
+        {
+          "id": "74334862b5d8e2a02deb3c24aa90d5339e443fbc412453b8",
+          "gold": "Other toxic products.",
+          "pred": "The vaccines trialed against were the DP",
+          "correct": false,
+          "full_tokens": 3813,
+          "used_tokens": 1024
+        },
+        {
+          "id": "934162f30867844eb8d74c9d62c1e2aba3fca790b5b1d53e",
+          "gold": "Margaret Way was born in Brisbane and di",
+          "pred": "Based on the information provided, **Mar",
+          "correct": false,
+          "full_tokens": 2493,
+          "used_tokens": 1024
+        },
+        {
+          "id": "e568cc6d77a0a433937ab4bcf62e49b36a5cf7b3faa0d3ab",
+          "gold": "L = 8 and L = 14.",
+          "pred": "The size of the chains used in the bench",
+          "correct": false,
+          "full_tokens": 7446,
+          "used_tokens": 1024
+        },
+        {
+          "id": "daa4eb9d8b28a987b1c2c049200634cdc510636b19a64ccd",
+          "gold": "5.",
+          "pred": "The controller was demonstrated to test ",
+          "correct": false,
+          "full_tokens": 5635,
+          "used_tokens": 1024
+        },
+        {
+          "id": "191c14b84f0c8cdad3297f2bee552fb089178995208d7185",
+          "gold": "Lasa, Gitastrophe, and Shadoks.",
+          "pred": "The three teams that used conflict optim",
+          "correct": false,
+          "full_tokens": 5113,
+          "used_tokens": 1024
+        },
+        {
+          "id": "9831469b98405cd1fc1bee7de6f9630ae1cbb5946fd7ca0b",
+          "gold": "It required the transformation to be lim",
+          "pred": "The court in *In re Ferguson* concluded ",
+          "correct": false,
+          "full_tokens": 11011,
+          "used_tokens": 1024
+        },
+        {
+          "id": "7ae0ad8d4ded2dee79251ff4f951ecfcabad31d8b4f896ae",
+          "gold": "As the transition probability increases,",
+          "pred": "The transition probability of the enviro",
+          "correct": false,
+          "full_tokens": 6380,
+          "used_tokens": 1024
+        },
+        {
+          "id": "91c198d5820bfba5caf396532a0b30a531e9d09a7a9005a4",
+          "gold": "A subset that form via kinetic rate proc",
+          "pred": "The study focuses on **molecular ultraco",
+          "correct": false,
+          "full_tokens": 9366,
+          "used_tokens": 1024
+        },
+        {
+          "id": "34f9b2c3d79ced580687f9653a6908215f79b1405a918cd0",
+          "gold": "Wearable sensors.",
+          "pred": "The sensors capable of estimating physic",
+          "correct": false,
+          "full_tokens": 13289,
+          "used_tokens": 1024
+        },
+        {
+          "id": "8fbf0a6531d9250e6bcda0c7ba456441f6d4073bf08de826",
+          "gold": "Fairness.",
+          "pred": "The decision to base the water rates on ",
+          "correct": false,
+          "full_tokens": 7678,
+          "used_tokens": 1024
+        },
+        {
+          "id": "d1f31d2998513a4552d0419e16f8eba896e9ea1c8403605b",
+          "gold": "\"I have seen the Lord.\".",
+          "pred": "The answer is: **Mary told the disciples",
+          "correct": false,
+          "full_tokens": 8548,
+          "used_tokens": 1024
+        }
+      ]
+    },
+    {
+      "strategy": "project_topic",
+      "budget": 1024,
+      "task": "multifieldqa_en",
+      "metric": 0.3324,
+      "correct": 9,
+      "total": 30,
+      "metric_type": "f1",
+      "avg_latency_s": 0.97,
+      "per_item": [
+        {
+          "id": "c29e95ab6195406aceecf3874186150cb1b8b26db5bcd0e4",
+          "gold": "South West Ultras fan club.",
+          "pred": "The most active fan club is the South We",
+          "correct": true,
+          "full_tokens": 1670,
+          "used_tokens": 1021
+        },
+        {
+          "id": "1d46294ee8fcc0a64828778b04198fcbe4f75841775e1205",
+          "gold": "No, it is not necessary.",
+          "pred": "The **ISR (Inhibitory Signal Regulator) ",
+          "correct": false,
+          "full_tokens": 11388,
+          "used_tokens": 3722
+        },
+        {
+          "id": "5b978c8d5792b07ad99da0fc2639c6046051e9c29825ad25",
+          "gold": "Low temperature scanning tunneling micro",
+          "pred": "The experimental techniques used to stud",
+          "correct": false,
+          "full_tokens": 8277,
+          "used_tokens": 1843
+        },
+        {
+          "id": "2f73cf12085e3fb879c775fc4851b72092a060cad5a927c6",
+          "gold": "Implantable Cardioverter Defibrillator (",
+          "pred": "The purpose of an ICD (International Cla",
+          "correct": false,
+          "full_tokens": 12004,
+          "used_tokens": 577
+        },
+        {
+          "id": "41e27260a12cc40a778f8c1ba8bf643ee655871a458e5e1c",
+          "gold": "The sides of the fuselage are sloped to ",
+          "pred": "The sides of the fuselage are sloped (tu",
+          "correct": true,
+          "full_tokens": 7577,
+          "used_tokens": 1217
+        },
+        {
+          "id": "917f18543035ee1b9161cded1d3352531dbf3b249b5f0a18",
+          "gold": "It tends to suppress the Kondo effect.",
+          "pred": "The proximity of superconductivity (SC) ",
+          "correct": false,
+          "full_tokens": 10789,
+          "used_tokens": 2914
+        },
+        {
+          "id": "b5b0eb150f44a4d7641b9adf9267ca0c2492ea46626449b3",
+          "gold": "Electricity is used for transport, heati",
+          "pred": "Electricity is used in everyday life in ",
+          "correct": true,
+          "full_tokens": 8188,
+          "used_tokens": 2123
+        },
+        {
+          "id": "e02f6a69d7b2a96a3aa6cd84a9189c2d552f6fb089f216e1",
+          "gold": "Vice Admiral.",
+          "pred": "Vice Admiral.",
+          "correct": true,
+          "full_tokens": 3112,
+          "used_tokens": 1877
+        },
+        {
+          "id": "ed61bdde19a3446389e989c06ab4209f464f9484d42dbd1c",
+          "gold": "They won their first game with a score o",
+          "pred": "The Buckeyes' record in their first game",
+          "correct": false,
+          "full_tokens": 1953,
+          "used_tokens": 786
+        },
+        {
+          "id": "c7ad556387e8215bae3f8ccd30ba35e0093218fe48168718",
+          "gold": "Vitamins K3, K4, and K5.",
+          "pred": "The three synthetic types of vitamin K a",
+          "correct": true,
+          "full_tokens": 14851,
+          "used_tokens": 5835
+        },
+        {
+          "id": "566881d2138d7e29cd6dd2b661b6f7ffe4c515c92fdaf837",
+          "gold": "Yes, individual molecules of indeno[1,2-",
+          "pred": "Yes, individual molecules of indeno[1,2-",
+          "correct": true,
+          "full_tokens": 9488,
+          "used_tokens": 3470
+        },
+        {
+          "id": "0f101ee4ea9d1d88998598e0405367ad95912c92a7d7a31d",
+          "gold": "3-D printing and software development.",
+          "pred": "Danny works in the field of **3-D printi",
+          "correct": false,
+          "full_tokens": 9849,
+          "used_tokens": 1631
+        },
+        {
+          "id": "b3f3be2f0b46c0df08868f749519635186e6e22cf054ca79",
+          "gold": "90 \u03bcg for women and 120 \u03bcg for men.",
+          "pred": "The recommended daily intake of vitamin ",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 5978
+        },
+        {
+          "id": "4c7891d780eb3f45e8c4e5bf14fd9ed6c0bf898fb159b329",
+          "gold": "Watt, one joule per second.",
+          "pred": "The SI unit of power is the watt, one jo",
+          "correct": true,
+          "full_tokens": 8188,
+          "used_tokens": 1022
+        },
+        {
+          "id": "04b588ff2dea15f4a9c4fdbaabc55aaad1ba3446114d6741",
+          "gold": "Flexibility.",
+          "pred": "The main advantage of a horizontal busin",
+          "correct": false,
+          "full_tokens": 9577,
+          "used_tokens": 2138
+        },
+        {
+          "id": "470018af720bc15decf8f7a9643250c9a6548c8efeb394cd",
+          "gold": "Jacob C. Landau.",
+          "pred": "Alexander E. Bennett.",
+          "correct": false,
+          "full_tokens": 2837,
+          "used_tokens": 1022
+        },
+        {
+          "id": "120cb783c796fbedbc76f04cf9be3318e54a63cd642c4401",
+          "gold": "An unsupervised method based on the info",
+          "pred": "The main methodology used in the researc",
+          "correct": false,
+          "full_tokens": 7856,
+          "used_tokens": 1025
+        },
+        {
+          "id": "032ee1448dec7751d00cd9f752fc61c5843a47e49dd7fcb6",
+          "gold": "Using the vacuum Einstein equation and t",
+          "pred": "The function $\\beta(r)$ is determined by",
+          "correct": false,
+          "full_tokens": 8962,
+          "used_tokens": 2526
+        },
+        {
+          "id": "18ef34b54d2ddc134e1be7cae3d6101432465011d016c77a",
+          "gold": "The water depth in the Greater Ekofisk A",
+          "pred": "The water depth in the Greater Ekofisk A",
+          "correct": true,
+          "full_tokens": 10128,
+          "used_tokens": 2939
+        },
+        {
+          "id": "74334862b5d8e2a02deb3c24aa90d5339e443fbc412453b8",
+          "gold": "Other toxic products.",
+          "pred": "The vaccines trialed against were genuin",
+          "correct": false,
+          "full_tokens": 3813,
+          "used_tokens": 1023
+        },
+        {
+          "id": "934162f30867844eb8d74c9d62c1e2aba3fca790b5b1d53e",
+          "gold": "Margaret Way was born in Brisbane and di",
+          "pred": "Margaret Way was born in Brisbane, Queen",
+          "correct": true,
+          "full_tokens": 2493,
+          "used_tokens": 1083
+        },
+        {
+          "id": "e568cc6d77a0a433937ab4bcf62e49b36a5cf7b3faa0d3ab",
+          "gold": "L = 8 and L = 14.",
+          "pred": "The size chains used in the benchmarking",
+          "correct": false,
+          "full_tokens": 7446,
+          "used_tokens": 1025
+        },
+        {
+          "id": "daa4eb9d8b28a987b1c2c049200634cdc510636b19a64ccd",
+          "gold": "5.",
+          "pred": "The experiments demonstrated five differ",
+          "correct": false,
+          "full_tokens": 5635,
+          "used_tokens": 1940
+        },
+        {
+          "id": "191c14b84f0c8cdad3297f2bee552fb089178995208d7185",
+          "gold": "Lasa, Gitastrophe, and Shadoks.",
+          "pred": "The three teams that used conflict optim",
+          "correct": false,
+          "full_tokens": 5113,
+          "used_tokens": 2071
+        },
+        {
+          "id": "9831469b98405cd1fc1bee7de6f9630ae1cbb5946fd7ca0b",
+          "gold": "It required the transformation to be lim",
+          "pred": "The court in *In re Ferguson* concluded ",
+          "correct": false,
+          "full_tokens": 11011,
+          "used_tokens": 5122
+        },
+        {
+          "id": "7ae0ad8d4ded2dee79251ff4f951ecfcabad31d8b4f896ae",
+          "gold": "As the transition probability increases,",
+          "pred": "The transition probability of the enviro",
+          "correct": false,
+          "full_tokens": 6380,
+          "used_tokens": 4695
+        },
+        {
+          "id": "91c198d5820bfba5caf396532a0b30a531e9d09a7a9005a4",
+          "gold": "A subset that form via kinetic rate proc",
+          "pred": "The study focuses on ultracold neutral p",
+          "correct": false,
+          "full_tokens": 9366,
+          "used_tokens": 2084
+        },
+        {
+          "id": "34f9b2c3d79ced580687f9653a6908215f79b1405a918cd0",
+          "gold": "Wearable sensors.",
+          "pred": "The sensors capable of estimating physic",
+          "correct": false,
+          "full_tokens": 13289,
+          "used_tokens": 5647
+        },
+        {
+          "id": "8fbf0a6531d9250e6bcda0c7ba456441f6d4073bf08de826",
+          "gold": "Fairness.",
+          "pred": "The decision to base the water rates on ",
+          "correct": false,
+          "full_tokens": 7678,
+          "used_tokens": 1544
+        },
+        {
+          "id": "d1f31d2998513a4552d0419e16f8eba896e9ea1c8403605b",
+          "gold": "\"I have seen the Lord.\".",
+          "pred": "Mary told the disciples, \"Sir, if you ha",
+          "correct": false,
+          "full_tokens": 8548,
+          "used_tokens": 1019
+        }
+      ]
+    },
+    {
+      "strategy": "attention_sink",
+      "budget": 1024,
+      "task": "multifieldqa_en",
+      "metric": 0.3164,
+      "correct": 8,
+      "total": 30,
+      "metric_type": "f1",
+      "avg_latency_s": 0.96,
+      "per_item": [
+        {
+          "id": "c29e95ab6195406aceecf3874186150cb1b8b26db5bcd0e4",
+          "gold": "South West Ultras fan club.",
+          "pred": "The most active fan club is the South We",
+          "correct": true,
+          "full_tokens": 1670,
+          "used_tokens": 1022
+        },
+        {
+          "id": "1d46294ee8fcc0a64828778b04198fcbe4f75841775e1205",
+          "gold": "No, it is not necessary.",
+          "pred": "Yes, the **ISR (Inhibitory Signal Regula",
+          "correct": false,
+          "full_tokens": 11388,
+          "used_tokens": 3723
+        },
+        {
+          "id": "5b978c8d5792b07ad99da0fc2639c6046051e9c29825ad25",
+          "gold": "Low temperature scanning tunneling micro",
+          "pred": "The experimental techniques used to stud",
+          "correct": false,
+          "full_tokens": 8277,
+          "used_tokens": 1844
+        },
+        {
+          "id": "2f73cf12085e3fb879c775fc4851b72092a060cad5a927c6",
+          "gold": "Implantable Cardioverter Defibrillator (",
+          "pred": "The purpose of an ICD (International Cla",
+          "correct": false,
+          "full_tokens": 12004,
+          "used_tokens": 578
+        },
+        {
+          "id": "41e27260a12cc40a778f8c1ba8bf643ee655871a458e5e1c",
+          "gold": "The sides of the fuselage are sloped to ",
+          "pred": "The sides of the fuselage are sloped (tu",
+          "correct": true,
+          "full_tokens": 7577,
+          "used_tokens": 1218
+        },
+        {
+          "id": "917f18543035ee1b9161cded1d3352531dbf3b249b5f0a18",
+          "gold": "It tends to suppress the Kondo effect.",
+          "pred": "The proximity of superconductivity (SC) ",
+          "correct": false,
+          "full_tokens": 10789,
+          "used_tokens": 2915
+        },
+        {
+          "id": "b5b0eb150f44a4d7641b9adf9267ca0c2492ea46626449b3",
+          "gold": "Electricity is used for transport, heati",
+          "pred": "Electricity is used in everyday life in ",
+          "correct": false,
+          "full_tokens": 8188,
+          "used_tokens": 2124
+        },
+        {
+          "id": "e02f6a69d7b2a96a3aa6cd84a9189c2d552f6fb089f216e1",
+          "gold": "Vice Admiral.",
+          "pred": "Vice Admiral.",
+          "correct": true,
+          "full_tokens": 3112,
+          "used_tokens": 1879
+        },
+        {
+          "id": "ed61bdde19a3446389e989c06ab4209f464f9484d42dbd1c",
+          "gold": "They won their first game with a score o",
+          "pred": "The Buckeyes' record in their first game",
+          "correct": false,
+          "full_tokens": 1953,
+          "used_tokens": 788
+        },
+        {
+          "id": "c7ad556387e8215bae3f8ccd30ba35e0093218fe48168718",
+          "gold": "Vitamins K3, K4, and K5.",
+          "pred": "The three synthetic types of vitamin K a",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 5836
+        },
+        {
+          "id": "566881d2138d7e29cd6dd2b661b6f7ffe4c515c92fdaf837",
+          "gold": "Yes, individual molecules of indeno[1,2-",
+          "pred": "Yes, individual molecules of indeno[1,2-",
+          "correct": true,
+          "full_tokens": 9488,
+          "used_tokens": 3471
+        },
+        {
+          "id": "0f101ee4ea9d1d88998598e0405367ad95912c92a7d7a31d",
+          "gold": "3-D printing and software development.",
+          "pred": "Danny works in the field of **3-D printi",
+          "correct": false,
+          "full_tokens": 9849,
+          "used_tokens": 1632
+        },
+        {
+          "id": "b3f3be2f0b46c0df08868f749519635186e6e22cf054ca79",
+          "gold": "90 \u03bcg for women and 120 \u03bcg for men.",
+          "pred": "The recommended daily intake of vitamin ",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 5979
+        },
+        {
+          "id": "4c7891d780eb3f45e8c4e5bf14fd9ed6c0bf898fb159b329",
+          "gold": "Watt, one joule per second.",
+          "pred": "The SI unit of power is the watt, one jo",
+          "correct": true,
+          "full_tokens": 8188,
+          "used_tokens": 1025
+        },
+        {
+          "id": "04b588ff2dea15f4a9c4fdbaabc55aaad1ba3446114d6741",
+          "gold": "Flexibility.",
+          "pred": "The main advantage of a horizontal busin",
+          "correct": false,
+          "full_tokens": 9577,
+          "used_tokens": 2139
+        },
+        {
+          "id": "470018af720bc15decf8f7a9643250c9a6548c8efeb394cd",
+          "gold": "Jacob C. Landau.",
+          "pred": "Alexander E. Bennett.",
+          "correct": false,
+          "full_tokens": 2837,
+          "used_tokens": 1021
+        },
+        {
+          "id": "120cb783c796fbedbc76f04cf9be3318e54a63cd642c4401",
+          "gold": "An unsupervised method based on the info",
+          "pred": "The main methodology used in the researc",
+          "correct": false,
+          "full_tokens": 7856,
+          "used_tokens": 1026
+        },
+        {
+          "id": "032ee1448dec7751d00cd9f752fc61c5843a47e49dd7fcb6",
+          "gold": "Using the vacuum Einstein equation and t",
+          "pred": "The function $\\beta(r)$ is determined by",
+          "correct": false,
+          "full_tokens": 8962,
+          "used_tokens": 2527
+        },
+        {
+          "id": "18ef34b54d2ddc134e1be7cae3d6101432465011d016c77a",
+          "gold": "The water depth in the Greater Ekofisk A",
+          "pred": "The water depth in the Greater Ekofisk A",
+          "correct": true,
+          "full_tokens": 10128,
+          "used_tokens": 2940
+        },
+        {
+          "id": "74334862b5d8e2a02deb3c24aa90d5339e443fbc412453b8",
+          "gold": "Other toxic products.",
+          "pred": "The vaccines trialed against were genuin",
+          "correct": false,
+          "full_tokens": 3813,
+          "used_tokens": 1024
+        },
+        {
+          "id": "934162f30867844eb8d74c9d62c1e2aba3fca790b5b1d53e",
+          "gold": "Margaret Way was born in Brisbane and di",
+          "pred": "Margaret Way was born in Brisbane, Queen",
+          "correct": true,
+          "full_tokens": 2493,
+          "used_tokens": 1085
+        },
+        {
+          "id": "e568cc6d77a0a433937ab4bcf62e49b36a5cf7b3faa0d3ab",
+          "gold": "L = 8 and L = 14.",
+          "pred": "The size chains used in the benchmarking",
+          "correct": false,
+          "full_tokens": 7446,
+          "used_tokens": 1026
+        },
+        {
+          "id": "daa4eb9d8b28a987b1c2c049200634cdc510636b19a64ccd",
+          "gold": "5.",
+          "pred": "The controller was demonstrated in five ",
+          "correct": false,
+          "full_tokens": 5635,
+          "used_tokens": 1941
+        },
+        {
+          "id": "191c14b84f0c8cdad3297f2bee552fb089178995208d7185",
+          "gold": "Lasa, Gitastrophe, and Shadoks.",
+          "pred": "The three teams that used conflict optim",
+          "correct": false,
+          "full_tokens": 5113,
+          "used_tokens": 2072
+        },
+        {
+          "id": "9831469b98405cd1fc1bee7de6f9630ae1cbb5946fd7ca0b",
+          "gold": "It required the transformation to be lim",
+          "pred": "The court in *In re Ferguson* concluded ",
+          "correct": false,
+          "full_tokens": 11011,
+          "used_tokens": 5123
+        },
+        {
+          "id": "7ae0ad8d4ded2dee79251ff4f951ecfcabad31d8b4f896ae",
+          "gold": "As the transition probability increases,",
+          "pred": "The transition probability of the enviro",
+          "correct": false,
+          "full_tokens": 6380,
+          "used_tokens": 4696
+        },
+        {
+          "id": "91c198d5820bfba5caf396532a0b30a531e9d09a7a9005a4",
+          "gold": "A subset that form via kinetic rate proc",
+          "pred": "The study focuses on ultracold neutral p",
+          "correct": false,
+          "full_tokens": 9366,
+          "used_tokens": 2085
+        },
+        {
+          "id": "34f9b2c3d79ced580687f9653a6908215f79b1405a918cd0",
+          "gold": "Wearable sensors.",
+          "pred": "The sensors capable of estimating physic",
+          "correct": false,
+          "full_tokens": 13289,
+          "used_tokens": 5648
+        },
+        {
+          "id": "8fbf0a6531d9250e6bcda0c7ba456441f6d4073bf08de826",
+          "gold": "Fairness.",
+          "pred": "The decision to base the water rates on ",
+          "correct": false,
+          "full_tokens": 7678,
+          "used_tokens": 1545
+        },
+        {
+          "id": "d1f31d2998513a4552d0419e16f8eba896e9ea1c8403605b",
+          "gold": "\"I have seen the Lord.\".",
+          "pred": "Mary told the disciples, \"I have seen th",
+          "correct": true,
+          "full_tokens": 8548,
+          "used_tokens": 1016
+        }
+      ]
+    },
+    {
+      "strategy": "sink_topic",
+      "budget": 1024,
+      "task": "multifieldqa_en",
+      "metric": 0.278,
+      "correct": 4,
+      "total": 30,
+      "metric_type": "f1",
+      "avg_latency_s": 1.04,
+      "per_item": [
+        {
+          "id": "c29e95ab6195406aceecf3874186150cb1b8b26db5bcd0e4",
+          "gold": "South West Ultras fan club.",
+          "pred": "The most active fan club is the **South ",
+          "correct": false,
+          "full_tokens": 1670,
+          "used_tokens": 1022
+        },
+        {
+          "id": "1d46294ee8fcc0a64828778b04198fcbe4f75841775e1205",
+          "gold": "No, it is not necessary.",
+          "pred": "**Answer:**\n\nNo, the **ISR (Inhibitory S",
+          "correct": false,
+          "full_tokens": 11388,
+          "used_tokens": 3718
+        },
+        {
+          "id": "5b978c8d5792b07ad99da0fc2639c6046051e9c29825ad25",
+          "gold": "Low temperature scanning tunneling micro",
+          "pred": "The experimental techniques used to stud",
+          "correct": false,
+          "full_tokens": 8277,
+          "used_tokens": 1849
+        },
+        {
+          "id": "2f73cf12085e3fb879c775fc4851b72092a060cad5a927c6",
+          "gold": "Implantable Cardioverter Defibrillator (",
+          "pred": "The purpose of an ICD (International Cla",
+          "correct": false,
+          "full_tokens": 12004,
+          "used_tokens": 578
+        },
+        {
+          "id": "41e27260a12cc40a778f8c1ba8bf643ee655871a458e5e1c",
+          "gold": "The sides of the fuselage are sloped to ",
+          "pred": "The sides of the fuselage are sloped (tu",
+          "correct": false,
+          "full_tokens": 7577,
+          "used_tokens": 1217
+        },
+        {
+          "id": "917f18543035ee1b9161cded1d3352531dbf3b249b5f0a18",
+          "gold": "It tends to suppress the Kondo effect.",
+          "pred": "The proximity of superconductivity (SC) ",
+          "correct": false,
+          "full_tokens": 10789,
+          "used_tokens": 2933
+        },
+        {
+          "id": "b5b0eb150f44a4d7641b9adf9267ca0c2492ea46626449b3",
+          "gold": "Electricity is used for transport, heati",
+          "pred": "Electricity is used in everyday life in ",
+          "correct": false,
+          "full_tokens": 8188,
+          "used_tokens": 2143
+        },
+        {
+          "id": "e02f6a69d7b2a96a3aa6cd84a9189c2d552f6fb089f216e1",
+          "gold": "Vice Admiral.",
+          "pred": "Vice Admiral Hugh H. Goodwin was a decor",
+          "correct": false,
+          "full_tokens": 3112,
+          "used_tokens": 1882
+        },
+        {
+          "id": "ed61bdde19a3446389e989c06ab4209f464f9484d42dbd1c",
+          "gold": "They won their first game with a score o",
+          "pred": "The Buckeyes' record in their first game",
+          "correct": false,
+          "full_tokens": 1953,
+          "used_tokens": 788
+        },
+        {
+          "id": "c7ad556387e8215bae3f8ccd30ba35e0093218fe48168718",
+          "gold": "Vitamins K3, K4, and K5.",
+          "pred": "The three synthetic types of vitamin K a",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 5834
+        },
+        {
+          "id": "566881d2138d7e29cd6dd2b661b6f7ffe4c515c92fdaf837",
+          "gold": "Yes, individual molecules of indeno[1,2-",
+          "pred": "Yes, individual molecules of indeno[1,2-",
+          "correct": true,
+          "full_tokens": 9488,
+          "used_tokens": 3470
+        },
+        {
+          "id": "0f101ee4ea9d1d88998598e0405367ad95912c92a7d7a31d",
+          "gold": "3-D printing and software development.",
+          "pred": "Danny works in the field of **3-D printi",
+          "correct": false,
+          "full_tokens": 9849,
+          "used_tokens": 1633
+        },
+        {
+          "id": "b3f3be2f0b46c0df08868f749519635186e6e22cf054ca79",
+          "gold": "90 \u03bcg for women and 120 \u03bcg for men.",
+          "pred": "The recommended daily intake of vitamin ",
+          "correct": false,
+          "full_tokens": 14851,
+          "used_tokens": 5976
+        },
+        {
+          "id": "4c7891d780eb3f45e8c4e5bf14fd9ed6c0bf898fb159b329",
+          "gold": "Watt, one joule per second.",
+          "pred": "The SI unit of power is the watt, one jo",
+          "correct": true,
+          "full_tokens": 8188,
+          "used_tokens": 1024
+        },
+        {
+          "id": "04b588ff2dea15f4a9c4fdbaabc55aaad1ba3446114d6741",
+          "gold": "Flexibility.",
+          "pred": "The main advantage of a horizontal busin",
+          "correct": false,
+          "full_tokens": 9577,
+          "used_tokens": 2141
+        },
+        {
+          "id": "470018af720bc15decf8f7a9643250c9a6548c8efeb394cd",
+          "gold": "Jacob C. Landau.",
+          "pred": "Brooksley Elizabeth's first husband was ",
+          "correct": false,
+          "full_tokens": 2837,
+          "used_tokens": 1021
+        },
+        {
+          "id": "120cb783c796fbedbc76f04cf9be3318e54a63cd642c4401",
+          "gold": "An unsupervised method based on the info",
+          "pred": "The main methodology used in the researc",
+          "correct": false,
+          "full_tokens": 7856,
+          "used_tokens": 1026
+        },
+        {
+          "id": "032ee1448dec7751d00cd9f752fc61c5843a47e49dd7fcb6",
+          "gold": "Using the vacuum Einstein equation and t",
+          "pred": "The function $\\beta(r)$ is determined by",
+          "correct": false,
+          "full_tokens": 8962,
+          "used_tokens": 2533
+        },
+        {
+          "id": "18ef34b54d2ddc134e1be7cae3d6101432465011d016c77a",
+          "gold": "The water depth in the Greater Ekofisk A",
+          "pred": "The water depth in the Greater Ekofisk A",
+          "correct": true,
+          "full_tokens": 10128,
+          "used_tokens": 2943
+        },
+        {
+          "id": "74334862b5d8e2a02deb3c24aa90d5339e443fbc412453b8",
+          "gold": "Other toxic products.",
+          "pred": "The vaccines trialed against were **genu",
+          "correct": false,
+          "full_tokens": 3813,
+          "used_tokens": 1025
+        },
+        {
+          "id": "934162f30867844eb8d74c9d62c1e2aba3fca790b5b1d53e",
+          "gold": "Margaret Way was born in Brisbane and di",
+          "pred": "Margaret Way was born in Brisbane, Queen",
+          "correct": true,
+          "full_tokens": 2493,
+          "used_tokens": 1087
+        },
+        {
+          "id": "e568cc6d77a0a433937ab4bcf62e49b36a5cf7b3faa0d3ab",
+          "gold": "L = 8 and L = 14.",
+          "pred": "The size chains used in the benchmarking",
+          "correct": false,
+          "full_tokens": 7446,
+          "used_tokens": 1026
+        },
+        {
+          "id": "daa4eb9d8b28a987b1c2c049200634cdc510636b19a64ccd",
+          "gold": "5.",
+          "pred": "The answer is: **5 experiments**.",
+          "correct": false,
+          "full_tokens": 5635,
+          "used_tokens": 1939
+        },
+        {
+          "id": "191c14b84f0c8cdad3297f2bee552fb089178995208d7185",
+          "gold": "Lasa, Gitastrophe, and Shadoks.",
+          "pred": "The three teams that used conflict optim",
+          "correct": false,
+          "full_tokens": 5113,
+          "used_tokens": 2074
+        },
+        {
+          "id": "9831469b98405cd1fc1bee7de6f9630ae1cbb5946fd7ca0b",
+          "gold": "It required the transformation to be lim",
+          "pred": "The court in *In re Ferguson* concluded ",
+          "correct": false,
+          "full_tokens": 11011,
+          "used_tokens": 5099
+        },
+        {
+          "id": "7ae0ad8d4ded2dee79251ff4f951ecfcabad31d8b4f896ae",
+          "gold": "As the transition probability increases,",
+          "pred": "The transition probability $ p_{\\text{tr",
+          "correct": false,
+          "full_tokens": 6380,
+          "used_tokens": 4699
+        },
+        {
+          "id": "91c198d5820bfba5caf396532a0b30a531e9d09a7a9005a4",
+          "gold": "A subset that form via kinetic rate proc",
+          "pred": "The study focuses on ultracold neutral p",
+          "correct": false,
+          "full_tokens": 9366,
+          "used_tokens": 2100
+        },
+        {
+          "id": "34f9b2c3d79ced580687f9653a6908215f79b1405a918cd0",
+          "gold": "Wearable sensors.",
+          "pred": "The sensors capable of estimating physic",
+          "correct": false,
+          "full_tokens": 13289,
+          "used_tokens": 5665
+        },
+        {
+          "id": "8fbf0a6531d9250e6bcda0c7ba456441f6d4073bf08de826",
+          "gold": "Fairness.",
+          "pred": "The decision to base the water rates on ",
+          "correct": false,
+          "full_tokens": 7678,
+          "used_tokens": 1549
+        },
+        {
+          "id": "d1f31d2998513a4552d0419e16f8eba896e9ea1c8403605b",
+          "gold": "\"I have seen the Lord.\".",
+          "pred": "Answer: \"Sir, if you have carried him aw",
+          "correct": false,
+          "full_tokens": 8548,
+          "used_tokens": 1016
+        }
+      ]
+    }
+  ]
+}

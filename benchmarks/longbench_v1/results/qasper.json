@@ -1,0 +1,700 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "task": "qasper",
+    "samples": 20,
+    "budgets": [
+      1024
+    ]
+  },
+  "strategies": [
+    {
+      "strategy": "truncation",
+      "budget": 1024,
+      "task": "qasper",
+      "metric": 0.1323,
+      "correct": 0,
+      "total": 20,
+      "metric_type": "f1",
+      "avg_latency_s": 1.04,
+      "per_item": [
+        {
+          "id": "3ac3eef636db11635a21a61804cb28e92c546a5686dd1e12",
+          "gold": "Ground truth is not established in the p",
+          "pred": "The ground truth for fake news is establ",
+          "correct": false,
+          "full_tokens": 3904,
+          "used_tokens": 1024
+        },
+        {
+          "id": "db6c4d611b78c840972b57ee0b245003566b982feaff1084",
+          "gold": "extension of the NetVLAD, adds Ghost clu",
+          "pred": "The GhostVLAD pooling approach is a feat",
+          "correct": false,
+          "full_tokens": 3244,
+          "used_tokens": 1024
+        },
+        {
+          "id": "e419f2bff9d2ab7c3b60b3250caccd2d9ae1285ec3e8e818",
+          "gold": "the attention model, MDREA, also outperf",
+          "pred": "The proposed model outperforms the state",
+          "correct": false,
+          "full_tokens": 4287,
+          "used_tokens": 1024
+        },
+        {
+          "id": "9fb085a1f47673d1907f2378c90843b4b6e8622a14fe1fa9",
+          "gold": "using tweets that one has replied or quo",
+          "pred": "The additional features and context prop",
+          "correct": false,
+          "full_tokens": 2895,
+          "used_tokens": 1024
+        },
+        {
+          "id": "14e88916523197e066dbb743339685621db47c4beb503abb",
+          "gold": "FoxNews, CNN, ESPN, New York Times, Time",
+          "pred": "The Facebook pages used for training wer",
+          "correct": false,
+          "full_tokens": 4349,
+          "used_tokens": 1024
+        },
+        {
+          "id": "c109a25d23a8c5c95af8697ef1ac51cd3bee93c67521af6d",
+          "gold": "Yes",
+          "pred": "No, the hashtag and SemEval datasets do ",
+          "correct": false,
+          "full_tokens": 5390,
+          "used_tokens": 1024
+        },
+        {
+          "id": "072d3de1a7122730a13a31db3eede4113af2d920814f0aaa",
+          "gold": "Answer with content missing: (Evaluation",
+          "pred": "The evaluation proposed for this task is",
+          "correct": false,
+          "full_tokens": 5650,
+          "used_tokens": 1024
+        },
+        {
+          "id": "8fa5af6a36dd0b6b73900b2ec6f6e43a652a3e7d2b827a58",
+          "gold": "CNN/DailyMail news highlights, New York ",
+          "pred": "The datasets used for evaluation are the",
+          "correct": false,
+          "full_tokens": 6492,
+          "used_tokens": 1024
+        },
+        {
+          "id": "5f00d4f6e62f4b99484eb78491f803f8143cc1b13ad33816",
+          "gold": "GM$\\_$KL achieves better correlation tha",
+          "pred": "The proposed GM$\\_$KL approach compares ",
+          "correct": false,
+          "full_tokens": 3381,
+          "used_tokens": 1024
+        },
+        {
+          "id": "91dd7b7a6ead4025763812d70dc51c6674b0acf31bd5a5f0",
+          "gold": "simply averaging the predictions from th",
+          "pred": "The ensemble method works by combining t",
+          "correct": false,
+          "full_tokens": 5247,
+          "used_tokens": 1024
+        },
+        {
+          "id": "fe6e5087f91071369646d9d868d784a290d0d13013292b61",
+          "gold": "Friends TV sitcom, Facebook messenger ch",
+          "pred": "The sources of the datasets are:\n\n- **Fr",
+          "correct": false,
+          "full_tokens": 4488,
+          "used_tokens": 1024
+        },
+        {
+          "id": "51b9066a5f2845e2fdf0d1dcde6833f70ae49ed01aa306db",
+          "gold": "English",
+          "pred": "The paper focuses on English.",
+          "correct": false,
+          "full_tokens": 3162,
+          "used_tokens": 1024
+        },
+        {
+          "id": "bae15e10e0f414a92fb0e943871ed25c3fc16183a3028012",
+          "gold": "IMDb dataset of movie reviews",
+          "pred": "The sentiment analysis dataset used is I",
+          "correct": false,
+          "full_tokens": 3320,
+          "used_tokens": 1024
+        },
+        {
+          "id": "d022dfe02fb2a55b4baa40fe436f616aecd3f3ced1a58d7c",
+          "gold": "F1 scores of 85.99 on the DL-PS data,  7",
+          "pred": "The proposed system achieves an accuracy",
+          "correct": false,
+          "full_tokens": 8614,
+          "used_tokens": 1024
+        },
+        {
+          "id": "43279ddf85ada1b163aa1b316a4df1418957058206501c26",
+          "gold": "No",
+          "pred": "Yes, the dataset was presented as a new,",
+          "correct": false,
+          "full_tokens": 4687,
+          "used_tokens": 1024
+        },
+        {
+          "id": "f27a64d129091a6c8973c001ff789b8f68955b8ff0ae70af",
+          "gold": "Custom dataset with user questions; set ",
+          "pred": "The datasets used are **INLINEFORM0**, *",
+          "correct": false,
+          "full_tokens": 17767,
+          "used_tokens": 1024
+        },
+        {
+          "id": "c47ca982b6c4681c4741d4708801fa79a3e1cab17d0a2c4a",
+          "gold": "Energy with accuracy of 0.538",
+          "pred": "The HealthCare sector achieved the best ",
+          "correct": false,
+          "full_tokens": 15714,
+          "used_tokens": 1024
+        },
+        {
+          "id": "1614ea21f8d039debfc655015f8133d0ef220837804ddf62",
+          "gold": "RNN-based NMT model, Transformer-NMT",
+          "pred": "The NMT models compared with are RNN-bas",
+          "correct": false,
+          "full_tokens": 5089,
+          "used_tokens": 1024
+        },
+        {
+          "id": "159a474e0a7155a2d0b984cbb5215cdc853d721605b90154",
+          "gold": "a regularization term associated with ne",
+          "pred": "The three regularization terms are:  \n1.",
+          "correct": false,
+          "full_tokens": 4975,
+          "used_tokens": 1024
+        },
+        {
+          "id": "d426a2d42f3dffc8771498ba64ed0e383b91939398e83dce",
+          "gold": "SVM with unigram, bigram, and trigram fe",
+          "pred": "The baselines are the models implemented",
+          "correct": false,
+          "full_tokens": 5873,
+          "used_tokens": 1024
+        }
+      ]
+    },
+    {
+      "strategy": "project_topic",
+      "budget": 1024,
+      "task": "qasper",
+      "metric": 0.2532,
+      "correct": 3,
+      "total": 20,
+      "metric_type": "f1",
+      "avg_latency_s": 0.84,
+      "per_item": [
+        {
+          "id": "3ac3eef636db11635a21a61804cb28e92c546a5686dd1e12",
+          "gold": "Ground truth is not established in the p",
+          "pred": "The ground truth for fake news is establ",
+          "correct": false,
+          "full_tokens": 3904,
+          "used_tokens": 2534
+        },
+        {
+          "id": "db6c4d611b78c840972b57ee0b245003566b982feaff1084",
+          "gold": "extension of the NetVLAD, adds Ghost clu",
+          "pred": "The GhostVLAD approach is an extension o",
+          "correct": false,
+          "full_tokens": 3244,
+          "used_tokens": 1030
+        },
+        {
+          "id": "e419f2bff9d2ab7c3b60b3250caccd2d9ae1285ec3e8e818",
+          "gold": "the attention model, MDREA, also outperf",
+          "pred": "The proposed model outperforms the state",
+          "correct": false,
+          "full_tokens": 4287,
+          "used_tokens": 1991
+        },
+        {
+          "id": "9fb085a1f47673d1907f2378c90843b4b6e8622a14fe1fa9",
+          "gold": "using tweets that one has replied or quo",
+          "pred": "The additional features and context prop",
+          "correct": false,
+          "full_tokens": 2895,
+          "used_tokens": 1027
+        },
+        {
+          "id": "14e88916523197e066dbb743339685621db47c4beb503abb",
+          "gold": "FoxNews, CNN, ESPN, New York Times, Time",
+          "pred": "The Facebook pages they looked at are: F",
+          "correct": true,
+          "full_tokens": 4349,
+          "used_tokens": 1354
+        },
+        {
+          "id": "c109a25d23a8c5c95af8697ef1ac51cd3bee93c67521af6d",
+          "gold": "Yes",
+          "pred": "No, the hashtag and SemEval datasets do ",
+          "correct": false,
+          "full_tokens": 5390,
+          "used_tokens": 3036
+        },
+        {
+          "id": "072d3de1a7122730a13a31db3eede4113af2d920814f0aaa",
+          "gold": "Answer with content missing: (Evaluation",
+          "pred": "The proposed evaluation for this task is",
+          "correct": false,
+          "full_tokens": 5650,
+          "used_tokens": 1385
+        },
+        {
+          "id": "8fa5af6a36dd0b6b73900b2ec6f6e43a652a3e7d2b827a58",
+          "gold": "CNN/DailyMail news highlights, New York ",
+          "pred": "The datasets used for evaluation are:  \n",
+          "correct": false,
+          "full_tokens": 6492,
+          "used_tokens": 1214
+        },
+        {
+          "id": "5f00d4f6e62f4b99484eb78491f803f8143cc1b13ad33816",
+          "gold": "GM$\\_$KL achieves better correlation tha",
+          "pred": "This approach, which uses a variant of t",
+          "correct": false,
+          "full_tokens": 3381,
+          "used_tokens": 2023
+        },
+        {
+          "id": "91dd7b7a6ead4025763812d70dc51c6674b0acf31bd5a5f0",
+          "gold": "simply averaging the predictions from th",
+          "pred": "Their ensemble method works by combining",
+          "correct": false,
+          "full_tokens": 5247,
+          "used_tokens": 1023
+        },
+        {
+          "id": "fe6e5087f91071369646d9d868d784a290d0d13013292b61",
+          "gold": "Friends TV sitcom, Facebook messenger ch",
+          "pred": "The sources of the datasets are differen",
+          "correct": false,
+          "full_tokens": 4488,
+          "used_tokens": 803
+        },
+        {
+          "id": "51b9066a5f2845e2fdf0d1dcde6833f70ae49ed01aa306db",
+          "gold": "English",
+          "pred": "The paper focuses on text simplification",
+          "correct": false,
+          "full_tokens": 3162,
+          "used_tokens": 911
+        },
+        {
+          "id": "bae15e10e0f414a92fb0e943871ed25c3fc16183a3028012",
+          "gold": "IMDb dataset of movie reviews",
+          "pred": "The sentiment analysis dataset used is t",
+          "correct": true,
+          "full_tokens": 3320,
+          "used_tokens": 1021
+        },
+        {
+          "id": "d022dfe02fb2a55b4baa40fe436f616aecd3f3ced1a58d7c",
+          "gold": "F1 scores of 85.99 on the DL-PS data,  7",
+          "pred": "The proposed system achieves an accuracy",
+          "correct": false,
+          "full_tokens": 8614,
+          "used_tokens": 1331
+        },
+        {
+          "id": "43279ddf85ada1b163aa1b316a4df1418957058206501c26",
+          "gold": "No",
+          "pred": "Yes, they did experiment with this new d",
+          "correct": false,
+          "full_tokens": 4687,
+          "used_tokens": 1026
+        },
+        {
+          "id": "f27a64d129091a6c8973c001ff789b8f68955b8ff0ae70af",
+          "gold": "Custom dataset with user questions; set ",
+          "pred": "The datasets used in the implementation ",
+          "correct": false,
+          "full_tokens": 17767,
+          "used_tokens": 1025
+        },
+        {
+          "id": "c47ca982b6c4681c4741d4708801fa79a3e1cab17d0a2c4a",
+          "gold": "Energy with accuracy of 0.538",
+          "pred": "The HealthCare and Energy sectors achiev",
+          "correct": false,
+          "full_tokens": 15714,
+          "used_tokens": 4776
+        },
+        {
+          "id": "1614ea21f8d039debfc655015f8133d0ef220837804ddf62",
+          "gold": "RNN-based NMT model, Transformer-NMT",
+          "pred": "The NMT models compared with are RNN-bas",
+          "correct": false,
+          "full_tokens": 5089,
+          "used_tokens": 1032
+        },
+        {
+          "id": "159a474e0a7155a2d0b984cbb5215cdc853d721605b90154",
+          "gold": "a regularization term associated with ne",
+          "pred": "The three regularization terms are:  \n1.",
+          "correct": true,
+          "full_tokens": 4975,
+          "used_tokens": 974
+        },
+        {
+          "id": "d426a2d42f3dffc8771498ba64ed0e383b91939398e83dce",
+          "gold": "SVM with unigram, bigram, and trigram fe",
+          "pred": "The baselines are:  \n1. SVM with unigram",
+          "correct": false,
+          "full_tokens": 5873,
+          "used_tokens": 1002
+        }
+      ]
+    },
+    {
+      "strategy": "attention_sink",
+      "budget": 1024,
+      "task": "qasper",
+      "metric": 0.2183,
+      "correct": 3,
+      "total": 20,
+      "metric_type": "f1",
+      "avg_latency_s": 0.81,
+      "per_item": [
+        {
+          "id": "3ac3eef636db11635a21a61804cb28e92c546a5686dd1e12",
+          "gold": "Ground truth is not established in the p",
+          "pred": "The ground truth for fake news is establ",
+          "correct": false,
+          "full_tokens": 3904,
+          "used_tokens": 2535
+        },
+        {
+          "id": "db6c4d611b78c840972b57ee0b245003566b982feaff1084",
+          "gold": "extension of the NetVLAD, adds Ghost clu",
+          "pred": "The GhostVLAD approach is an extension o",
+          "correct": false,
+          "full_tokens": 3244,
+          "used_tokens": 1018
+        },
+        {
+          "id": "e419f2bff9d2ab7c3b60b3250caccd2d9ae1285ec3e8e818",
+          "gold": "the attention model, MDREA, also outperf",
+          "pred": "The proposed model outperforms the state",
+          "correct": false,
+          "full_tokens": 4287,
+          "used_tokens": 1992
+        },
+        {
+          "id": "9fb085a1f47673d1907f2378c90843b4b6e8622a14fe1fa9",
+          "gold": "using tweets that one has replied or quo",
+          "pred": "The additional features and context prop",
+          "correct": false,
+          "full_tokens": 2895,
+          "used_tokens": 1025
+        },
+        {
+          "id": "14e88916523197e066dbb743339685621db47c4beb503abb",
+          "gold": "FoxNews, CNN, ESPN, New York Times, Time",
+          "pred": "The Facebook pages they looked at includ",
+          "correct": true,
+          "full_tokens": 4349,
+          "used_tokens": 1355
+        },
+        {
+          "id": "c109a25d23a8c5c95af8697ef1ac51cd3bee93c67521af6d",
+          "gold": "Yes",
+          "pred": "No, the hashtag and SemEval datasets do ",
+          "correct": false,
+          "full_tokens": 5390,
+          "used_tokens": 3037
+        },
+        {
+          "id": "072d3de1a7122730a13a31db3eede4113af2d920814f0aaa",
+          "gold": "Answer with content missing: (Evaluation",
+          "pred": "The proposed evaluation for this task is",
+          "correct": false,
+          "full_tokens": 5650,
+          "used_tokens": 1386
+        },
+        {
+          "id": "8fa5af6a36dd0b6b73900b2ec6f6e43a652a3e7d2b827a58",
+          "gold": "CNN/DailyMail news highlights, New York ",
+          "pred": "The datasets used for evaluation are:  \n",
+          "correct": false,
+          "full_tokens": 6492,
+          "used_tokens": 1215
+        },
+        {
+          "id": "5f00d4f6e62f4b99484eb78491f803f8143cc1b13ad33816",
+          "gold": "GM$\\_$KL achieves better correlation tha",
+          "pred": "This approach, which uses a variant of t",
+          "correct": false,
+          "full_tokens": 3381,
+          "used_tokens": 2024
+        },
+        {
+          "id": "91dd7b7a6ead4025763812d70dc51c6674b0acf31bd5a5f0",
+          "gold": "simply averaging the predictions from th",
+          "pred": "Their ensemble method works by combining",
+          "correct": false,
+          "full_tokens": 5247,
+          "used_tokens": 1022
+        },
+        {
+          "id": "fe6e5087f91071369646d9d868d784a290d0d13013292b61",
+          "gold": "Friends TV sitcom, Facebook messenger ch",
+          "pred": "The sources of the datasets are not expl",
+          "correct": false,
+          "full_tokens": 4488,
+          "used_tokens": 804
+        },
+        {
+          "id": "51b9066a5f2845e2fdf0d1dcde6833f70ae49ed01aa306db",
+          "gold": "English",
+          "pred": "The paper focuses on language simplifica",
+          "correct": false,
+          "full_tokens": 3162,
+          "used_tokens": 912
+        },
+        {
+          "id": "bae15e10e0f414a92fb0e943871ed25c3fc16183a3028012",
+          "gold": "IMDb dataset of movie reviews",
+          "pred": "The sentiment analysis dataset used is t",
+          "correct": true,
+          "full_tokens": 3320,
+          "used_tokens": 1022
+        },
+        {
+          "id": "d022dfe02fb2a55b4baa40fe436f616aecd3f3ced1a58d7c",
+          "gold": "F1 scores of 85.99 on the DL-PS data,  7",
+          "pred": "The proposed system achieves an accuracy",
+          "correct": false,
+          "full_tokens": 8614,
+          "used_tokens": 1332
+        },
+        {
+          "id": "43279ddf85ada1b163aa1b316a4df1418957058206501c26",
+          "gold": "No",
+          "pred": "Yes, the new dataset, ZuCo 1.0, was expe",
+          "correct": false,
+          "full_tokens": 4687,
+          "used_tokens": 1027
+        },
+        {
+          "id": "f27a64d129091a6c8973c001ff789b8f68955b8ff0ae70af",
+          "gold": "Custom dataset with user questions; set ",
+          "pred": "The datasets used in the context are sum",
+          "correct": false,
+          "full_tokens": 17767,
+          "used_tokens": 1024
+        },
+        {
+          "id": "c47ca982b6c4681c4741d4708801fa79a3e1cab17d0a2c4a",
+          "gold": "Energy with accuracy of 0.538",
+          "pred": "The stock market sector that achieved th",
+          "correct": false,
+          "full_tokens": 15714,
+          "used_tokens": 4777
+        },
+        {
+          "id": "1614ea21f8d039debfc655015f8133d0ef220837804ddf62",
+          "gold": "RNN-based NMT model, Transformer-NMT",
+          "pred": "The NMT models compared with are **RNN-b",
+          "correct": false,
+          "full_tokens": 5089,
+          "used_tokens": 1030
+        },
+        {
+          "id": "159a474e0a7155a2d0b984cbb5215cdc853d721605b90154",
+          "gold": "a regularization term associated with ne",
+          "pred": "The three regularization terms are:  \n1.",
+          "correct": true,
+          "full_tokens": 4975,
+          "used_tokens": 977
+        },
+        {
+          "id": "d426a2d42f3dffc8771498ba64ed0e383b91939398e83dce",
+          "gold": "SVM with unigram, bigram, and trigram fe",
+          "pred": "The baselines are:  \n1. SVM with unigram",
+          "correct": false,
+          "full_tokens": 5873,
+          "used_tokens": 1002
+        }
+      ]
+    },
+    {
+      "strategy": "sink_topic",
+      "budget": 1024,
+      "task": "qasper",
+      "metric": 0.2179,
+      "correct": 3,
+      "total": 20,
+      "metric_type": "f1",
+      "avg_latency_s": 0.75,
+      "per_item": [
+        {
+          "id": "3ac3eef636db11635a21a61804cb28e92c546a5686dd1e12",
+          "gold": "Ground truth is not established in the p",
+          "pred": "The ground truth for fake news is establ",
+          "correct": false,
+          "full_tokens": 3904,
+          "used_tokens": 2539
+        },
+        {
+          "id": "db6c4d611b78c840972b57ee0b245003566b982feaff1084",
+          "gold": "extension of the NetVLAD, adds Ghost clu",
+          "pred": "The GhostVLAD approach is an extension o",
+          "correct": false,
+          "full_tokens": 3244,
+          "used_tokens": 1027
+        },
+        {
+          "id": "e419f2bff9d2ab7c3b60b3250caccd2d9ae1285ec3e8e818",
+          "gold": "the attention model, MDREA, also outperf",
+          "pred": "The proposed model outperforms the state",
+          "correct": false,
+          "full_tokens": 4287,
+          "used_tokens": 1990
+        },
+        {
+          "id": "9fb085a1f47673d1907f2378c90843b4b6e8622a14fe1fa9",
+          "gold": "using tweets that one has replied or quo",
+          "pred": "The additional features and context prop",
+          "correct": false,
+          "full_tokens": 2895,
+          "used_tokens": 1025
+        },
+        {
+          "id": "14e88916523197e066dbb743339685621db47c4beb503abb",
+          "gold": "FoxNews, CNN, ESPN, New York Times, Time",
+          "pred": "The Facebook pages they looked at includ",
+          "correct": true,
+          "full_tokens": 4349,
+          "used_tokens": 1357
+        },
+        {
+          "id": "c109a25d23a8c5c95af8697ef1ac51cd3bee93c67521af6d",
+          "gold": "Yes",
+          "pred": "Yes, both the hashtag and SemEval datase",
+          "correct": false,
+          "full_tokens": 5390,
+          "used_tokens": 3034
+        },
+        {
+          "id": "072d3de1a7122730a13a31db3eede4113af2d920814f0aaa",
+          "gold": "Answer with content missing: (Evaluation",
+          "pred": "The proposed evaluation for this task is",
+          "correct": false,
+          "full_tokens": 5650,
+          "used_tokens": 1382
+        },
+        {
+          "id": "8fa5af6a36dd0b6b73900b2ec6f6e43a652a3e7d2b827a58",
+          "gold": "CNN/DailyMail news highlights, New York ",
+          "pred": "The datasets used for evaluation are:  \n",
+          "correct": false,
+          "full_tokens": 6492,
+          "used_tokens": 1214
+        },
+        {
+          "id": "5f00d4f6e62f4b99484eb78491f803f8143cc1b13ad33816",
+          "gold": "GM$\\_$KL achieves better correlation tha",
+          "pred": "This approach compares to other WSD (Wor",
+          "correct": false,
+          "full_tokens": 3381,
+          "used_tokens": 2029
+        },
+        {
+          "id": "91dd7b7a6ead4025763812d70dc51c6674b0acf31bd5a5f0",
+          "gold": "simply averaging the predictions from th",
+          "pred": "Their ensemble method works by combining",
+          "correct": false,
+          "full_tokens": 5247,
+          "used_tokens": 1022
+        },
+        {
+          "id": "fe6e5087f91071369646d9d868d784a290d0d13013292b61",
+          "gold": "Friends TV sitcom, Facebook messenger ch",
+          "pred": "The sources of the datasets are differen",
+          "correct": false,
+          "full_tokens": 4488,
+          "used_tokens": 804
+        },
+        {
+          "id": "51b9066a5f2845e2fdf0d1dcde6833f70ae49ed01aa306db",
+          "gold": "English",
+          "pred": "The paper focuses on text simplification",
+          "correct": false,
+          "full_tokens": 3162,
+          "used_tokens": 913
+        },
+        {
+          "id": "bae15e10e0f414a92fb0e943871ed25c3fc16183a3028012",
+          "gold": "IMDb dataset of movie reviews",
+          "pred": "The sentiment analysis dataset used is t",
+          "correct": true,
+          "full_tokens": 3320,
+          "used_tokens": 1023
+        },
+        {
+          "id": "d022dfe02fb2a55b4baa40fe436f616aecd3f3ced1a58d7c",
+          "gold": "F1 scores of 85.99 on the DL-PS data,  7",
+          "pred": "The proposed system achieves an accuracy",
+          "correct": false,
+          "full_tokens": 8614,
+          "used_tokens": 1335
+        },
+        {
+          "id": "43279ddf85ada1b163aa1b316a4df1418957058206501c26",
+          "gold": "No",
+          "pred": "Yes, the new dataset (ZuCo 2) was experi",
+          "correct": false,
+          "full_tokens": 4687,
+          "used_tokens": 1027
+        },
+        {
+          "id": "f27a64d129091a6c8973c001ff789b8f68955b8ff0ae70af",
+          "gold": "Custom dataset with user questions; set ",
+          "pred": "The datasets used in the implementation ",
+          "correct": false,
+          "full_tokens": 17767,
+          "used_tokens": 1024
+        },
+        {
+          "id": "c47ca982b6c4681c4741d4708801fa79a3e1cab17d0a2c4a",
+          "gold": "Energy with accuracy of 0.538",
+          "pred": "The stock market sector that achieved th",
+          "correct": false,
+          "full_tokens": 15714,
+          "used_tokens": 4785
+        },
+        {
+          "id": "1614ea21f8d039debfc655015f8133d0ef220837804ddf62",
+          "gold": "RNN-based NMT model, Transformer-NMT",
+          "pred": "The NMT models compared with are **RNN-b",
+          "correct": false,
+          "full_tokens": 5089,
+          "used_tokens": 1031
+        },
+        {
+          "id": "159a474e0a7155a2d0b984cbb5215cdc853d721605b90154",
+          "gold": "a regularization term associated with ne",
+          "pred": "The three regularization terms are:  \n1.",
+          "correct": true,
+          "full_tokens": 4975,
+          "used_tokens": 981
+        },
+        {
+          "id": "d426a2d42f3dffc8771498ba64ed0e383b91939398e83dce",
+          "gold": "SVM with unigram, bigram, and trigram fe",
+          "pred": "The baselines are:  \n1. SVM with unigram",
+          "correct": false,
+          "full_tokens": 5873,
+          "used_tokens": 1002
+        }
+      ]
+    }
+  ]
+}
