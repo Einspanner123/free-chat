@@ -56,20 +56,18 @@ def load_items() -> List[Dict]:
 
 
 def assemble_context(item: Dict, docs: Dict[str, str]) -> str:
-    """按 prompt_template 组装上下文，带标题标识每篇文书。"""
+    """按 Loong 官方格式组装上下文：文档匿名化为《判决文书N》。"""
     doc_texts = []
-    for dname in item["doc"]:
+    for i, dname in enumerate(item["doc"]):
         d = docs.get(dname)
         if d is None:
             continue
         if isinstance(d, dict):
             content = d.get("content", str(d))
-            title = d.get("title", dname)
         else:
             content = str(d)
-            title = dname
-        # 每篇文书带标题标识，让模型能引用真实文书名
-        doc_texts.append(f"<di> 《{title}》\n{content}")
+        # 官方格式：第 N 篇文书标为《判决文书N》（从1开始），答案用编号引用
+        doc_texts.append(f"<di> 《判决文书{i + 1}》\n{content}")
     return "\n".join(doc_texts)
 
 
@@ -80,6 +78,23 @@ def choose_strategy(text: str, tokenizer, budget: int, strategy: str, question: 
         if len(tokens) <= budget:
             return text
         return tokenizer.decode(tokens[-budget:], skip_special_tokens=True)
+
+    def _fit_to_budget(blocks, budget):
+        """按顺序填充块到预算，超出的截断。"""
+        result = []
+        total = 0
+        for b in blocks:
+            nb = len(tokenizer.encode(b, add_special_tokens=False))
+            if total + nb > budget:
+                # 截断当前块到剩余预算
+                if total < budget:
+                    remain = budget - total
+                    bt = tokenizer.encode(b, add_special_tokens=False)
+                    result.append(tokenizer.decode(bt[:remain], skip_special_tokens=True))
+                break
+            result.append(b)
+            total += nb
+        return " ".join(result), total
 
     # 文档标题行（<di> 《标题》）必须保留——它们是定位文书的关键
     title_lines = re.findall(r'<di> 《[^》]+》', text)
@@ -97,23 +112,24 @@ def choose_strategy(text: str, tokenizer, budget: int, strategy: str, question: 
 
     if strategy == "project_topic":
         # 关键块在前，其他块压缩后追加到尾部（保持关键信息在开头）
-        result = list(key)
-        total = sum(len(tokenizer.encode(s, add_special_tokens=False)) for s in result)
+        key_text, key_tok = _fit_to_budget(key, budget)
         tail = []
+        tail_tok = 0
         for i, s in enumerate(reversed(other)):
             turn = i + 1
             ct = s if turn <= 5 else (s[:100] if turn <= 20 else (s[:50] if turn <= 50 else ""))
             if not ct:
                 continue
             nt = len(tokenizer.encode(ct, add_special_tokens=False))
-            if total + nt <= budget:
+            if key_tok + tail_tok + nt <= budget:
                 tail.insert(0, ct)
-                total += nt
-        return " ".join(result + tail)
+                tail_tok += nt
+        return key_text + " " + " ".join(tail)
 
     elif strategy == "attention_sink":
-        key_text = "\n\n".join(key)
-        key_tok = len(tokenizer.encode(key_text, add_special_tokens=False))
+        # key 块先填到预算的一半以内，其他压缩后追加
+        half = budget // 2
+        key_text, key_tok = _fit_to_budget(key, half)
         remaining = budget - key_tok - 2
         compressed = []
         if remaining > 0:
@@ -147,9 +163,10 @@ def choose_strategy(text: str, tokenizer, budget: int, strategy: str, question: 
             other_titles.append(t)
             other_bodies.append(body)
 
-        # 案由相关块的标题 + 正文放 position 1
-        key_text = "\n\n".join(t + "\n" + body for t, body in zip(key_titles, key_bodies))
-        key_tok = len(tokenizer.encode(key_text, add_special_tokens=False))
+        # 案由相关块的标题 + 正文放 position 1（填到预算一半）
+        half = budget // 2
+        key_blocks = [t + "\n" + body for t, body in zip(key_titles, key_bodies)]
+        key_text, key_tok = _fit_to_budget(key_blocks, half)
         remaining = budget - key_tok - 2
 
         # 非案由块：保留标题（定位用），正文分级压缩
