@@ -30,7 +30,7 @@ def main():
     tasks = {}
 
     # LongBench v1 (351MB)
-    lb1 = os.path.join(ROOT, "benchmarks", "longbench_v1", "data")
+    lb1 = os.path.join(ROOT, "research", "longbench_v1", "data")
     if not os.path.exists(os.path.join(lb1, "data", "passage_retrieval_en.jsonl")):
         tasks["longbench_v1"] = (
             "https://huggingface.co/datasets/zai-org/LongBench/resolve/main/data.zip",
@@ -39,7 +39,7 @@ def main():
         )
 
     # Loong (114MB)
-    loong = os.path.join(ROOT, "benchmarks", "loong", "data")
+    loong = os.path.join(ROOT, "research", "loong", "data")
     if not os.path.exists(os.path.join(loong, "doc", "legal", "legal.json")):
         tasks["loong"] = (
             "http://alibaba-research.oss-cn-beijing.aliyuncs.com/loong/doc.zip",
@@ -57,7 +57,7 @@ def main():
                 shutil.copy(src, os.path.join(loong, "loong.jsonl"))
 
     # Zero-SCROLLS
-    zs = os.path.join(ROOT, "benchmarks", "zero_scrolls", "data")
+    zs = os.path.join(ROOT, "research", "zero_scrolls", "data")
     for task in ["qasper", "quality", "gov_report", "qmsum"]:
         dest = os.path.join(zs, task, "test.jsonl")
         if not os.path.exists(dest):
@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
 def download_books():
     """Download Project Gutenberg books for long_context benchmarks."""
-    base = os.path.join(ROOT, "benchmarks", "long_context", "data")
+    base = os.path.join(ROOT, "research", "long_context", "data")
     books = {
         "pride_and_prejudice.txt": "https://www.gutenberg.org/files/1342/1342-0.txt",
         "moby_dick.txt": "https://www.gutenberg.org/files/2701/2701-0.txt",

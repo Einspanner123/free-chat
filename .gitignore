@@ -22,4 +22,4 @@ __pycache__/
 .infra/
 
 # Benchmark data (download via scripts/download_benchmark_data.py)
-benchmarks/**/data/
+research/**/data/

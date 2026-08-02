@@ -87,7 +87,7 @@ Block-based memory pool with pluggable eviction: LRU, sliding window, attention-
 
 ## Benchmarks
 
-`benchmarks/long_context/`
+`research/long_context/`
 
 Benchmarks run on real hardware (NVIDIA RTX A6000). Two contexts: synthetic text (facts at even positions) and real book text (Project Gutenberg, RULER-style needle types: single-value, multi-value, multi-key, multi-hop). All compression strategies padded to equal token counts.
 
@@ -252,16 +252,16 @@ docker compose up -d --build
 Run long-context benchmarks (real model + real book text):
 ```bash
 # Baseline: needle-in-a-haystack on full context
-.venv/bin/python benchmarks/long_context/run_baseline.py
+.venv/bin/python research/long_context/run_baseline.py
 
 # Ablation: 6 strategies x compression levels
-.venv/bin/python benchmarks/long_context/run_semantic_ablation.py
+.venv/bin/python research/long_context/run_semantic_ablation.py
 
 # Real book text + RULER needle types
-.venv/bin/python benchmarks/long_context/run_realtext.py
+.venv/bin/python research/long_context/run_realtext.py
 
 # Real RAG pipeline (project components)
-.venv/bin/python benchmarks/long_context/run_rag_real.py
+.venv/bin/python research/long_context/run_rag_real.py
 ```
 
 Run tests:
