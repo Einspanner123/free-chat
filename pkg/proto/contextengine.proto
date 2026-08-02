@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package contextengine;
+option go_package = "./contextengine;contextengine";
+
+// ContextEngineService builds optimized contexts for LLM inference.
+service ContextEngineService {
+  // Build an optimized context under a token budget.
+  rpc BuildContext(BuildContextRequest) returns (BuildContextResponse);
+}
+
+message BuildContextRequest {
+  string text = 1;          // Source text (conversation history / document)
+  string query = 2;         // Current query (for relevance strategies)
+  string strategy = 3;      // truncation | project_topic | attention_sink | sink_topic | bm25_top1
+  int32 budget = 4;         // Token budget
+}
+
+message BuildContextResponse {
+  string context = 1;       // Optimized context
+  string strategy = 2;      // Strategy used
+  int32 tokens = 3;         // Actual tokens in context
+  float compression_ratio = 4;  // 1 - used/full
+}
