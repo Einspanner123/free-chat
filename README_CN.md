@@ -1,100 +1,169 @@
 [English](README.md) | [中文](README_CN.md)
 
-# Free Chat -- 面向小模型的超长上下文推理框架
+# Free Chat -- 面向小模型的长上下文框架
 
-通过优化的上下文管理、记忆重建和推理加速，扩展小语言模型（0.5B-3B）的有效上下文长度。Go 控制面，Python 计算面。
-
-核心主张：借助正确的上下文管道，0.5B 模型可以从 8K+ tokens 的上下文中检索信息，在某些任务上达到未压缩的 7B 模型的长上下文召回水平。
+通过上下文管理与 RAG 检索，扩展小语言模型（0.5B-3B）的有效上下文长度。Go 控制面，Python 计算面。
 
 ---
 
-## 问题
+## 概述
 
-小模型在长上下文场景下有三个相互关联的限制：
+项目分为两层：
 
-1. **上下文窗口有限** -- 0.5B 模型通常支持 4K-8K tokens。超出后对话无法进行。
-2. **注意力稀释** -- 小模型注意力头更少，长上下文中更难聚焦到相关信息。
-3. **KV Cache 压力** -- 长上下文产生大量 KV cache。32K 上下文在 24GB GPU 上消耗约 12GB 仅用于缓存，模型本身没有空间。
+- **应用层**（`services/`）：可运行的微服务（聊天、认证、网关、推理、RAG、微调、评测）。
+- **研究层**（`research/`）：在真实硬件上验证上下文框架的 benchmark 与实验。
 
-标准方案（升级大模型、截断上下文）要么增加成本，要么丢失信息。
+核心工作是 **context-engine**：分层管道（检索 → 压缩 → 布局），在 token 预算内为小模型准备优化上下文。
 
 ---
 
-## 方法：Context Engineering
-
-不修改模型本身，而是控制进入模型的内容。框架实现了一个 pipeline，在每个阶段管控上下文：
+## 项目结构
 
 ```
-原始对话 -> Token 预算检查 -> 压缩 -> 话题重建 -> 注意力优化布局 -> 推理
-```
+services/                    # 应用层
+├── api-gateway/             # HTTP 网关 (Go)
+├── auth-service/            # 用户认证 (Go)
+├── chat-service/            # 对话服务，含上下文管理 (Go)
+│   └── internal/interfaces/context_client.go  # 调用 context-engine 的 gRPC 客户端
+├── llm-inference/           # 推理引擎：HF/vLLM 后端 (Python)
+├── context-engine/          # 上下文优化：strategies/retriever/pipeline + gRPC 服务
+├── rag/                     # RAG：分块、embedding、BM25/稠密/混合检索
+├── finetune/                # LoRA/QLoRA 微调
+├── alignment/               # DPO 偏好对齐
+├── rlhf/                    # PPO RLHF
+├── evaluation/              # MMLU, C-Eval, GSM8K, HumanEval
+└── synthetic-data/          # Self-instruct, 数据增强
 
-每个阶段的目标是在每个 token 中最大化信息密度，让小模型在有限的窗口内获得最相关的上下文。
+research/                    # 研究层
+├── long_context/            # Needle-in-a-haystack, 压缩消融
+├── longbench_v1/            # LongBench 多任务评测
+├── longbench/               # LongBench 风格 QA (v2)
+├── loong/                   # 中文多文档 QA
+├── zero_scrolls/            # 长文本理解
+└── inference_optimization/  # 真实推理测量
+
+pkg/proto/contextengine/     # 共享 gRPC 契约（Go + Python 桩）
+scripts/download_benchmark_data.py  # 按需下载 benchmark 数据
+```
 
 ---
 
-## 消融实验结果
+## Context-Engine 设计
 
-硬件：NVIDIA RTX A6000，模型：Qwen/Qwen2.5-0.5B-Instruct（494M 参数）。
-上下文中等距插入事实陈述，指标为事实召回率（回答是否包含正确答案）。
-所有压缩策略填充到相同 token 数以保证公平对比。
+context-engine（`services/context-engine/`）在 token 预算内构建优化上下文，分三层：
 
-### 8K 上下文
+```
+┌─────────────┐   ┌──────────────┐   ┌─────────────┐
+│  Retriever  │ → │  Compressor  │ → │   Layout    │
+│ BM25/Dense  │   │  tiered      │   │ sink/topic  │
+│ keyword     │   │  truncation  │   │             │
+└─────────────┘   └──────────────┘   └─────────────┘
+```
 
-8016 tokens，6 个事实问题（阿波罗登月、人体骨骼、DNA 复制、亚马逊河、居里夫人、HTTP 404）。
+| 层 | 文件 | 职责 |
+|----|------|------|
+| strategies | `strategies.py` | 无状态原语：分块、关键词提取、截断、相关度选择、分级压缩、attention-sink 布局 |
+| retriever | `retriever.py` | 统一接口 + 工厂：BM25（纯 Python）、关键词、稠密（可选 embedding） |
+| pipeline | `pipeline.py` | 编排：检索 → 压缩 → 布局 → 组装 |
 
-| 策略 | 1024 tok (87%) | 2048 tok (74%) | 4096 tok (49%) |
-|------|---------------|---------------|---------------|
-| Full Context（基线） | 50% | 50% | 50% |
-| Truncation（截断） | 50% | 50% | 67% |
-| Project Compression（分级压缩） | 17% | 33% | 50% |
-| Project + Topic（话题保留） | 67% | 67% | 50% |
-| Attention Sink | **83%** | **83%** | **83%** |
-| **Full Pipeline（完整管道）** | **83%** | **83%** | **83%** |
-| LLM 话题提取 | 17% | 17% | 0% |
-| RAG 检索式上下文 | 67% | **83%** | **83%** |
+引擎以 gRPC 服务暴露（`grpc_server.py`），Go chat-service 通过 `ContextClient`（实现 `domain.ContextOptimizer`）远程调用。
 
-### 24K 上下文
+---
 
-23452 tokens，8 个事实。接近模型 32K 最大上下文长度。
+## 应用/研究边界
 
-| 策略 | 2048 tok (91%) | 4096 tok (83%) | 8192 tok (65%) |
-|------|---------------|---------------|---------------|
-| Full Context（基线） | 50% | 50% | 50% |
-| Truncation（截断） | 25% | 38% | 38% |
-| Project Compression（分级压缩） | 50% | 25% | 25% |
-| Project + Topic（话题保留） | 62% | 50% | 62% |
-| Attention Sink | 62% | 62% | 62% |
-| **Full Pipeline（完整管道）** | **62%** | **62%** | **62%** |
-| LLM 话题提取 | 0% | 0% | 0% |
-| RAG 检索式上下文 | 62% | **75%** | **75%** |
+边界明确：
 
-### 核心发现
+| 层 | 用途 | 数据 | 稳定性 |
+|----|------|------|--------|
+| `services/` | 生产功能 | 无外部数据集 | 有测试（559+） |
+| `research/` | 实验、benchmark、结论 | 大数据集（gitignore） | 探索性 |
+| `pkg/proto/` | 共享契约 | - | 稳定接口 |
 
-1. **Full Pipeline（话题+压缩+Attention Sink）** 与单独的 Attention Sink 效果相同（8K 下 83%，24K 下 62%）。因为一旦关键句子被识别，布局决定召回率；非关键内容的压缩在当前的针测试试中没有额外收益。
+benchmark 数据集（495MB）不提交到 git，通过 `scripts/download_benchmark_data.py` 按需下载。
 
-2. **Attention Sink 布局**一致性最优：将关键信息放在首位位置利用了模型的注意力偏差。
+---
 
-3. **RAG 检索**在 24K 长上下文下最优（75%），提示检索式上下文随着上下文增长价值变大。
+## 关键发现
 
-4. **Truncation 在长上下文下崩溃**：8K 时 50%，24K 时降到 25%。项目的压缩策略在同等条件下保持 60%+。
+实验在 NVIDIA RTX A6000 上运行，模型为 Qwen3-0.6B 和 Qwen2.5-7B。
 
-5. **无话题保留的压缩会损害召回**：纯分级压缩在 24K 下仅 25%，与截断持平。话题感知的变体好 2-3 倍。
+### LongBench passage_retrieval_en
+
+任务：给定多段落文档，找到与描述匹配的段落。200 样本，每样本约 12.7K tokens。
+
+| 方法 | 准确率 |
+|------|--------|
+| 截断 | 10% |
+| 关键词压缩 | 74% |
+| **BM25 检索（top-1）** | **98%** |
+
+BM25 检索命中率 100%（答案段落总在 top-1）。0.6B 模型拿到单个检索段落即可达 98% 准确率。
+
+### 模型尺度不变性
+
+相同压缩上下文，两种模型规模（20 样本）：
+
+| 策略 | Qwen3-0.6B | Qwen2.5-7B |
+|------|-----------|------------|
+| 截断 | 10% | 10% |
+| Project + Topic | 74% | 95% |
+| Attention Sink | 60% | 100% |
+| Sink + Topic | 60% | 100% |
+
+框架增益跨尺度成立：0.6B 上 7.4 倍、7B 上 10 倍（相对截断）。策略价值随模型能力增长（7B 更能利用布局）。
+
+### 任务边界
+
+| 任务类型 | 框架效果 |
+|---------|---------|
+| 段落定位（passage_retrieval_en） | 98-100%（杀手锏） |
+| 单文档 QA（multifieldqa_en） | F1 0.174 → 0.357（2.1 倍） |
+| 科学 QA（qasper） | F1 0.132 → 0.253（1.9 倍） |
+| 叙述生成（narrativeqa） | 无增益（需综合生成，非定位） |
+| 中文理解/分类 | 有限（0.6B 理解边界） |
 
 ---
 
 ## 测试覆盖
 
-| 模块 | 测试数 | 范围 |
-|------|--------|------|
-| inference-engine | 39 | KV cache 管理, 驱逐策略, 适配器 |
-| llm-inference | 153 | 引擎后端, 量化, 优化 |
-| finetune | 115 | LoRA/QLoRA 训练, 数据加载 |
-| evaluation | 90 | MMLU/C-Eval/GSM8K/HumanEval |
-| rag | 52 | 检索策略, 分块 |
-| alignment | 50 | DPO 损失, 偏好数据 |
-| synthetic-data | 38 | 数据生成, 质量过滤 |
-| rlhf | 21 | PPO 损失, GAE 估计 |
-| long-context bench | 14 | Needle, 召回, 位置偏差 |
-| context compression | 10 | Budget, 压缩, 话题分析 |
+| 模块 | 测试数 |
+|------|--------|
+| context-engine | 47（strategies, retriever, pipeline, gRPC） |
+| llm-inference | 153 |
+| finetune | 115 |
+| evaluation | 90 |
+| rag | 52 |
+| alignment | 50 |
+| synthetic-data | 38 |
+| rlhf | 21 |
+| chat-service (Go) | + context client 测试 |
+| long_context 研究 | 14 |
 
-总计: **534 个测试**.
+---
+
+## 快速开始
+
+```bash
+# 1. 安装依赖
+uv venv --python 3.12 --seed .venv
+source .venv/bin/activate
+pip install torch transformers
+
+# 2. 运行聊天平台
+cp .env.example .env
+docker compose up -d --build
+
+# 3. 启动 context-engine gRPC 服务
+.venv/bin/python -m grpc_server --port 8089
+
+# 4. 运行 benchmark（先下载数据）
+python scripts/download_benchmark_data.py
+.venv/bin/python research/longbench_v1/run_passage_retrieval.py
+```
+
+---
+
+## 仓库大小
+
+benchmark 数据已从 git 排除。仓库约 51MB（源码 + 生成产物），数据按需下载。
