@@ -54,7 +54,15 @@ def choose_strategy(text: str, tokenizer, budget: int, strategy: str, query: str
                      '段落', '上面', '以下', '文本', '请', '回答', '找出', '匹配', '根据描述'}
     query_words += [w for w in re.findall(r'[\u4e00-\u9fa5]{2,6}', query)
                     if w not in cn_stopwords][:5]
-    key = [p for p in paras if any(w.lower() in p.lower() for w in query_words)]
+    # 优化 A: 按 query 词命中数打分，取 top_k 最相关段落
+    scored = []
+    for p in paras:
+        hits = sum(1 for w in query_words if w.lower() in p.lower())
+        if hits > 0:
+            scored.append((hits, p))
+    scored.sort(key=lambda x: -x[0])
+    top_k = 3
+    key = [p for _, p in scored[:top_k]]
     other = [p for p in paras if p not in key]
 
     if strategy == "project_topic":

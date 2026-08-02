@@ -1,0 +1,1660 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "task": "passage_retrieval_en",
+    "samples": 50,
+    "budgets": [
+      1024
+    ]
+  },
+  "strategies": [
+    {
+      "strategy": "truncation",
+      "budget": 1024,
+      "task": "passage_retrieval_en",
+      "metric": 0.0,
+      "correct": 0,
+      "total": 50,
+      "metric_type": "accuracy",
+      "avg_latency_s": 1.18,
+      "per_item": [
+        {
+          "id": "f440b317fe84ec87132b316031ad47925a6ae33e0ef0ee3a",
+          "gold": "Paragraph 15",
+          "pred": "The text summarizes the life and struggl",
+          "correct": false,
+          "full_tokens": 11304,
+          "used_tokens": 1024
+        },
+        {
+          "id": "5096757b48e895ad15b31e620bedd26e5ba11406619bb23f",
+          "gold": "Paragraph 8",
+          "pred": "The text discusses the challenges faced ",
+          "correct": false,
+          "full_tokens": 11676,
+          "used_tokens": 1024
+        },
+        {
+          "id": "8b64051664cb901d9bdb2496f545d7eee2afc4104b2cd70e",
+          "gold": "Paragraph 18",
+          "pred": "Answer: Michigan had a successful start ",
+          "correct": false,
+          "full_tokens": 13085,
+          "used_tokens": 1024
+        },
+        {
+          "id": "4349c909bd2d20abdf107f11c32c821992e085f79e9de5bd",
+          "gold": "Paragraph 17",
+          "pred": "Answer: The text discusses the legal com",
+          "correct": false,
+          "full_tokens": 12826,
+          "used_tokens": 1024
+        },
+        {
+          "id": "7d40e1fda479442b3036ee0eac74bfc78fb55f2078e861c1",
+          "gold": "Paragraph 14",
+          "pred": "The text discusses the size and arrangem",
+          "correct": false,
+          "full_tokens": 12581,
+          "used_tokens": 1024
+        },
+        {
+          "id": "3cdab3983562bc0d09ca6edff3165b60549755f4e9dc5c76",
+          "gold": "Paragraph 3",
+          "pred": "Answer:  \nThe text discusses how author ",
+          "correct": false,
+          "full_tokens": 12302,
+          "used_tokens": 1024
+        },
+        {
+          "id": "803a8ee56e14440e185aaf0eb0f82b9f060cb70b4b074311",
+          "gold": "Paragraph 24",
+          "pred": "Answer: The text discusses a book writte",
+          "correct": false,
+          "full_tokens": 11879,
+          "used_tokens": 1024
+        },
+        {
+          "id": "c795443150fa323af09da5a7a90c92df40234f1dadda9c36",
+          "gold": "Paragraph 27",
+          "pred": "The text tells the story of Henry, a vet",
+          "correct": false,
+          "full_tokens": 12038,
+          "used_tokens": 1024
+        },
+        {
+          "id": "25f458b734959c49a6b17fcf3ebe8c17d783b4308eaeaf58",
+          "gold": "Paragraph 30",
+          "pred": "The Gopher mascot, named \"Goldy,\" origin",
+          "correct": false,
+          "full_tokens": 10705,
+          "used_tokens": 1024
+        },
+        {
+          "id": "6c982433659ce5f5ab0aed1ad2f7aaab98da81d6f2c884f7",
+          "gold": "Paragraph 12",
+          "pred": "The answer is: **Kolkata, Nadia, North 2",
+          "correct": false,
+          "full_tokens": 14322,
+          "used_tokens": 1024
+        },
+        {
+          "id": "3904ff19a3fb00b1dc090b36de6a31b5a1f609402e6d6fdd",
+          "gold": "Paragraph 22",
+          "pred": "Answer: The Surtees team updated their c",
+          "correct": false,
+          "full_tokens": 12683,
+          "used_tokens": 1024
+        },
+        {
+          "id": "aea9522fd0bc34379944ded926003b0570fe34095eed5764",
+          "gold": "Paragraph 30",
+          "pred": "The text explains the development of kit",
+          "correct": false,
+          "full_tokens": 13617,
+          "used_tokens": 1024
+        },
+        {
+          "id": "788dc7c33a28516fc1a7653945b4664eac0b213dfab95d93",
+          "gold": "Paragraph 24",
+          "pred": "The text explains that cyclopropanones, ",
+          "correct": false,
+          "full_tokens": 12143,
+          "used_tokens": 1024
+        },
+        {
+          "id": "dc2dab0a04cf9ed55af558bd1f26b2674d6f0742c8256247",
+          "gold": "Paragraph 19",
+          "pred": "The text is about a woman named G\u00fczin wh",
+          "correct": false,
+          "full_tokens": 13830,
+          "used_tokens": 1024
+        },
+        {
+          "id": "cea4e7b4aa32882ef84a2d08b2da9df610d6ab4d6f0928a1",
+          "gold": "Paragraph 3",
+          "pred": "Liane Brauch Russell, born in 1923 in Vi",
+          "correct": false,
+          "full_tokens": 15295,
+          "used_tokens": 1024
+        },
+        {
+          "id": "1f9f1148ab9f65a9a43ff2ca02dcfebfda9dcf59f9fdedb9",
+          "gold": "Paragraph 8",
+          "pred": "The answer is:  \n**In the spring of 1882",
+          "correct": false,
+          "full_tokens": 13599,
+          "used_tokens": 1024
+        },
+        {
+          "id": "cebc4e96310c20c62b96dbbb100fef95b59f5f2540d3fc99",
+          "gold": "Paragraph 3",
+          "pred": "The Charleston Rainbows, previously know",
+          "correct": false,
+          "full_tokens": 12079,
+          "used_tokens": 1024
+        },
+        {
+          "id": "fc1f8e579b399c21aceb5aea8cb7cc6901273b07feca9872",
+          "gold": "Paragraph 17",
+          "pred": "The village of Koningsbosch in the Nethe",
+          "correct": false,
+          "full_tokens": 12665,
+          "used_tokens": 1024
+        },
+        {
+          "id": "4e79b0e55e463d6c664a2a8b867ab34513b278c40bf9da27",
+          "gold": "Paragraph 4",
+          "pred": "The Lewis River is a river in Yellowston",
+          "correct": false,
+          "full_tokens": 13634,
+          "used_tokens": 1024
+        },
+        {
+          "id": "576c3b0a453922c2b506630f24eca8b155dec4b415519619",
+          "gold": "Paragraph 3",
+          "pred": "Answer: Keith Flint was born on Septembe",
+          "correct": false,
+          "full_tokens": 15030,
+          "used_tokens": 1024
+        },
+        {
+          "id": "12a3c92054a81cf9e8f9feabd3df580f0b1f3da68fedc572",
+          "gold": "Paragraph 24",
+          "pred": "The answer is:  \nPhylidor, dressed in bl",
+          "correct": false,
+          "full_tokens": 13219,
+          "used_tokens": 1024
+        },
+        {
+          "id": "2024cb6239c0be12fae84bbbbcca6bb976a704c0bddb305b",
+          "gold": "Paragraph 2",
+          "pred": "The text discusses the controversy surro",
+          "correct": false,
+          "full_tokens": 13265,
+          "used_tokens": 1024
+        },
+        {
+          "id": "bd9d3468c50000f39e476ba33358347ef358d49f2424458c",
+          "gold": "Paragraph 6",
+          "pred": "The text is about Canada's involvement i",
+          "correct": false,
+          "full_tokens": 12437,
+          "used_tokens": 1024
+        },
+        {
+          "id": "519810536eb03a3adc994472060782fdde1f57cc793ee53e",
+          "gold": "Paragraph 12",
+          "pred": "The text is a summary of the career path",
+          "correct": false,
+          "full_tokens": 12432,
+          "used_tokens": 1024
+        },
+        {
+          "id": "0572c1fd4c71cdaecbee7a7e8727697ad01d484b8a6aba83",
+          "gold": "Paragraph 24",
+          "pred": "The text discusses the changing relation",
+          "correct": false,
+          "full_tokens": 11168,
+          "used_tokens": 1024
+        },
+        {
+          "id": "4e53ec041f1ceb316c1c9849d1eab12a8515d3b65a76bd5f",
+          "gold": "Paragraph 30",
+          "pred": "Answer: Arthur Ruppin was born in Rawicz",
+          "correct": false,
+          "full_tokens": 10785,
+          "used_tokens": 1024
+        },
+        {
+          "id": "62f44dae51918c20136d2cfa5469d680f04216926da0ff93",
+          "gold": "Paragraph 1",
+          "pred": "The answer is: **Monty's Pass ultimately",
+          "correct": false,
+          "full_tokens": 14917,
+          "used_tokens": 1024
+        },
+        {
+          "id": "88e4f74376126f62f0f422c2532d2baaaab48998509bea6f",
+          "gold": "Paragraph 6",
+          "pred": "Answer:  \nCyrus, a leader, requests ten ",
+          "correct": false,
+          "full_tokens": 12691,
+          "used_tokens": 1024
+        },
+        {
+          "id": "1c84398a5d9857c046163eaf29b3a1d7e1ea7b79c23430ec",
+          "gold": "Paragraph 8",
+          "pred": "The couple, Harlow and Hendrix, faces se",
+          "correct": false,
+          "full_tokens": 13142,
+          "used_tokens": 1024
+        },
+        {
+          "id": "54007660c7f56e3e460501677b635e20a94774c86804adf8",
+          "gold": "Paragraph 3",
+          "pred": "The text discusses how acute generalized",
+          "correct": false,
+          "full_tokens": 10117,
+          "used_tokens": 1024
+        },
+        {
+          "id": "b237b72566b357f04d6a699d634dd9744731518d61c95d21",
+          "gold": "Paragraph 1",
+          "pred": "The band released three vinyl-only EPs i",
+          "correct": false,
+          "full_tokens": 13672,
+          "used_tokens": 1024
+        },
+        {
+          "id": "a635f6f93afd73e1544bd3858848bc45ece77c07c9783176",
+          "gold": "Paragraph 25",
+          "pred": "The text describes the events leading up",
+          "correct": false,
+          "full_tokens": 11655,
+          "used_tokens": 1024
+        },
+        {
+          "id": "0cd53931f2ffb958264a415bddf98b732832def3997916d2",
+          "gold": "Paragraph 19",
+          "pred": "Answer:  \nIn the film, David Byrne wears",
+          "correct": false,
+          "full_tokens": 13988,
+          "used_tokens": 1024
+        },
+        {
+          "id": "f1382b660e91069869d0472bbbf061720e030d7fca006f6c",
+          "gold": "Paragraph 22",
+          "pred": "Answer: Van Barneveld, a professional da",
+          "correct": false,
+          "full_tokens": 10645,
+          "used_tokens": 1024
+        },
+        {
+          "id": "5416f637bed37f632213f94d77c7e04d5c0f6b1dcb858e37",
+          "gold": "Paragraph 5",
+          "pred": "The answer is: **Astral**.",
+          "correct": false,
+          "full_tokens": 12862,
+          "used_tokens": 1024
+        },
+        {
+          "id": "1f31b83ce91f9d99d5a93b2af35e02c8eddb5619018b168c",
+          "gold": "Paragraph 15",
+          "pred": "The text discusses the career of Dr. Hen",
+          "correct": false,
+          "full_tokens": 12852,
+          "used_tokens": 1024
+        },
+        {
+          "id": "78c8d1ac1a497db2bc8450073948f47300fc868545f6c748",
+          "gold": "Paragraph 28",
+          "pred": "Answer:  \nBetween 1976 and 1982, Albert ",
+          "correct": false,
+          "full_tokens": 13570,
+          "used_tokens": 1024
+        },
+        {
+          "id": "da02ddf551706e0672ee02ca9b1be22bb6ec1dd52536da97",
+          "gold": "Paragraph 5",
+          "pred": "Answer:  \nMount Gay Rum is a popular rum",
+          "correct": false,
+          "full_tokens": 12267,
+          "used_tokens": 1024
+        },
+        {
+          "id": "419cec5e49a27872fcd6a95a129e248363c8ab375392af94",
+          "gold": "Paragraph 30",
+          "pred": "The text highlights multiple visits made",
+          "correct": false,
+          "full_tokens": 13429,
+          "used_tokens": 1024
+        },
+        {
+          "id": "9f2ea2a9ceb29930aeb4cfff94b4ad12e835e03502a30747",
+          "gold": "Paragraph 6",
+          "pred": "The text describes **Assy McGee**, a cha",
+          "correct": false,
+          "full_tokens": 10452,
+          "used_tokens": 1024
+        },
+        {
+          "id": "7a19e7f9b13931f23168828b91f39266b978c09fadf83e68",
+          "gold": "Paragraph 12",
+          "pred": "The answer is:  \n**Robert G. Kramer Sr.*",
+          "correct": false,
+          "full_tokens": 12245,
+          "used_tokens": 1024
+        },
+        {
+          "id": "757b90f375deb27abcf0244be3b6f901c39f4a51e6c1d25a",
+          "gold": "Paragraph 26",
+          "pred": "The Newcomb Lifeboat Company, founded by",
+          "correct": false,
+          "full_tokens": 13666,
+          "used_tokens": 1024
+        },
+        {
+          "id": "fe6ddc36d614820497e4a2681c0b27d7fb6a26100033dc77",
+          "gold": "Paragraph 30",
+          "pred": "Answer:  \nIn 1982, Margaret Thatcher's C",
+          "correct": false,
+          "full_tokens": 11894,
+          "used_tokens": 1024
+        },
+        {
+          "id": "47a64b03518500e56c0b76075a0a827cd3792ca6c62b8c94",
+          "gold": "Paragraph 6",
+          "pred": "The answer is: **The tension surrounding",
+          "correct": false,
+          "full_tokens": 13514,
+          "used_tokens": 1024
+        },
+        {
+          "id": "a69f6f88c90965fbf2c6c60245d05d24232baa9a9e4fbd44",
+          "gold": "Paragraph 12",
+          "pred": "The Mi-8AMT is an armed assault version ",
+          "correct": false,
+          "full_tokens": 11757,
+          "used_tokens": 1024
+        },
+        {
+          "id": "27fc8231a08403f15b65d1dc7bdb4c64936344bb26697d1e",
+          "gold": "Paragraph 23",
+          "pred": "The text describes a historical event th",
+          "correct": false,
+          "full_tokens": 14262,
+          "used_tokens": 1024
+        },
+        {
+          "id": "0d31a5ea5cebb18a1cde1130c38e9e7e84bb9b08c6c6e982",
+          "gold": "Paragraph 17",
+          "pred": "The summary of the text is as follows:  ",
+          "correct": false,
+          "full_tokens": 14370,
+          "used_tokens": 1024
+        },
+        {
+          "id": "41cd55851459af4c3ca72a2c4949451777794cc162e3f4d8",
+          "gold": "Paragraph 1",
+          "pred": "The text discusses the conflict between ",
+          "correct": false,
+          "full_tokens": 11908,
+          "used_tokens": 1024
+        },
+        {
+          "id": "dc98c26b2814e005d231d44ee3be96e981f56090a3ca8844",
+          "gold": "Paragraph 27",
+          "pred": "The answer is: **The towers are square s",
+          "correct": false,
+          "full_tokens": 14319,
+          "used_tokens": 1024
+        },
+        {
+          "id": "2e87c52043fd6a53718a2c8afb03ac376551f50a2bc193e5",
+          "gold": "Paragraph 21",
+          "pred": "The answer is: **\"The song being describ",
+          "correct": false,
+          "full_tokens": 12728,
+          "used_tokens": 1024
+        }
+      ]
+    },
+    {
+      "strategy": "project_topic",
+      "budget": 1024,
+      "task": "passage_retrieval_en",
+      "metric": 0.0,
+      "correct": 0,
+      "total": 50,
+      "metric_type": "accuracy",
+      "avg_latency_s": 1.16,
+      "per_item": [
+        {
+          "id": "f440b317fe84ec87132b316031ad47925a6ae33e0ef0ee3a",
+          "gold": "Paragraph 15",
+          "pred": "The text summarizes the life and struggl",
+          "correct": false,
+          "full_tokens": 11304,
+          "used_tokens": 883
+        },
+        {
+          "id": "5096757b48e895ad15b31e620bedd26e5ba11406619bb23f",
+          "gold": "Paragraph 8",
+          "pred": "The text discusses the challenges faced ",
+          "correct": false,
+          "full_tokens": 11676,
+          "used_tokens": 1019
+        },
+        {
+          "id": "8b64051664cb901d9bdb2496f545d7eee2afc4104b2cd70e",
+          "gold": "Paragraph 18",
+          "pred": "The answer is: **Michigan's successful s",
+          "correct": false,
+          "full_tokens": 13085,
+          "used_tokens": 950
+        },
+        {
+          "id": "4349c909bd2d20abdf107f11c32c821992e085f79e9de5bd",
+          "gold": "Paragraph 17",
+          "pred": "The text discusses the legal complicatio",
+          "correct": false,
+          "full_tokens": 12826,
+          "used_tokens": 992
+        },
+        {
+          "id": "7d40e1fda479442b3036ee0eac74bfc78fb55f2078e861c1",
+          "gold": "Paragraph 14",
+          "pred": "The text discusses the size and arrangem",
+          "correct": false,
+          "full_tokens": 12581,
+          "used_tokens": 978
+        },
+        {
+          "id": "3cdab3983562bc0d09ca6edff3165b60549755f4e9dc5c76",
+          "gold": "Paragraph 3",
+          "pred": "The text discusses how author John Scalz",
+          "correct": false,
+          "full_tokens": 12302,
+          "used_tokens": 963
+        },
+        {
+          "id": "803a8ee56e14440e185aaf0eb0f82b9f060cb70b4b074311",
+          "gold": "Paragraph 24",
+          "pred": "The text discusses a book written by Win",
+          "correct": false,
+          "full_tokens": 11879,
+          "used_tokens": 929
+        },
+        {
+          "id": "c795443150fa323af09da5a7a90c92df40234f1dadda9c36",
+          "gold": "Paragraph 27",
+          "pred": "The text tells the story of Henry, a vet",
+          "correct": false,
+          "full_tokens": 12038,
+          "used_tokens": 782
+        },
+        {
+          "id": "25f458b734959c49a6b17fcf3ebe8c17d783b4308eaeaf58",
+          "gold": "Paragraph 30",
+          "pred": "The Gopher mascot, named \"Goldy,\" origin",
+          "correct": false,
+          "full_tokens": 10705,
+          "used_tokens": 913
+        },
+        {
+          "id": "6c982433659ce5f5ab0aed1ad2f7aaab98da81d6f2c884f7",
+          "gold": "Paragraph 12",
+          "pred": "The text provides a detailed list of are",
+          "correct": false,
+          "full_tokens": 14322,
+          "used_tokens": 1020
+        },
+        {
+          "id": "3904ff19a3fb00b1dc090b36de6a31b5a1f609402e6d6fdd",
+          "gold": "Paragraph 22",
+          "pred": "The Surtees team updated their car for t",
+          "correct": false,
+          "full_tokens": 12683,
+          "used_tokens": 860
+        },
+        {
+          "id": "aea9522fd0bc34379944ded926003b0570fe34095eed5764",
+          "gold": "Paragraph 30",
+          "pred": "The text explains the development of kit",
+          "correct": false,
+          "full_tokens": 13617,
+          "used_tokens": 910
+        },
+        {
+          "id": "788dc7c33a28516fc1a7653945b4664eac0b213dfab95d93",
+          "gold": "Paragraph 24",
+          "pred": "The text explains that cyclopropanones, ",
+          "correct": false,
+          "full_tokens": 12143,
+          "used_tokens": 868
+        },
+        {
+          "id": "dc2dab0a04cf9ed55af558bd1f26b2674d6f0742c8256247",
+          "gold": "Paragraph 19",
+          "pred": "The text is about a woman named G\u00fczin wh",
+          "correct": false,
+          "full_tokens": 13830,
+          "used_tokens": 546
+        },
+        {
+          "id": "cea4e7b4aa32882ef84a2d08b2da9df610d6ab4d6f0928a1",
+          "gold": "Paragraph 3",
+          "pred": "Liane Brauch Russel, born in 1923 in Vie",
+          "correct": false,
+          "full_tokens": 15295,
+          "used_tokens": 871
+        },
+        {
+          "id": "1f9f1148ab9f65a9a43ff2ca02dcfebfda9dcf59f9fdedb9",
+          "gold": "Paragraph 8",
+          "pred": "In the spring of 1882, the warrior Na-ti",
+          "correct": false,
+          "full_tokens": 13599,
+          "used_tokens": 897
+        },
+        {
+          "id": "cebc4e96310c20c62b96dbbb100fef95b59f5f2540d3fc99",
+          "gold": "Paragraph 3",
+          "pred": "The Charleston Rainbows, previously know",
+          "correct": false,
+          "full_tokens": 12079,
+          "used_tokens": 821
+        },
+        {
+          "id": "fc1f8e579b399c21aceb5aea8cb7cc6901273b07feca9872",
+          "gold": "Paragraph 17",
+          "pred": "The village of Koningsbosch in the Nethe",
+          "correct": false,
+          "full_tokens": 12665,
+          "used_tokens": 889
+        },
+        {
+          "id": "4e79b0e55e463d6c664a2a8b867ab34513b278c40bf9da27",
+          "gold": "Paragraph 4",
+          "pred": "The Lewis River begins at the southern e",
+          "correct": false,
+          "full_tokens": 13634,
+          "used_tokens": 1011
+        },
+        {
+          "id": "576c3b0a453922c2b506630f24eca8b155dec4b415519619",
+          "gold": "Paragraph 3",
+          "pred": "The text provides a brief biography of K",
+          "correct": false,
+          "full_tokens": 15030,
+          "used_tokens": 855
+        },
+        {
+          "id": "12a3c92054a81cf9e8f9feabd3df580f0b1f3da68fedc572",
+          "gold": "Paragraph 24",
+          "pred": "Phylidor, dressed in black, led the visi",
+          "correct": false,
+          "full_tokens": 13219,
+          "used_tokens": 1024
+        },
+        {
+          "id": "2024cb6239c0be12fae84bbbbcca6bb976a704c0bddb305b",
+          "gold": "Paragraph 2",
+          "pred": "The text discusses the controversy surro",
+          "correct": false,
+          "full_tokens": 13265,
+          "used_tokens": 1018
+        },
+        {
+          "id": "bd9d3468c50000f39e476ba33358347ef358d49f2424458c",
+          "gold": "Paragraph 6",
+          "pred": "The text discusses Canada's involvement ",
+          "correct": false,
+          "full_tokens": 12437,
+          "used_tokens": 1014
+        },
+        {
+          "id": "519810536eb03a3adc994472060782fdde1f57cc793ee53e",
+          "gold": "Paragraph 12",
+          "pred": "After his football career, Sall\u00f3i worked",
+          "correct": false,
+          "full_tokens": 12432,
+          "used_tokens": 892
+        },
+        {
+          "id": "0572c1fd4c71cdaecbee7a7e8727697ad01d484b8a6aba83",
+          "gold": "Paragraph 24",
+          "pred": "The text discusses the changing relation",
+          "correct": false,
+          "full_tokens": 11168,
+          "used_tokens": 894
+        },
+        {
+          "id": "4e53ec041f1ceb316c1c9849d1eab12a8515d3b65a76bd5f",
+          "gold": "Paragraph 30",
+          "pred": "Arthur Ruppin was born in Rawicz, Poland",
+          "correct": false,
+          "full_tokens": 10785,
+          "used_tokens": 908
+        },
+        {
+          "id": "62f44dae51918c20136d2cfa5469d680f04216926da0ff93",
+          "gold": "Paragraph 1",
+          "pred": "The answer is:  \n**Gunner Welburn and Mo",
+          "correct": false,
+          "full_tokens": 14917,
+          "used_tokens": 958
+        },
+        {
+          "id": "88e4f74376126f62f0f422c2532d2baaaab48998509bea6f",
+          "gold": "Paragraph 6",
+          "pred": "The answer is:  \n**Cyrus, a leader, requ",
+          "correct": false,
+          "full_tokens": 12691,
+          "used_tokens": 929
+        },
+        {
+          "id": "1c84398a5d9857c046163eaf29b3a1d7e1ea7b79c23430ec",
+          "gold": "Paragraph 8",
+          "pred": "In the text, it is revealed that the cou",
+          "correct": false,
+          "full_tokens": 13142,
+          "used_tokens": 914
+        },
+        {
+          "id": "54007660c7f56e3e460501677b635e20a94774c86804adf8",
+          "gold": "Paragraph 3",
+          "pred": "The text discusses how acute generalized",
+          "correct": false,
+          "full_tokens": 10117,
+          "used_tokens": 739
+        },
+        {
+          "id": "b237b72566b357f04d6a699d634dd9744731518d61c95d21",
+          "gold": "Paragraph 1",
+          "pred": "The band released three vinyl-only EPs i",
+          "correct": false,
+          "full_tokens": 13672,
+          "used_tokens": 843
+        },
+        {
+          "id": "a635f6f93afd73e1544bd3858848bc45ece77c07c9783176",
+          "gold": "Paragraph 25",
+          "pred": "The text describes the events leading up",
+          "correct": false,
+          "full_tokens": 11655,
+          "used_tokens": 1019
+        },
+        {
+          "id": "0cd53931f2ffb958264a415bddf98b732832def3997916d2",
+          "gold": "Paragraph 19",
+          "pred": "In the film, David Byrne wears a large b",
+          "correct": false,
+          "full_tokens": 13988,
+          "used_tokens": 977
+        },
+        {
+          "id": "f1382b660e91069869d0472bbbf061720e030d7fca006f6c",
+          "gold": "Paragraph 22",
+          "pred": "In 2008, Van Barneveld, a professional d",
+          "correct": false,
+          "full_tokens": 10645,
+          "used_tokens": 952
+        },
+        {
+          "id": "5416f637bed37f632213f94d77c7e04d5c0f6b1dcb858e37",
+          "gold": "Paragraph 5",
+          "pred": "The answer is:  \n**Astral won the Mini-E",
+          "correct": false,
+          "full_tokens": 12862,
+          "used_tokens": 975
+        },
+        {
+          "id": "1f31b83ce91f9d99d5a93b2af35e02c8eddb5619018b168c",
+          "gold": "Paragraph 15",
+          "pred": "The text discusses the career of Dr. Hen",
+          "correct": false,
+          "full_tokens": 12852,
+          "used_tokens": 1016
+        },
+        {
+          "id": "78c8d1ac1a497db2bc8450073948f47300fc868545f6c748",
+          "gold": "Paragraph 28",
+          "pred": "Between 1976 and 1982, Albert Rovers, la",
+          "correct": false,
+          "full_tokens": 13570,
+          "used_tokens": 814
+        },
+        {
+          "id": "da02ddf551706e0672ee02ca9b1be22bb6ec1dd52536da97",
+          "gold": "Paragraph 5",
+          "pred": "Answer: Sir John Gay Alleyne was also a ",
+          "correct": false,
+          "full_tokens": 12267,
+          "used_tokens": 874
+        },
+        {
+          "id": "419cec5e49a27872fcd6a95a129e248363c8ab375392af94",
+          "gold": "Paragraph 30",
+          "pred": "The text highlights multiple visits made",
+          "correct": false,
+          "full_tokens": 13429,
+          "used_tokens": 956
+        },
+        {
+          "id": "9f2ea2a9ceb29930aeb4cfff94b4ad12e835e03502a30747",
+          "gold": "Paragraph 6",
+          "pred": "The answer is: **\"Santosh Nar Even his g",
+          "correct": false,
+          "full_tokens": 10452,
+          "used_tokens": 1025
+        },
+        {
+          "id": "7a19e7f9b13931f23168828b91f39266b978c09fadf83e68",
+          "gold": "Paragraph 12",
+          "pred": "The text describes the timeline of a per",
+          "correct": false,
+          "full_tokens": 12245,
+          "used_tokens": 782
+        },
+        {
+          "id": "757b90f375deb27abcf0244be3b6f901c39f4a51e6c1d25a",
+          "gold": "Paragraph 26",
+          "pred": "The Newcomb Lifeboat Company, founded by",
+          "correct": false,
+          "full_tokens": 13666,
+          "used_tokens": 768
+        },
+        {
+          "id": "fe6ddc36d614820497e4a2681c0b27d7fb6a26100033dc77",
+          "gold": "Paragraph 30",
+          "pred": "In 1982, the Conservative Government led",
+          "correct": false,
+          "full_tokens": 11894,
+          "used_tokens": 806
+        },
+        {
+          "id": "47a64b03518500e56c0b76075a0a827cd3792ca6c62b8c94",
+          "gold": "Paragraph 6",
+          "pred": "The tension surrounding the Western Wall",
+          "correct": false,
+          "full_tokens": 13514,
+          "used_tokens": 1016
+        },
+        {
+          "id": "a69f6f88c90965fbf2c6c60245d05d24232baa9a9e4fbd44",
+          "gold": "Paragraph 12",
+          "pred": "The Mi-8AMT is an armed assault version ",
+          "correct": false,
+          "full_tokens": 11757,
+          "used_tokens": 907
+        },
+        {
+          "id": "27fc8231a08403f15b65d1dc7bdb4c64936344bb26697d1e",
+          "gold": "Paragraph 23",
+          "pred": "The text describes a historical event th",
+          "correct": false,
+          "full_tokens": 14262,
+          "used_tokens": 848
+        },
+        {
+          "id": "0d31a5ea5cebb18a1cde1130c38e9e7e84bb9b08c6c6e982",
+          "gold": "Paragraph 17",
+          "pred": "The summary of the text is as follows:  ",
+          "correct": false,
+          "full_tokens": 14370,
+          "used_tokens": 974
+        },
+        {
+          "id": "41cd55851459af4c3ca72a2c4949451777794cc162e3f4d8",
+          "gold": "Paragraph 1",
+          "pred": "The text discusses the conflict between ",
+          "correct": false,
+          "full_tokens": 11908,
+          "used_tokens": 868
+        },
+        {
+          "id": "dc98c26b2814e005d231d44ee3be96e981f56090a3ca8844",
+          "gold": "Paragraph 27",
+          "pred": "The answer is:  \n**The text describes th",
+          "correct": false,
+          "full_tokens": 14319,
+          "used_tokens": 974
+        },
+        {
+          "id": "2e87c52043fd6a53718a2c8afb03ac376551f50a2bc193e5",
+          "gold": "Paragraph 21",
+          "pred": "The song being described is a slow and s",
+          "correct": false,
+          "full_tokens": 12728,
+          "used_tokens": 987
+        }
+      ]
+    },
+    {
+      "strategy": "attention_sink",
+      "budget": 1024,
+      "task": "passage_retrieval_en",
+      "metric": 0.0,
+      "correct": 0,
+      "total": 50,
+      "metric_type": "accuracy",
+      "avg_latency_s": 1.17,
+      "per_item": [
+        {
+          "id": "f440b317fe84ec87132b316031ad47925a6ae33e0ef0ee3a",
+          "gold": "Paragraph 15",
+          "pred": "The text summarizes the life and struggl",
+          "correct": false,
+          "full_tokens": 11304,
+          "used_tokens": 884
+        },
+        {
+          "id": "5096757b48e895ad15b31e620bedd26e5ba11406619bb23f",
+          "gold": "Paragraph 8",
+          "pred": "The text discusses the challenges faced ",
+          "correct": false,
+          "full_tokens": 11676,
+          "used_tokens": 1020
+        },
+        {
+          "id": "8b64051664cb901d9bdb2496f545d7eee2afc4104b2cd70e",
+          "gold": "Paragraph 18",
+          "pred": "The answer is:  \n**Michigan had a succes",
+          "correct": false,
+          "full_tokens": 13085,
+          "used_tokens": 951
+        },
+        {
+          "id": "4349c909bd2d20abdf107f11c32c821992e085f79e9de5bd",
+          "gold": "Paragraph 17",
+          "pred": "The text discusses the legal complicatio",
+          "correct": false,
+          "full_tokens": 12826,
+          "used_tokens": 993
+        },
+        {
+          "id": "7d40e1fda479442b3036ee0eac74bfc78fb55f2078e861c1",
+          "gold": "Paragraph 14",
+          "pred": "The text discusses the size and arrangem",
+          "correct": false,
+          "full_tokens": 12581,
+          "used_tokens": 979
+        },
+        {
+          "id": "3cdab3983562bc0d09ca6edff3165b60549755f4e9dc5c76",
+          "gold": "Paragraph 3",
+          "pred": "The text discusses how author John Scalz",
+          "correct": false,
+          "full_tokens": 12302,
+          "used_tokens": 964
+        },
+        {
+          "id": "803a8ee56e14440e185aaf0eb0f82b9f060cb70b4b074311",
+          "gold": "Paragraph 24",
+          "pred": "The text discusses a book written by Win",
+          "correct": false,
+          "full_tokens": 11879,
+          "used_tokens": 930
+        },
+        {
+          "id": "c795443150fa323af09da5a7a90c92df40234f1dadda9c36",
+          "gold": "Paragraph 27",
+          "pred": "The text tells the story of Henry, a vet",
+          "correct": false,
+          "full_tokens": 12038,
+          "used_tokens": 783
+        },
+        {
+          "id": "25f458b734959c49a6b17fcf3ebe8c17d783b4308eaeaf58",
+          "gold": "Paragraph 30",
+          "pred": "The Gopher mascot, named \"Goldy,\" origin",
+          "correct": false,
+          "full_tokens": 10705,
+          "used_tokens": 914
+        },
+        {
+          "id": "6c982433659ce5f5ab0aed1ad2f7aaab98da81d6f2c884f7",
+          "gold": "Paragraph 12",
+          "pred": "The text provides a detailed list of are",
+          "correct": false,
+          "full_tokens": 14322,
+          "used_tokens": 1016
+        },
+        {
+          "id": "3904ff19a3fb00b1dc090b36de6a31b5a1f609402e6d6fdd",
+          "gold": "Paragraph 22",
+          "pred": "The Surtees team updated their car for t",
+          "correct": false,
+          "full_tokens": 12683,
+          "used_tokens": 861
+        },
+        {
+          "id": "aea9522fd0bc34379944ded926003b0570fe34095eed5764",
+          "gold": "Paragraph 30",
+          "pred": "The text explains the development of kit",
+          "correct": false,
+          "full_tokens": 13617,
+          "used_tokens": 911
+        },
+        {
+          "id": "788dc7c33a28516fc1a7653945b4664eac0b213dfab95d93",
+          "gold": "Paragraph 24",
+          "pred": "The text explains that cyclopropanones, ",
+          "correct": false,
+          "full_tokens": 12143,
+          "used_tokens": 870
+        },
+        {
+          "id": "dc2dab0a04cf9ed55af558bd1f26b2674d6f0742c8256247",
+          "gold": "Paragraph 19",
+          "pred": "The text is about a woman named G\u00fczin wh",
+          "correct": false,
+          "full_tokens": 13830,
+          "used_tokens": 547
+        },
+        {
+          "id": "cea4e7b4aa32882ef84a2d08b2da9df610d6ab4d6f0928a1",
+          "gold": "Paragraph 3",
+          "pred": "Liane Brauch Russel, born in 1923 in Vie",
+          "correct": false,
+          "full_tokens": 15295,
+          "used_tokens": 872
+        },
+        {
+          "id": "1f9f1148ab9f65a9a43ff2ca02dcfebfda9dcf59f9fdedb9",
+          "gold": "Paragraph 8",
+          "pred": "In the spring of 1882, the warrior Na-ti",
+          "correct": false,
+          "full_tokens": 13599,
+          "used_tokens": 899
+        },
+        {
+          "id": "cebc4e96310c20c62b96dbbb100fef95b59f5f2540d3fc99",
+          "gold": "Paragraph 3",
+          "pred": "The Charleston Rainbows, previously know",
+          "correct": false,
+          "full_tokens": 12079,
+          "used_tokens": 822
+        },
+        {
+          "id": "fc1f8e579b399c21aceb5aea8cb7cc6901273b07feca9872",
+          "gold": "Paragraph 17",
+          "pred": "The village of Koningsbosch in the Nethe",
+          "correct": false,
+          "full_tokens": 12665,
+          "used_tokens": 890
+        },
+        {
+          "id": "4e79b0e55e463d6c664a2a8b867ab34513b278c40bf9da27",
+          "gold": "Paragraph 4",
+          "pred": "The Lewis River is a river in Yellowston",
+          "correct": false,
+          "full_tokens": 13634,
+          "used_tokens": 1012
+        },
+        {
+          "id": "576c3b0a453922c2b506630f24eca8b155dec4b415519619",
+          "gold": "Paragraph 3",
+          "pred": "The text provides a brief biography of K",
+          "correct": false,
+          "full_tokens": 15030,
+          "used_tokens": 856
+        },
+        {
+          "id": "12a3c92054a81cf9e8f9feabd3df580f0b1f3da68fedc572",
+          "gold": "Paragraph 24",
+          "pred": "Phylidor, dressed in black, led the visi",
+          "correct": false,
+          "full_tokens": 13219,
+          "used_tokens": 1023
+        },
+        {
+          "id": "2024cb6239c0be12fae84bbbbcca6bb976a704c0bddb305b",
+          "gold": "Paragraph 2",
+          "pred": "The text discusses the controversy surro",
+          "correct": false,
+          "full_tokens": 13265,
+          "used_tokens": 1019
+        },
+        {
+          "id": "bd9d3468c50000f39e476ba33358347ef358d49f2424458c",
+          "gold": "Paragraph 6",
+          "pred": "The text discusses Canada's involvement ",
+          "correct": false,
+          "full_tokens": 12437,
+          "used_tokens": 1016
+        },
+        {
+          "id": "519810536eb03a3adc994472060782fdde1f57cc793ee53e",
+          "gold": "Paragraph 12",
+          "pred": "The text is a summary of the career path",
+          "correct": false,
+          "full_tokens": 12432,
+          "used_tokens": 893
+        },
+        {
+          "id": "0572c1fd4c71cdaecbee7a7e8727697ad01d484b8a6aba83",
+          "gold": "Paragraph 24",
+          "pred": "The text discusses the changing relation",
+          "correct": false,
+          "full_tokens": 11168,
+          "used_tokens": 895
+        },
+        {
+          "id": "4e53ec041f1ceb316c1c9849d1eab12a8515d3b65a76bd5f",
+          "gold": "Paragraph 30",
+          "pred": "Arthur Ruppin was born in Rawicz, Poland",
+          "correct": false,
+          "full_tokens": 10785,
+          "used_tokens": 909
+        },
+        {
+          "id": "62f44dae51918c20136d2cfa5469d680f04216926da0ff93",
+          "gold": "Paragraph 1",
+          "pred": "In a horse racing event, **Tremallt** le",
+          "correct": false,
+          "full_tokens": 14917,
+          "used_tokens": 959
+        },
+        {
+          "id": "88e4f74376126f62f0f422c2532d2baaaab48998509bea6f",
+          "gold": "Paragraph 6",
+          "pred": "In this text, Cyrus, a leader, requests ",
+          "correct": false,
+          "full_tokens": 12691,
+          "used_tokens": 930
+        },
+        {
+          "id": "1c84398a5d9857c046163eaf29b3a1d7e1ea7b79c23430ec",
+          "gold": "Paragraph 8",
+          "pred": "In the text, it is revealed that the cou",
+          "correct": false,
+          "full_tokens": 13142,
+          "used_tokens": 915
+        },
+        {
+          "id": "54007660c7f56e3e460501677b635e20a94774c86804adf8",
+          "gold": "Paragraph 3",
+          "pred": "The text discusses how acute generalized",
+          "correct": false,
+          "full_tokens": 10117,
+          "used_tokens": 740
+        },
+        {
+          "id": "b237b72566b357f04d6a699d634dd9744731518d61c95d21",
+          "gold": "Paragraph 1",
+          "pred": "The band released three vinyl-only EPs i",
+          "correct": false,
+          "full_tokens": 13672,
+          "used_tokens": 844
+        },
+        {
+          "id": "a635f6f93afd73e1544bd3858848bc45ece77c07c9783176",
+          "gold": "Paragraph 25",
+          "pred": "The text describes the events leading up",
+          "correct": false,
+          "full_tokens": 11655,
+          "used_tokens": 1020
+        },
+        {
+          "id": "0cd53931f2ffb958264a415bddf98b732832def3997916d2",
+          "gold": "Paragraph 19",
+          "pred": "In the film, David Byrne wears a large b",
+          "correct": false,
+          "full_tokens": 13988,
+          "used_tokens": 978
+        },
+        {
+          "id": "f1382b660e91069869d0472bbbf061720e030d7fca006f6c",
+          "gold": "Paragraph 22",
+          "pred": "In 2008, Van Barneveld, a professional d",
+          "correct": false,
+          "full_tokens": 10645,
+          "used_tokens": 953
+        },
+        {
+          "id": "5416f637bed37f632213f94d77c7e04d5c0f6b1dcb858e37",
+          "gold": "Paragraph 5",
+          "pred": "The text discusses the career of a wrest",
+          "correct": false,
+          "full_tokens": 12862,
+          "used_tokens": 976
+        },
+        {
+          "id": "1f31b83ce91f9d99d5a93b2af35e02c8eddb5619018b168c",
+          "gold": "Paragraph 15",
+          "pred": "The text discusses the career of Dr. Hen",
+          "correct": false,
+          "full_tokens": 12852,
+          "used_tokens": 1017
+        },
+        {
+          "id": "78c8d1ac1a497db2bc8450073948f47300fc868545f6c748",
+          "gold": "Paragraph 28",
+          "pred": "Between 1976 and 1982, Albert Rovers, la",
+          "correct": false,
+          "full_tokens": 13570,
+          "used_tokens": 815
+        },
+        {
+          "id": "da02ddf551706e0672ee02ca9b1be22bb6ec1dd52536da97",
+          "gold": "Paragraph 5",
+          "pred": "Answer:  \nMount Gay Rum is a popular rum",
+          "correct": false,
+          "full_tokens": 12267,
+          "used_tokens": 875
+        },
+        {
+          "id": "419cec5e49a27872fcd6a95a129e248363c8ab375392af94",
+          "gold": "Paragraph 30",
+          "pred": "The text highlights multiple visits made",
+          "correct": false,
+          "full_tokens": 13429,
+          "used_tokens": 957
+        },
+        {
+          "id": "9f2ea2a9ceb29930aeb4cfff94b4ad12e835e03502a30747",
+          "gold": "Paragraph 6",
+          "pred": "The text describes Assy McGee, a charact",
+          "correct": false,
+          "full_tokens": 10452,
+          "used_tokens": 1012
+        },
+        {
+          "id": "7a19e7f9b13931f23168828b91f39266b978c09fadf83e68",
+          "gold": "Paragraph 12",
+          "pred": "The text describes the timeline of a per",
+          "correct": false,
+          "full_tokens": 12245,
+          "used_tokens": 783
+        },
+        {
+          "id": "757b90f375deb27abcf0244be3b6f901c39f4a51e6c1d25a",
+          "gold": "Paragraph 26",
+          "pred": "The Newcomb Lifeboat Company, founded by",
+          "correct": false,
+          "full_tokens": 13666,
+          "used_tokens": 769
+        },
+        {
+          "id": "fe6ddc36d614820497e4a2681c0b27d7fb6a26100033dc77",
+          "gold": "Paragraph 30",
+          "pred": "In 1982, the Conservative Government led",
+          "correct": false,
+          "full_tokens": 11894,
+          "used_tokens": 807
+        },
+        {
+          "id": "47a64b03518500e56c0b76075a0a827cd3792ca6c62b8c94",
+          "gold": "Paragraph 6",
+          "pred": "The tension surrounding the Western Wall",
+          "correct": false,
+          "full_tokens": 13514,
+          "used_tokens": 1017
+        },
+        {
+          "id": "a69f6f88c90965fbf2c6c60245d05d24232baa9a9e4fbd44",
+          "gold": "Paragraph 12",
+          "pred": "The Mi-8AMT is an armed assault version ",
+          "correct": false,
+          "full_tokens": 11757,
+          "used_tokens": 908
+        },
+        {
+          "id": "27fc8231a08403f15b65d1dc7bdb4c64936344bb26697d1e",
+          "gold": "Paragraph 23",
+          "pred": "The text describes a historical event th",
+          "correct": false,
+          "full_tokens": 14262,
+          "used_tokens": 849
+        },
+        {
+          "id": "0d31a5ea5cebb18a1cde1130c38e9e7e84bb9b08c6c6e982",
+          "gold": "Paragraph 17",
+          "pred": "The summary of the text is as follows:\n\n",
+          "correct": false,
+          "full_tokens": 14370,
+          "used_tokens": 975
+        },
+        {
+          "id": "41cd55851459af4c3ca72a2c4949451777794cc162e3f4d8",
+          "gold": "Paragraph 1",
+          "pred": "The text discusses the conflict between ",
+          "correct": false,
+          "full_tokens": 11908,
+          "used_tokens": 869
+        },
+        {
+          "id": "dc98c26b2814e005d231d44ee3be96e981f56090a3ca8844",
+          "gold": "Paragraph 27",
+          "pred": "The text describes the architectural fea",
+          "correct": false,
+          "full_tokens": 14319,
+          "used_tokens": 975
+        },
+        {
+          "id": "2e87c52043fd6a53718a2c8afb03ac376551f50a2bc193e5",
+          "gold": "Paragraph 21",
+          "pred": "The song being described is a slow and s",
+          "correct": false,
+          "full_tokens": 12728,
+          "used_tokens": 988
+        }
+      ]
+    },
+    {
+      "strategy": "sink_topic",
+      "budget": 1024,
+      "task": "passage_retrieval_en",
+      "metric": 0.0,
+      "correct": 0,
+      "total": 50,
+      "metric_type": "accuracy",
+      "avg_latency_s": 1.19,
+      "per_item": [
+        {
+          "id": "f440b317fe84ec87132b316031ad47925a6ae33e0ef0ee3a",
+          "gold": "Paragraph 15",
+          "pred": "The text summarizes the life and struggl",
+          "correct": false,
+          "full_tokens": 11304,
+          "used_tokens": 884
+        },
+        {
+          "id": "5096757b48e895ad15b31e620bedd26e5ba11406619bb23f",
+          "gold": "Paragraph 8",
+          "pred": "The text discusses the challenges faced ",
+          "correct": false,
+          "full_tokens": 11676,
+          "used_tokens": 1020
+        },
+        {
+          "id": "8b64051664cb901d9bdb2496f545d7eee2afc4104b2cd70e",
+          "gold": "Paragraph 18",
+          "pred": "Answer:  \nMichigan had a successful star",
+          "correct": false,
+          "full_tokens": 13085,
+          "used_tokens": 951
+        },
+        {
+          "id": "4349c909bd2d20abdf107f11c32c821992e085f79e9de5bd",
+          "gold": "Paragraph 17",
+          "pred": "The text discusses the legal complicatio",
+          "correct": false,
+          "full_tokens": 12826,
+          "used_tokens": 994
+        },
+        {
+          "id": "7d40e1fda479442b3036ee0eac74bfc78fb55f2078e861c1",
+          "gold": "Paragraph 14",
+          "pred": "The text discusses the size and arrangem",
+          "correct": false,
+          "full_tokens": 12581,
+          "used_tokens": 979
+        },
+        {
+          "id": "3cdab3983562bc0d09ca6edff3165b60549755f4e9dc5c76",
+          "gold": "Paragraph 3",
+          "pred": "The text discusses how author John Scalz",
+          "correct": false,
+          "full_tokens": 12302,
+          "used_tokens": 965
+        },
+        {
+          "id": "803a8ee56e14440e185aaf0eb0f82b9f060cb70b4b074311",
+          "gold": "Paragraph 24",
+          "pred": "The text discusses a book written by Win",
+          "correct": false,
+          "full_tokens": 11879,
+          "used_tokens": 930
+        },
+        {
+          "id": "c795443150fa323af09da5a7a90c92df40234f1dadda9c36",
+          "gold": "Paragraph 27",
+          "pred": "The text tells the story of Henry, a vet",
+          "correct": false,
+          "full_tokens": 12038,
+          "used_tokens": 783
+        },
+        {
+          "id": "25f458b734959c49a6b17fcf3ebe8c17d783b4308eaeaf58",
+          "gold": "Paragraph 30",
+          "pred": "The Gopher mascot, named \"Goldy,\" origin",
+          "correct": false,
+          "full_tokens": 10705,
+          "used_tokens": 914
+        },
+        {
+          "id": "6c982433659ce5f5ab0aed1ad2f7aaab98da81d6f2c884f7",
+          "gold": "Paragraph 12",
+          "pred": "The text provides a detailed list of are",
+          "correct": false,
+          "full_tokens": 14322,
+          "used_tokens": 1016
+        },
+        {
+          "id": "3904ff19a3fb00b1dc090b36de6a31b5a1f609402e6d6fdd",
+          "gold": "Paragraph 22",
+          "pred": "The Surtees team updated their car for t",
+          "correct": false,
+          "full_tokens": 12683,
+          "used_tokens": 861
+        },
+        {
+          "id": "aea9522fd0bc34379944ded926003b0570fe34095eed5764",
+          "gold": "Paragraph 30",
+          "pred": "The text explains the development of kit",
+          "correct": false,
+          "full_tokens": 13617,
+          "used_tokens": 911
+        },
+        {
+          "id": "788dc7c33a28516fc1a7653945b4664eac0b213dfab95d93",
+          "gold": "Paragraph 24",
+          "pred": "The text explains that cyclopropanones, ",
+          "correct": false,
+          "full_tokens": 12143,
+          "used_tokens": 870
+        },
+        {
+          "id": "dc2dab0a04cf9ed55af558bd1f26b2674d6f0742c8256247",
+          "gold": "Paragraph 19",
+          "pred": "The text is about a woman named G\u00fczin wh",
+          "correct": false,
+          "full_tokens": 13830,
+          "used_tokens": 547
+        },
+        {
+          "id": "cea4e7b4aa32882ef84a2d08b2da9df610d6ab4d6f0928a1",
+          "gold": "Paragraph 3",
+          "pred": "Liane Brauch Russel, born in 1923 in Vie",
+          "correct": false,
+          "full_tokens": 15295,
+          "used_tokens": 872
+        },
+        {
+          "id": "1f9f1148ab9f65a9a43ff2ca02dcfebfda9dcf59f9fdedb9",
+          "gold": "Paragraph 8",
+          "pred": "In the spring of 1882, the warrior Na-ti",
+          "correct": false,
+          "full_tokens": 13599,
+          "used_tokens": 899
+        },
+        {
+          "id": "cebc4e96310c20c62b96dbbb100fef95b59f5f2540d3fc99",
+          "gold": "Paragraph 3",
+          "pred": "The Charleston Rainbows, previously know",
+          "correct": false,
+          "full_tokens": 12079,
+          "used_tokens": 822
+        },
+        {
+          "id": "fc1f8e579b399c21aceb5aea8cb7cc6901273b07feca9872",
+          "gold": "Paragraph 17",
+          "pred": "The village of Koningsbosch in the Nethe",
+          "correct": false,
+          "full_tokens": 12665,
+          "used_tokens": 890
+        },
+        {
+          "id": "4e79b0e55e463d6c664a2a8b867ab34513b278c40bf9da27",
+          "gold": "Paragraph 4",
+          "pred": "The Lewis River is a river in Yellowston",
+          "correct": false,
+          "full_tokens": 13634,
+          "used_tokens": 1012
+        },
+        {
+          "id": "576c3b0a453922c2b506630f24eca8b155dec4b415519619",
+          "gold": "Paragraph 3",
+          "pred": "The text provides a brief biography of K",
+          "correct": false,
+          "full_tokens": 15030,
+          "used_tokens": 856
+        },
+        {
+          "id": "12a3c92054a81cf9e8f9feabd3df580f0b1f3da68fedc572",
+          "gold": "Paragraph 24",
+          "pred": "Phylidor, dressed in black, led the visi",
+          "correct": false,
+          "full_tokens": 13219,
+          "used_tokens": 1023
+        },
+        {
+          "id": "2024cb6239c0be12fae84bbbbcca6bb976a704c0bddb305b",
+          "gold": "Paragraph 2",
+          "pred": "The text discusses the controversy surro",
+          "correct": false,
+          "full_tokens": 13265,
+          "used_tokens": 1019
+        },
+        {
+          "id": "bd9d3468c50000f39e476ba33358347ef358d49f2424458c",
+          "gold": "Paragraph 6",
+          "pred": "The text discusses Canada's involvement ",
+          "correct": false,
+          "full_tokens": 12437,
+          "used_tokens": 1016
+        },
+        {
+          "id": "519810536eb03a3adc994472060782fdde1f57cc793ee53e",
+          "gold": "Paragraph 12",
+          "pred": "The text is a summary of the career path",
+          "correct": false,
+          "full_tokens": 12432,
+          "used_tokens": 892
+        },
+        {
+          "id": "0572c1fd4c71cdaecbee7a7e8727697ad01d484b8a6aba83",
+          "gold": "Paragraph 24",
+          "pred": "The text discusses the changing relation",
+          "correct": false,
+          "full_tokens": 11168,
+          "used_tokens": 895
+        },
+        {
+          "id": "4e53ec041f1ceb316c1c9849d1eab12a8515d3b65a76bd5f",
+          "gold": "Paragraph 30",
+          "pred": "Arthur Ruppin was born in Rawicz, Poland",
+          "correct": false,
+          "full_tokens": 10785,
+          "used_tokens": 909
+        },
+        {
+          "id": "62f44dae51918c20136d2cfa5469d680f04216926da0ff93",
+          "gold": "Paragraph 1",
+          "pred": "In a horse racing event, **Tremallt** le",
+          "correct": false,
+          "full_tokens": 14917,
+          "used_tokens": 959
+        },
+        {
+          "id": "88e4f74376126f62f0f422c2532d2baaaab48998509bea6f",
+          "gold": "Paragraph 6",
+          "pred": "In this text, Cyrus, a leader, requests ",
+          "correct": false,
+          "full_tokens": 12691,
+          "used_tokens": 930
+        },
+        {
+          "id": "1c84398a5d9857c046163eaf29b3a1d7e1ea7b79c23430ec",
+          "gold": "Paragraph 8",
+          "pred": "In the text, it is revealed that the cou",
+          "correct": false,
+          "full_tokens": 13142,
+          "used_tokens": 915
+        },
+        {
+          "id": "54007660c7f56e3e460501677b635e20a94774c86804adf8",
+          "gold": "Paragraph 3",
+          "pred": "The text discusses how acute generalized",
+          "correct": false,
+          "full_tokens": 10117,
+          "used_tokens": 740
+        },
+        {
+          "id": "b237b72566b357f04d6a699d634dd9744731518d61c95d21",
+          "gold": "Paragraph 1",
+          "pred": "The band released three vinyl-only EPs i",
+          "correct": false,
+          "full_tokens": 13672,
+          "used_tokens": 844
+        },
+        {
+          "id": "a635f6f93afd73e1544bd3858848bc45ece77c07c9783176",
+          "gold": "Paragraph 25",
+          "pred": "The text describes the events leading up",
+          "correct": false,
+          "full_tokens": 11655,
+          "used_tokens": 1020
+        },
+        {
+          "id": "0cd53931f2ffb958264a415bddf98b732832def3997916d2",
+          "gold": "Paragraph 19",
+          "pred": "In the film, David Byrne wears a large b",
+          "correct": false,
+          "full_tokens": 13988,
+          "used_tokens": 978
+        },
+        {
+          "id": "f1382b660e91069869d0472bbbf061720e030d7fca006f6c",
+          "gold": "Paragraph 22",
+          "pred": "In 2008, Van Barneveld, a professional d",
+          "correct": false,
+          "full_tokens": 10645,
+          "used_tokens": 953
+        },
+        {
+          "id": "5416f637bed37f632213f94d77c7e04d5c0f6b1dcb858e37",
+          "gold": "Paragraph 5",
+          "pred": "The text discusses the career of a wrest",
+          "correct": false,
+          "full_tokens": 12862,
+          "used_tokens": 976
+        },
+        {
+          "id": "1f31b83ce91f9d99d5a93b2af35e02c8eddb5619018b168c",
+          "gold": "Paragraph 15",
+          "pred": "The text discusses the career of Dr. Hen",
+          "correct": false,
+          "full_tokens": 12852,
+          "used_tokens": 1017
+        },
+        {
+          "id": "78c8d1ac1a497db2bc8450073948f47300fc868545f6c748",
+          "gold": "Paragraph 28",
+          "pred": "Between 1976 and 1982, Albert Rovers, la",
+          "correct": false,
+          "full_tokens": 13570,
+          "used_tokens": 815
+        },
+        {
+          "id": "da02ddf551706e0672ee02ca9b1be22bb6ec1dd52536da97",
+          "gold": "Paragraph 5",
+          "pred": "Answer:  \nMount Gay Rum is a popular rum",
+          "correct": false,
+          "full_tokens": 12267,
+          "used_tokens": 875
+        },
+        {
+          "id": "419cec5e49a27872fcd6a95a129e248363c8ab375392af94",
+          "gold": "Paragraph 30",
+          "pred": "The text highlights multiple visits made",
+          "correct": false,
+          "full_tokens": 13429,
+          "used_tokens": 957
+        },
+        {
+          "id": "9f2ea2a9ceb29930aeb4cfff94b4ad12e835e03502a30747",
+          "gold": "Paragraph 6",
+          "pred": "The text describes Assy McGee, a charact",
+          "correct": false,
+          "full_tokens": 10452,
+          "used_tokens": 1013
+        },
+        {
+          "id": "7a19e7f9b13931f23168828b91f39266b978c09fadf83e68",
+          "gold": "Paragraph 12",
+          "pred": "The text describes the timeline of a per",
+          "correct": false,
+          "full_tokens": 12245,
+          "used_tokens": 783
+        },
+        {
+          "id": "757b90f375deb27abcf0244be3b6f901c39f4a51e6c1d25a",
+          "gold": "Paragraph 26",
+          "pred": "The Newcomb Lifeboat Company, founded by",
+          "correct": false,
+          "full_tokens": 13666,
+          "used_tokens": 769
+        },
+        {
+          "id": "fe6ddc36d614820497e4a2681c0b27d7fb6a26100033dc77",
+          "gold": "Paragraph 30",
+          "pred": "In 1982, the Conservative Government led",
+          "correct": false,
+          "full_tokens": 11894,
+          "used_tokens": 807
+        },
+        {
+          "id": "47a64b03518500e56c0b76075a0a827cd3792ca6c62b8c94",
+          "gold": "Paragraph 6",
+          "pred": "The tension surrounding the Western Wall",
+          "correct": false,
+          "full_tokens": 13514,
+          "used_tokens": 1018
+        },
+        {
+          "id": "a69f6f88c90965fbf2c6c60245d05d24232baa9a9e4fbd44",
+          "gold": "Paragraph 12",
+          "pred": "The Mi-8AMT is an armed assault version ",
+          "correct": false,
+          "full_tokens": 11757,
+          "used_tokens": 908
+        },
+        {
+          "id": "27fc8231a08403f15b65d1dc7bdb4c64936344bb26697d1e",
+          "gold": "Paragraph 23",
+          "pred": "The text describes a historical event th",
+          "correct": false,
+          "full_tokens": 14262,
+          "used_tokens": 849
+        },
+        {
+          "id": "0d31a5ea5cebb18a1cde1130c38e9e7e84bb9b08c6c6e982",
+          "gold": "Paragraph 17",
+          "pred": "The summary of the text is as follows:\n\n",
+          "correct": false,
+          "full_tokens": 14370,
+          "used_tokens": 975
+        },
+        {
+          "id": "41cd55851459af4c3ca72a2c4949451777794cc162e3f4d8",
+          "gold": "Paragraph 1",
+          "pred": "The text discusses the conflict between ",
+          "correct": false,
+          "full_tokens": 11908,
+          "used_tokens": 869
+        },
+        {
+          "id": "dc98c26b2814e005d231d44ee3be96e981f56090a3ca8844",
+          "gold": "Paragraph 27",
+          "pred": "The text describes the architectural fea",
+          "correct": false,
+          "full_tokens": 14319,
+          "used_tokens": 975
+        },
+        {
+          "id": "2e87c52043fd6a53718a2c8afb03ac376551f50a2bc193e5",
+          "gold": "Paragraph 21",
+          "pred": "The song being described is a slow and s",
+          "correct": false,
+          "full_tokens": 12728,
+          "used_tokens": 988
+        }
+      ]
+    }
+  ]
+}

@@ -62,7 +62,16 @@ def choose_strategy(text: str, tokenizer, budget: int, strategy: str, query: str
         return text[:budget] if len(text) > budget else text
 
     query_words = extract_query_words(query)
-    key = [s for s in sentences if any(w.lower() in s.lower() for w in query_words)]
+    # 优化 A: 按 query 词命中数给段落打分，取最相关的 top_k 段
+    scored = []
+    for s in sentences:
+        hits = sum(1 for w in query_words if w.lower() in s.lower())
+        if hits > 0:
+            scored.append((hits, s))
+    # 按命中数降序，同分保持原文顺序
+    scored.sort(key=lambda x: -x[0])
+    top_k = 3
+    key = [s for _, s in scored[:top_k]]
     other = [s for s in sentences if s not in key]
 
     if strategy == "project_topic":
