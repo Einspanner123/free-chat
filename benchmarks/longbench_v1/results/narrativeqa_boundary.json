@@ -1,0 +1,16 @@
+{
+  "experiment": "LongBench narrativeqa - BM25 retrieval boundary test",
+  "model": "Qwen/Qwen3-0.6B",
+  "samples": 30,
+  "context_tokens": 31000,
+  "results": {
+    "full_context": {"f1": 0.146, "note": "31K tokens, exceeds 0.6B practical window"},
+    "truncation_8k": {"f1": 0.146, "note": "truncate to 8K tokens"},
+    "bm25_top3_sentences": {"f1": 0.127, "note": "BM25 retrieve top-3 sentences"}
+  },
+  "conclusion": "BM25 retrieval does NOT help narrative-type answers. narrativeqa requires synthesizing a narrative answer from multiple context parts, not locating a single paragraph. Retrieval focuses context but answer generation remains limited by 0.6B model capability.",
+  "framework_boundary": {
+    "passage_location_tasks": "BM25 retrieval -> 98-100% (killer feature)",
+    "narrative_generation_tasks": "retrieval only focuses, generation is model-limited"
+  }
+}
