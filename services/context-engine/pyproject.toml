@@ -1,0 +1,13 @@
+[project]
+name = "context-engine"
+version = "0.1.0"
+description = "Long-context context engineering: retrieval, compression, layout pipeline"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+rag = ["sentence-transformers"]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
