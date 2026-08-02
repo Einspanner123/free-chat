@@ -20,3 +20,6 @@ __pycache__/
 # Project specific
 **/Qwen/
 .infra/
+
+# Benchmark data (download via scripts/download_benchmark_data.py)
+benchmarks/**/data/
