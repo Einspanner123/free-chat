@@ -1,0 +1,108 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "samples": 30,
+    "temperatures": [
+      0.0,
+      0.3,
+      0.7,
+      1.0
+    ],
+    "seeds": [
+      42,
+      43
+    ]
+  },
+  "runs": [
+    {
+      "temperature": 0.0,
+      "accuracy": 1.0,
+      "correct": 30,
+      "total": 30,
+      "avg_latency_s": 0.43
+    },
+    {
+      "temperature": 0.0,
+      "accuracy": 1.0,
+      "correct": 30,
+      "total": 30,
+      "avg_latency_s": 0.38
+    },
+    {
+      "temperature": 0.3,
+      "accuracy": 1.0,
+      "correct": 30,
+      "total": 30,
+      "avg_latency_s": 0.32
+    },
+    {
+      "temperature": 0.3,
+      "accuracy": 1.0,
+      "correct": 30,
+      "total": 30,
+      "avg_latency_s": 0.28
+    },
+    {
+      "temperature": 0.7,
+      "accuracy": 1.0,
+      "correct": 30,
+      "total": 30,
+      "avg_latency_s": 0.27
+    },
+    {
+      "temperature": 0.7,
+      "accuracy": 0.9666666666666667,
+      "correct": 29,
+      "total": 30,
+      "avg_latency_s": 0.26
+    },
+    {
+      "temperature": 1.0,
+      "accuracy": 1.0,
+      "correct": 30,
+      "total": 30,
+      "avg_latency_s": 0.26
+    },
+    {
+      "temperature": 1.0,
+      "accuracy": 0.9,
+      "correct": 27,
+      "total": 30,
+      "avg_latency_s": 0.27
+    }
+  ],
+  "summary": {
+    "0.0": {
+      "mean_acc": 1.0,
+      "std": 0.0,
+      "per_seed": [
+        1.0,
+        1.0
+      ]
+    },
+    "0.3": {
+      "mean_acc": 1.0,
+      "std": 0.0,
+      "per_seed": [
+        1.0,
+        1.0
+      ]
+    },
+    "0.7": {
+      "mean_acc": 0.9833,
+      "std": 0.0167,
+      "per_seed": [
+        1.0,
+        0.9666666666666667
+      ]
+    },
+    "1.0": {
+      "mean_acc": 0.95,
+      "std": 0.05,
+      "per_seed": [
+        1.0,
+        0.9
+      ]
+    }
+  }
+}
