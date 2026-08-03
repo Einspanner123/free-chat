@@ -6,162 +6,204 @@
       60000,
       80000
     ],
-    "ntk_factor": 2.0
+    "yarn_factor": 2.0
   },
   "runs": [
     {
       "mode": "default_30000",
+      "target_needle_pos": 30000,
       "accuracy": 1.0,
-      "correct": 3,
-      "total": 3,
+      "correct": 4,
+      "total": 4,
       "per_sample": [
         {
-          "needle_pos": 30000,
-          "tokens": 4442,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400007",
+          "actual_tokens": 31805,
+          "resp": "The magic number mentioned in the text is **400007",
           "correct": true
         },
         {
-          "needle_pos": 30000,
-          "tokens": 4442,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400014",
+          "actual_tokens": 29859,
+          "resp": "The magic number mentioned in the text is **400014",
           "correct": true
         },
         {
-          "needle_pos": 30000,
-          "tokens": 4442,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400021",
+          "actual_tokens": 30631,
+          "resp": "The magic number mentioned in the text is **400021",
+          "correct": true
+        },
+        {
+          "answer": "400028",
+          "actual_tokens": 29959,
+          "resp": "The magic number mentioned in the text is **400028",
           "correct": true
         }
       ]
     },
     {
       "mode": "default_60000",
+      "target_needle_pos": 60000,
       "accuracy": 1.0,
-      "correct": 3,
-      "total": 3,
+      "correct": 4,
+      "total": 4,
       "per_sample": [
         {
-          "needle_pos": 60000,
-          "tokens": 4635,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400035",
+          "actual_tokens": 57893,
+          "resp": "The magic number mentioned in the text is **400035",
           "correct": true
         },
         {
-          "needle_pos": 60000,
-          "tokens": 4635,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400042",
+          "actual_tokens": 56482,
+          "resp": "The magic number mentioned in the text is **400042",
           "correct": true
         },
         {
-          "needle_pos": 60000,
-          "tokens": 4635,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400049",
+          "actual_tokens": 56519,
+          "resp": "The magic number mentioned in the text is **400049",
+          "correct": true
+        },
+        {
+          "answer": "400056",
+          "actual_tokens": 57630,
+          "resp": "The magic number mentioned in the text is **400056",
           "correct": true
         }
       ]
     },
     {
       "mode": "default_80000",
+      "target_needle_pos": 80000,
       "accuracy": 1.0,
-      "correct": 3,
-      "total": 3,
+      "correct": 4,
+      "total": 4,
       "per_sample": [
         {
-          "needle_pos": 80000,
-          "tokens": 4727,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400063",
+          "actual_tokens": 73561,
+          "resp": "The magic number mentioned in the text is **400063",
           "correct": true
         },
         {
-          "needle_pos": 80000,
-          "tokens": 4727,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400070",
+          "actual_tokens": 73568,
+          "resp": "The magic number mentioned in the text is **400070",
           "correct": true
         },
         {
-          "needle_pos": 80000,
-          "tokens": 4727,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400077",
+          "actual_tokens": 75917,
+          "resp": "The magic number mentioned in the text is **400077",
+          "correct": true
+        },
+        {
+          "answer": "400084",
+          "actual_tokens": 73696,
+          "resp": "The magic number mentioned in the text is **400084",
           "correct": true
         }
       ]
     },
     {
-      "mode": "ntk_30000",
+      "mode": "yarn_30000",
+      "target_needle_pos": 30000,
       "accuracy": 1.0,
-      "correct": 3,
-      "total": 3,
+      "correct": 4,
+      "total": 4,
       "per_sample": [
         {
-          "needle_pos": 30000,
-          "tokens": 4442,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400091",
+          "actual_tokens": 30354,
+          "resp": "The magic number mentioned in the text is **400091",
           "correct": true
         },
         {
-          "needle_pos": 30000,
-          "tokens": 4442,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400098",
+          "actual_tokens": 30048,
+          "resp": "The magic number mentioned in the text is **400098",
           "correct": true
         },
         {
-          "needle_pos": 30000,
-          "tokens": 4442,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400105",
+          "actual_tokens": 30553,
+          "resp": "The magic number mentioned in the text is **400105",
+          "correct": true
+        },
+        {
+          "answer": "400112",
+          "actual_tokens": 31061,
+          "resp": "The magic number mentioned in the text is **400112",
           "correct": true
         }
       ]
     },
     {
-      "mode": "ntk_60000",
+      "mode": "yarn_60000",
+      "target_needle_pos": 60000,
       "accuracy": 1.0,
-      "correct": 3,
-      "total": 3,
+      "correct": 4,
+      "total": 4,
       "per_sample": [
         {
-          "needle_pos": 60000,
-          "tokens": 4635,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400119",
+          "actual_tokens": 56172,
+          "resp": "The magic number mentioned in the text is **400119",
           "correct": true
         },
         {
-          "needle_pos": 60000,
-          "tokens": 4635,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400126",
+          "actual_tokens": 57770,
+          "resp": "The magic number mentioned in the text is **400126",
           "correct": true
         },
         {
-          "needle_pos": 60000,
-          "tokens": 4635,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400133",
+          "actual_tokens": 57915,
+          "resp": "The magic number mentioned in the text is **400133",
+          "correct": true
+        },
+        {
+          "answer": "400140",
+          "actual_tokens": 57802,
+          "resp": "The magic number mentioned in the text is **400140",
           "correct": true
         }
       ]
     },
     {
-      "mode": "ntk_80000",
-      "accuracy": 1.0,
+      "mode": "yarn_80000",
+      "target_needle_pos": 80000,
+      "accuracy": 0.75,
       "correct": 3,
-      "total": 3,
+      "total": 4,
       "per_sample": [
         {
-          "needle_pos": 80000,
-          "tokens": 4727,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400147",
+          "actual_tokens": 73632,
+          "resp": "The magic number mentioned in the text is **400147",
           "correct": true
         },
         {
-          "needle_pos": 80000,
-          "tokens": 4727,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400154",
+          "actual_tokens": 74337,
+          "resp": "The magic number mentioned in the text is **400154",
           "correct": true
         },
         {
-          "needle_pos": 80000,
-          "tokens": 4727,
-          "resp": "The magic number mentioned in the text is **472913**.",
+          "answer": "400161",
+          "actual_tokens": 74223,
+          "resp": "The magic number mentioned in the text is **400161",
           "correct": true
+        },
+        {
+          "answer": "400168",
+          "actual_tokens": 73386,
+          "resp": "The magic number mentioned in the text is **400,16",
+          "correct": false
         }
       ]
     }
