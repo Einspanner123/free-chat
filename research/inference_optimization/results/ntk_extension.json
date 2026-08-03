@@ -1,0 +1,169 @@
+{
+  "config": {
+    "model": "Qwen/Qwen3-0.6B",
+    "needle_positions": [
+      30000,
+      60000,
+      80000
+    ],
+    "ntk_factor": 2.0
+  },
+  "runs": [
+    {
+      "mode": "default_30000",
+      "accuracy": 1.0,
+      "correct": 3,
+      "total": 3,
+      "per_sample": [
+        {
+          "needle_pos": 30000,
+          "tokens": 4442,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        },
+        {
+          "needle_pos": 30000,
+          "tokens": 4442,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        },
+        {
+          "needle_pos": 30000,
+          "tokens": 4442,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "mode": "default_60000",
+      "accuracy": 1.0,
+      "correct": 3,
+      "total": 3,
+      "per_sample": [
+        {
+          "needle_pos": 60000,
+          "tokens": 4635,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        },
+        {
+          "needle_pos": 60000,
+          "tokens": 4635,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        },
+        {
+          "needle_pos": 60000,
+          "tokens": 4635,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "mode": "default_80000",
+      "accuracy": 1.0,
+      "correct": 3,
+      "total": 3,
+      "per_sample": [
+        {
+          "needle_pos": 80000,
+          "tokens": 4727,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        },
+        {
+          "needle_pos": 80000,
+          "tokens": 4727,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        },
+        {
+          "needle_pos": 80000,
+          "tokens": 4727,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "mode": "ntk_30000",
+      "accuracy": 1.0,
+      "correct": 3,
+      "total": 3,
+      "per_sample": [
+        {
+          "needle_pos": 30000,
+          "tokens": 4442,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        },
+        {
+          "needle_pos": 30000,
+          "tokens": 4442,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        },
+        {
+          "needle_pos": 30000,
+          "tokens": 4442,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "mode": "ntk_60000",
+      "accuracy": 1.0,
+      "correct": 3,
+      "total": 3,
+      "per_sample": [
+        {
+          "needle_pos": 60000,
+          "tokens": 4635,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        },
+        {
+          "needle_pos": 60000,
+          "tokens": 4635,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        },
+        {
+          "needle_pos": 60000,
+          "tokens": 4635,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "mode": "ntk_80000",
+      "accuracy": 1.0,
+      "correct": 3,
+      "total": 3,
+      "per_sample": [
+        {
+          "needle_pos": 80000,
+          "tokens": 4727,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        },
+        {
+          "needle_pos": 80000,
+          "tokens": 4727,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        },
+        {
+          "needle_pos": 80000,
+          "tokens": 4727,
+          "resp": "The magic number mentioned in the text is **472913**.",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}
