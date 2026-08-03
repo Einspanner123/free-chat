@@ -61,34 +61,71 @@ def get_kv_cache(model, tokenizer, device, text: str, max_tokens: int) -> List[t
     return key_cache, value_cache
 
 
-def svd_energy(tensor: torch.Tensor) -> Dict:
-    """Per-head SVD: energy retention curve and rank for given retention."""
-    # tensor: [B, H, S, D]
+def svd_energy_all_heads(tensor: torch.Tensor) -> Dict:
+    """SVD energy across ALL heads: rank needed for energy retention.
+
+    This is SEQUENCE-dimension low-rank (token redundancy).
+    """
     B, H, S, D = tensor.shape
-    head = tensor[0, 0]  # [S, D] — use one head for the curve
-    U, Svals, Vt = torch.linalg.svd(head, full_matrices=False)
-    total_energy = (Svals**2).sum()
-    cum = torch.cumsum(Svals**2, dim=0) / total_energy
-
-    # rank for 99% / 95% energy
-    rank_99 = int((cum >= 0.99).nonzero()[0].item()) + 1
-    rank_95 = int((cum >= 0.95).nonzero()[0].item()) + 1
-    # rank for 99.9%
-    rank_999 = int((cum >= 0.999).nonzero()[0].item()) + 1 if (cum >= 0.999).any() else D
-
-    # memory: store U_r*S_r (S*r) + Vt_r (r*D); original S*D
-    mem_full = S * D
-    mem_99 = S * rank_99 + rank_99 * D
-    mem_95 = S * rank_95 + rank_95 * D
-    mem_999 = S * rank_999 + rank_999 * D
-
+    ranks_95, ranks_99, ranks_999 = [], [], []
+    for b in range(B):
+        for h in range(H):
+            head = tensor[b, h]
+            U, Svals, Vt = torch.linalg.svd(head, full_matrices=False)
+            total_energy = (Svals**2).sum()
+            cum = torch.cumsum(Svals**2, dim=0) / total_energy
+            ranks_99.append(int((cum >= 0.99).nonzero()[0].item()) + 1)
+            ranks_95.append(int((cum >= 0.95).nonzero()[0].item()) + 1)
+            if (cum >= 0.999).any():
+                ranks_999.append(int((cum >= 0.999).nonzero()[0].item()) + 1)
+            else:
+                ranks_999.append(D)
     return {
-        "seq_len": S, "head_dim": D,
-        "rank_95": rank_95, "rank_99": rank_99, "rank_999": rank_999,
-        "mem_save_95": round(1 - mem_95 / mem_full, 4),
-        "mem_save_99": round(1 - mem_99 / mem_full, 4),
-        "mem_save_999": round(1 - mem_999 / mem_full, 4),
-        "energy_curve": cum[:min(64, S)].tolist(),
+        "seq_len": S, "head_dim": D, "n_heads": H,
+        "rank95_avg": round(sum(ranks_95) / len(ranks_95), 1),
+        "rank99_avg": round(sum(ranks_99) / len(ranks_99), 1),
+        "rank999_avg": round(sum(ranks_999) / len(ranks_999), 1),
+        "rank99_min": min(ranks_99), "rank99_max": max(ranks_99),
+    }
+
+
+def dim_redundancy_mla(tensor: torch.Tensor) -> Dict:
+    """DIMENSION-dimension low-rank: the MLA analogy.
+
+    MLA compresses each token's K/V to a low-dim latent. The inference-side
+    analog: the D-dim K vectors across S tokens live in a low-dim subspace.
+    We compute the DxD covariance (Gram) spectrum — principal components of
+    the K representation. If a few PCs hold most energy, per-token K can be
+    represented with fewer dims (latent compression).
+    """
+    B, H, S, D = tensor.shape
+    pc_ratios = []  # energy fraction in top PCs per head
+    for b in range(B):
+        for h in range(H):
+            K = tensor[b, h]  # [S, D]
+            Kc = K - K.mean(dim=0, keepdim=True)  # center
+            gram = Kc.T @ Kc / S  # [D, D]
+            evals = torch.linalg.eigvalsh(gram).flip(0)  # descending
+            evals = evals.clamp(min=0)
+            total = evals.sum()
+            if total < 1e-12:
+                pc_ratios.append(1.0)
+                continue
+            cum = torch.cumsum(evals, dim=0) / total
+            r90 = int((cum >= 0.90).nonzero()[0].item()) + 1
+            r95 = int((cum >= 0.95).nonzero()[0].item()) + 1
+            r99 = int((cum >= 0.99).nonzero()[0].item()) + 1
+            pc_ratios.append((r90, r95, r99))
+    r90 = sum(pc[0] for pc in pc_ratios) / len(pc_ratios)
+    r95 = sum(pc[1] for pc in pc_ratios) / len(pc_ratios)
+    r99 = sum(pc[2] for pc in pc_ratios) / len(pc_ratios)
+    return {
+        "head_dim": D,
+        "pc_90_avg": round(r90, 1),
+        "pc_95_avg": round(r95, 1),
+        "pc_99_avg": round(r99, 1),
+        "implied_latent_save_95": round(1 - r95 / D, 4),
+        "implied_latent_save_99": round(1 - r99 / D, 4),
     }
 
 
@@ -151,14 +188,24 @@ def main():
     n_layers = len(key_cache)
     print(f"KV cache captured: {n_layers} layers, shape {list(key_cache[0].shape)}\n")
 
-    # 1. Energy retention analysis on a middle layer (layer 0, mid, last)
+    # 1. Sequence-dimension low-rank (token redundancy) — all heads
     layer_idx = [0, n_layers // 2, n_layers - 1]
     energy = {}
     for li in layer_idx:
-        e = svd_energy(key_cache[li])
+        e = svd_energy_all_heads(key_cache[li])
         energy[f"layer{li}"] = e
-        print(f"  Layer {li}: S={e['seq_len']}, rank95={e['rank_95']} ({e['mem_save_95']:.0%} save), "
-              f"rank99={e['rank_99']} ({e['mem_save_99']:.0%} save), rank999={e['rank_999']} ({e['mem_save_999']:.0%} save)")
+        print(f"  Layer {li}: rank95_avg={e['rank95_avg']} rank99_avg={e['rank99_avg']} "
+              f"rank999_avg={e['rank999_avg']} (D={e['head_dim']})")
+
+    # 1b. DIMENSION-dimension low-rank — the MLA analogy (latent compression)
+    print("\n  Dimension-level redundancy (MLA analogy): per-token K dims")
+    dim_energy = {}
+    for li in layer_idx:
+        d = dim_redundancy_mla(key_cache[li])
+        dim_energy[f"layer{li}"] = d
+        print(f"  Layer {li}: PC90={d['pc_90_avg']} PC95={d['pc_95_avg']} PC99={d['pc_99_avg']} "
+              f"(of D={d['head_dim']}); latent save@95%={d['implied_latent_save_95']:.0%} "
+              f"save@99%={d['implied_latent_save_99']:.0%}")
 
     # 2. Reconstruction error across all layers at each rank
     recon_errs = {}
@@ -177,9 +224,17 @@ def main():
 
     results = {
         "config": {"model": args.model, "max_tokens": args.max_tokens, "n_layers": n_layers},
-        "energy_retention": energy,
+        "token_redundancy_svd": energy,          # sequence-dim low rank
+        "mla_analogy_dim_pca": dim_energy,        # dimension-dim low rank
         "recon_error": recon_errs,
         "attn_output_error": attn_errs,
+        "interpretation": (
+            "SVD rank (token_redundancy) reveals token-level redundancy — "
+            "supports token pruning (H2O/StreamingLLM style). "
+            "PCA dims (mla_analogy_dim_pca) reveal per-token K/V dimension "
+            "redundancy — the inference-side analog of MLA latent compression. "
+            "Both measured on real KV caches."
+        ),
     }
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
     with open(args.output, "w") as f:
