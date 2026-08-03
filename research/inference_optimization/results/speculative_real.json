@@ -1,43 +1,43 @@
 {
   "config": {
     "draft": "Qwen/Qwen2.5-0.5B-Instruct",
-    "target": "Qwen/Qwen3-0.6B",
+    "target": "Qwen/Qwen2.5-7B-Instruct",
     "gamma": 5,
     "max_tokens": 64
   },
   "runs": [
     {
       "prompt": 0,
-      "baseline_tps": 16.07,
-      "spec_tps": 6.74,
-      "speedup": 0.42,
-      "accept_rate": 0.114,
-      "n_target_forwards": 84,
-      "n_draft_forwards": 42
+      "baseline_tps": 17.58,
+      "spec_tps": 6.11,
+      "speedup": 0.35,
+      "accept_rate": 0.156,
+      "n_target_forwards": 73,
+      "n_draft_forwards": 36
     },
     {
       "prompt": 1,
-      "baseline_tps": 26.12,
-      "spec_tps": 6.3,
-      "speedup": 0.24,
-      "accept_rate": 0.087,
-      "n_target_forwards": 91,
-      "n_draft_forwards": 46
+      "baseline_tps": 30.86,
+      "spec_tps": 6.85,
+      "speedup": 0.22,
+      "accept_rate": 0.188,
+      "n_target_forwards": 67,
+      "n_draft_forwards": 34
     },
     {
       "prompt": 2,
-      "baseline_tps": 26.48,
-      "spec_tps": 7.2,
-      "speedup": 0.27,
-      "accept_rate": 0.14,
-      "n_target_forwards": 79,
-      "n_draft_forwards": 40
+      "baseline_tps": 30.26,
+      "spec_tps": 6.21,
+      "speedup": 0.21,
+      "accept_rate": 0.171,
+      "n_target_forwards": 70,
+      "n_draft_forwards": 35
     }
   ],
   "summary": {
-    "mean_accept_rate": 0.114,
-    "mean_speedup": 0.31,
-    "expected_tokens_per_verify": 1.13,
-    "target_forwards_for_64_tokens": 57.7
+    "mean_accept_rate": 0.172,
+    "mean_speedup": 0.26,
+    "expected_tokens_per_verify": 1.21,
+    "target_forwards_for_64_tokens": 54.0
   }
 }
