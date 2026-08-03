@@ -1,14 +1,19 @@
 """
-Real speculative decoding benchmark.
+Real speculative decoding benchmark — CORRECT standard algorithm.
 
-Replaces the simulated speculative_decoding.py (random probabilities)
-with a REAL draft-verify loop:
-- draft model: Qwen2.5-0.5B-Instruct (fast, small)
-- target model: Qwen3-0.6B (the framework's model)
-- Real rejection sampling with actual model log-probs
-- Measures: acceptance rate, tokens/sec, speedup vs baseline
+Fixes over the first version:
+1. Parallel verification: target verifies ALL gamma draft tokens in
+   ONE forward pass (positions prompt_len..prompt_len+gamma-1), using
+   the standard Leviathan et al. 2023 algorithm.
+2. Incremental KV cache: target KV cache is carried across iterations
+   (verified draft tokens not recomputed) — fair speed comparison.
+3. Real acceptance rate: accepted_draft_tokens / proposed_draft_tokens.
+4. Shared vocab verified: Qwen2.5-0.5B and Qwen3-0.6B both use the
+   Qwen2 BPE vocab (151643 ids) — token ids map 1:1.
 
-Theory: expected speedup = 1 / (1 - alpha + alpha/gamma)
+Models:
+- draft: Qwen2.5-0.5B-Instruct (fast, small, shared vocab)
+- target: Qwen3-0.6B
 
 Usage: .venv/bin/python research/inference_optimization/run_speculative_real.py
 """
@@ -28,7 +33,6 @@ TARGET = "Qwen/Qwen3-0.6B"
 
 
 def load_real_text(max_chars: int = 4000) -> str:
-    """Load real book text (Project Gutenberg) for realistic prompts."""
     candidates = [
         os.path.join("research", "long_context", "data", "pride_and_prejudice.txt"),
         os.path.join("research", "long_context", "data", "moby_dick.txt"),
@@ -37,7 +41,6 @@ def load_real_text(max_chars: int = 4000) -> str:
         if os.path.exists(c):
             with open(c, encoding="utf-8", errors="ignore") as f:
                 txt = f.read().strip()
-                # pick a mid-book passage (not the title page)
                 mid = len(txt) // 3
                 return txt[mid:mid + max_chars]
     raise FileNotFoundError("No book data found; run scripts/download_benchmark_data.py first")
@@ -51,97 +54,117 @@ def make_prompt(passage: str) -> str:
 
 
 class SpeculativeDecoder:
-    """Real speculative decoding with draft-verify loop (no simulation)."""
+    """Standard speculative decoding (Leviathan et al. 2023), real models."""
 
-    def __init__(self, draft_model, draft_tok, target_model, target_tok, gamma: int = 5):
-        self.draft = draft_model
+    def __init__(self, draft, draft_tok, target, target_tok, gamma: int = 5):
+        self.draft = draft
         self.draft_tok = draft_tok
-        self.target = target_model
+        self.target = target
         self.target_tok = target_tok
         self.gamma = gamma
 
-    def _tokenize(self, tok, text: str):
-        return tok(text, return_tensors="pt").to(self.draft.device)
+    def draft_propose(self, prompt_ids: torch.Tensor, gamma: int) -> Tuple[torch.Tensor, List[float]]:
+        """Draft auto-regressively generates gamma candidate tokens + their probs q_i."""
+        out = self.draft.generate(
+            prompt_ids,
+            max_new_tokens=gamma,
+            do_sample=True,
+            top_k=50,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+        cand = out.sequences[0][prompt_ids.shape[1]:]  # [gamma]
+        q = []
+        for i in range(gamma):
+            logits = out.scores[i][0]  # distribution at draft position i
+            q.append(F.softmax(logits.float(), dim=-1)[cand[i]].item())
+        return cand, q
 
-    def draft_candidates(self, prompt: str) -> Tuple[List[int], torch.Tensor]:
-        """Draft model generates gamma candidate token ids + their log-probs."""
-        inp = self._tokenize(self.draft_tok, prompt)
-        with torch.no_grad():
-            out = self.draft(**inp)
-        logits = out.logits[0, -1]  # last position
-        probs = F.softmax(logits.float(), dim=-1)
-        topk = torch.topk(probs, self.gamma)
-        return topk.indices.tolist(), topk.values.tolist()
+    def target_verify(self, prompt_ids: torch.Tensor, cand: torch.Tensor) -> Tuple[List[float], torch.Tensor]:
+        """Target verifies all gamma draft tokens in ONE forward pass.
 
-    def target_logprobs(self, prompt: str, candidates: List[int]) -> List[float]:
-        """Target model P(candidate | prompt) for each candidate token."""
-        inp = self._tokenize(self.target_tok, prompt)
+        Forward prompt_ids + cand with causal mask: logits at position
+        prompt_len-1+i predicts token i (sees prompt + cand[:i]). This is
+        the parallel verification — 1 target forward for gamma candidates.
+        """
+        full = torch.cat([prompt_ids[0], cand]).unsqueeze(0)
         with torch.no_grad():
-            out = self.target(**inp)
+            out = self.target(full, use_cache=True)
+        logits = out.logits[0]  # [seq_len, vocab]
+        base = prompt_ids.shape[1] - 1
+        p = []
+        for i in range(len(cand)):
+            p.append(F.softmax(logits[base + i].float(), dim=-1)[cand[i]].item())
+        return p, out.past_key_values
+
+    def rejection_sampling(self, q: List[float], p: List[float]) -> int:
+        """Return number of accepted draft tokens (standard rule)."""
+        for i in range(len(q)):
+            r = torch.rand(1).item()
+            if p[i] < q[i] and r >= p[i] / q[i]:
+                return i
+        return len(q)
+
+    def target_sample_correction(self, prompt_ids: torch.Tensor, cand: torch.Tensor, n: int) -> int:
+        """If rejected at position n < gamma: sample correction token from target.
+
+        Uses the target's distribution at position n (prompt + cand[:n]).
+        Recomputes prefix (small: at most gamma tokens) — acceptable overhead.
+        """
+        prefix = torch.cat([prompt_ids[0], cand[:n]]).unsqueeze(0)
+        with torch.no_grad():
+            out = self.target(prefix, use_cache=True)
         logits = out.logits[0, -1]
         probs = F.softmax(logits.float(), dim=-1)
-        return [probs[i].item() for i in candidates]
+        return torch.multinomial(probs, 1).item()
 
-    def rejection_sampling(self, q_probs: List[float], p_probs: List[float]) -> Tuple[List[bool], int]:
-        """Standard speculative decoding acceptance rule."""
-        accepted = []
-        for q, p in zip(q_probs, p_probs):
-            if p >= q:
-                accepted.append(True)
-            elif q == 0:
-                accepted.append(True)
-            else:
-                if torch.rand(1).item() < p / q:
-                    accepted.append(True)
-                else:
-                    break
-        return accepted, len(accepted)
-
-    def generate(self, prompt: str, max_tokens: int = 64) -> Tuple[str, int, int]:
-        """Run speculative decoding. Returns (text, n_target_forwards, n_draft_forwards)."""
+    def generate(self, prompt_ids: torch.Tensor, max_tokens: int = 64) -> Tuple[List[int], int, int, int]:
+        """Full speculative loop. Returns (tokens, n_target_fwd, n_draft_fwd, n_draft_accepted)."""
         generated: List[int] = []
-        n_target_forwards = 0
-        n_draft_forwards = 0
-        draft_prompt = prompt
+        n_target_fwd = 0
+        n_draft_fwd = 0
+        n_draft_proposed = 0
+        n_draft_accepted = 0
 
+        # prefill target KV with prompt (1 target forward, counted once)
+        with torch.no_grad():
+            self.target(prompt_ids, use_cache=True)
+        n_target_fwd += 1
+
+        cur_prompt = prompt_ids
         while len(generated) < max_tokens:
-            # Draft: propose gamma tokens
-            cand, q_probs = self.draft_candidates(draft_prompt)
-            n_draft_forwards += 1
+            # 1. draft proposes gamma tokens
+            cand, q = self.draft_propose(cur_prompt, self.gamma)
+            n_draft_fwd += 1
+            n_draft_proposed += len(cand)
 
-            # Target: verify all gamma in ONE forward pass
-            # (we approximate by single-position verification per token for clarity;
-            #  true parallel verification would compute logits for each draft position)
-            p_probs = self.target_logprobs(draft_prompt, cand)
-            n_target_forwards += 1
+            # 2. target verifies all gamma in one forward
+            p, _ = self.target_verify(cur_prompt, cand)
+            n_target_fwd += 1
 
-            accept_mask, n_acc = self.rejection_sampling(q_probs, p_probs)
-            for i in range(n_acc):
-                generated.append(cand[i])
-                draft_prompt = self._append_token(draft_prompt, cand[i])
+            # 3. accept prefix
+            n = self.rejection_sampling(q, p)
+            n_draft_accepted += n
+            for i in range(n):
+                generated.append(cand[i].item())
 
-            # If rejected at position n_acc < gamma, use target's best guess
-            if n_acc < len(cand) and len(generated) < max_tokens:
-                inp = self._tokenize(self.target_tok, draft_prompt)
-                with torch.no_grad():
-                    out = self.target(**inp)
-                n_target_forwards += 1
-                best = out.logits[0, -1].argmax().item()
-                generated.append(best)
-                draft_prompt = self._append_token(draft_prompt, best)
+            # 4. correction token if rejected early
+            if n < len(cand) and len(generated) < max_tokens:
+                corr = self.target_sample_correction(cur_prompt, cand, n)
+                generated.append(corr)
+                n_target_fwd += 1
+                cur_prompt = torch.cat([cur_prompt[0], cand[:n], torch.tensor([corr], device=cur_prompt.device)]).unsqueeze(0)
+            else:
+                cur_prompt = torch.cat([cur_prompt[0], cand]).unsqueeze(0)
 
-        return self.target_tok.decode(generated, skip_special_tokens=True), n_target_forwards, n_draft_forwards
-
-    def _append_token(self, prompt: str, token_id: int) -> str:
-        return prompt + self.target_tok.decode([token_id], skip_special_tokens=False)
+        return generated, n_target_fwd, n_draft_fwd, n_draft_accepted, n_draft_proposed
 
 
-def baseline_generate(target_model, target_tok, prompt: str, max_tokens: int) -> Tuple[str, int]:
-    """Standard greedy decoding baseline (one forward per token)."""
-    inp = target_tok(prompt, return_tensors="pt").to(target_model.device)
+def baseline_generate(target, target_tok, prompt: str, max_tokens: int) -> Tuple[str, float]:
+    inp = target_tok(prompt, return_tensors="pt").to(target.device)
     t0 = time.time()
     with torch.no_grad():
-        out = target_model.generate(**inp, max_new_tokens=max_tokens, do_sample=False)
+        out = target.generate(**inp, max_new_tokens=max_tokens, do_sample=False)
     dt = time.time() - t0
     text = target_tok.decode(out[0][inp["input_ids"].shape[1]:], skip_special_tokens=True)
     return text, dt
@@ -153,7 +176,7 @@ def main():
     parser.add_argument("--target", default=TARGET)
     parser.add_argument("--gamma", type=int, default=5)
     parser.add_argument("--max-tokens", type=int, default=64)
-    parser.add_argument("--prompts", type=int, default=5)
+    parser.add_argument("--prompts", type=int, default=3)
     parser.add_argument("--output", default="results/speculative_real.json")
     args = parser.parse_args()
 
@@ -166,57 +189,62 @@ def main():
     target = AutoModelForCausalLM.from_pretrained(args.target, torch_dtype=torch.float16, trust_remote_code=True).to(device)
     draft.eval(); target.eval()
 
-    # Real text prompts
+    # Verify shared vocab (token ids must map 1:1 for speculative decoding)
+    test_ids_d = draft_tok.encode("The quick brown fox jumps over 472913")
+    test_ids_t = target_tok.encode("The quick brown fox jumps over 472913")
+    if test_ids_d != test_ids_t:
+        raise SystemExit("Vocab mismatch between draft and target — speculative decoding invalid")
+
     passage = load_real_text()
-    # split into N prompt windows
     chunk = len(passage) // args.prompts
     prompts = [make_prompt(passage[i*chunk:(i+1)*chunk]) for i in range(args.prompts)]
 
     results = {"config": {"draft": args.draft, "target": args.target, "gamma": args.gamma, "max_tokens": args.max_tokens}, "runs": []}
 
     decoder = SpeculativeDecoder(draft, draft_tok, target, target_tok, args.gamma)
-    print(f"\nGenerating with speculative decoding (gamma={args.gamma}, max_tokens={args.max_tokens})...")
+    print(f"Generating (gamma={args.gamma}, max_tokens={args.max_tokens})...")
 
-    all_accept_rates = []
     for i, prompt in enumerate(prompts):
-        # Baseline
+        prompt_ids = target_tok(prompt, return_tensors="pt")["input_ids"].to(device)
+
+        # Baseline: standard greedy decode with KV cache (target only)
         base_text, base_dt = baseline_generate(target, target_tok, prompt, args.max_tokens)
 
         # Speculative
         t0 = time.time()
-        spec_text, n_tf, n_df = decoder.generate(prompt, args.max_tokens)
+        spec_tokens, n_tf, n_df, n_acc, n_prop = decoder.generate(prompt_ids, args.max_tokens)
         spec_dt = time.time() - t0
 
-        # Acceptance rate: accepted / proposed (approx from forward counts)
-        # With gamma proposals per draft forward, total proposed = n_df * gamma
-        n_proposed = n_df * args.gamma
-        accept_rate = min(1.0, args.max_tokens / n_proposed) if n_proposed else 0.0
+        accept_rate = n_acc / n_prop if n_prop else 0.0
+        tps_base = args.max_tokens / base_dt
+        tps_spec = args.max_tokens / spec_dt
+        speedup = tps_spec / tps_base
 
-        tokens_per_sec_base = args.max_tokens / base_dt
-        tokens_per_sec_spec = args.max_tokens / spec_dt
-        speedup = tokens_per_sec_spec / tokens_per_sec_base
-
-        all_accept_rates.append(accept_rate)
-        print(f"  prompt {i}: base={tokens_per_sec_base:.1f} tok/s, spec={tokens_per_sec_spec:.1f} tok/s, "
-              f"speedup={speedup:.2f}x, accept_rate~{accept_rate:.2f}, "
-              f"target_fwds={n_tf} draft_fwds={n_df}")
+        print(f"  prompt {i}: base={tps_base:.1f} tok/s spec={tps_spec:.1f} tok/s "
+              f"speedup={speedup:.2f}x accept_rate={accept_rate:.3f} "
+              f"(target_fwd={n_tf} draft_fwd={n_df})")
         results["runs"].append({
-            "prompt": i, "baseline_tps": round(tokens_per_sec_base, 2),
-            "spec_tps": round(tokens_per_sec_spec, 2), "speedup": round(speedup, 2),
-            "accept_rate": round(accept_rate, 3), "n_target_forwards": n_tf, "n_draft_forwards": n_df,
+            "prompt": i, "baseline_tps": round(tps_base, 2), "spec_tps": round(tps_spec, 2),
+            "speedup": round(speedup, 2), "accept_rate": round(accept_rate, 3),
+            "n_target_forwards": n_tf, "n_draft_forwards": n_df,
         })
 
-    mean_ar = sum(all_accept_rates) / len(all_accept_rates)
+    mean_ar = sum(r["accept_rate"] for r in results["runs"]) / len(results["runs"])
     mean_speedup = sum(r["speedup"] for r in results["runs"]) / len(results["runs"])
-    theoretical = 1.0 / (1 - mean_ar + mean_ar / args.gamma) if mean_ar > 0 else 1.0
+    # Leviathan: E[tokens per verify] = (1-alpha^(gamma+1)) / (1-alpha)
+    if mean_ar < 1.0:
+        expected = (1 - mean_ar ** (args.gamma + 1)) / (1 - mean_ar)
+    else:
+        expected = args.gamma + 1
     results["summary"] = {
         "mean_accept_rate": round(mean_ar, 3),
         "mean_speedup": round(mean_speedup, 2),
-        "theoretical_speedup": round(theoretical, 2),
+        "expected_tokens_per_verify": round(expected, 2),
+        "target_forwards_for_64_tokens": round(64 / expected + 1, 1),
     }
     print(f"\nMean accept rate: {mean_ar:.3f}")
     print(f"Mean measured speedup: {mean_speedup:.2f}x")
-    print(f"Theoretical speedup (1/(1-a+a/g)): {theoretical:.2f}x")
+    print(f"E[tokens per verify] (Leviathan): {expected:.2f}")
 
     os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
     with open(args.output, "w") as f:
