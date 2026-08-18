@@ -1,0 +1,43 @@
+{
+  "config": {
+    "draft": "Qwen/Qwen2.5-0.5B-Instruct",
+    "target": "Qwen/Qwen2.5-7B-Instruct",
+    "gamma": 5,
+    "max_tokens": 64
+  },
+  "runs": [
+    {
+      "prompt": 0,
+      "baseline_tps": 24.16,
+      "spec_tps": 7.41,
+      "speedup": 0.31,
+      "accept_rate": 0.156,
+      "n_target_forwards": 73,
+      "n_draft_forwards": 36
+    },
+    {
+      "prompt": 1,
+      "baseline_tps": 25.18,
+      "spec_tps": 8.07,
+      "speedup": 0.32,
+      "accept_rate": 0.206,
+      "n_target_forwards": 68,
+      "n_draft_forwards": 34
+    },
+    {
+      "prompt": 2,
+      "baseline_tps": 26.54,
+      "spec_tps": 7.89,
+      "speedup": 0.3,
+      "accept_rate": 0.194,
+      "n_target_forwards": 70,
+      "n_draft_forwards": 35
+    }
+  ],
+  "summary": {
+    "mean_accept_rate": 0.185,
+    "mean_speedup": 0.31,
+    "expected_tokens_per_verify": 1.23,
+    "target_forwards_for_64_tokens": 53.1
+  }
+}
