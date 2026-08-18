@@ -9,6 +9,11 @@ vLLM >= 0.26 is required. The sync LLM API does not support streaming,
 so this engine drives the async engine on a dedicated event-loop thread
 and bridges the async generator to the synchronous iterator contract
 via a thread-safe queue.
+
+When ``prefix_cache_enabled`` is set, vLLM's native automatic prefix
+caching is enabled (``enable_prefix_caching=True``) — reusing KV for shared
+prompt prefixes, the production-grade equivalent of the HF path in
+``hf_engine.py``.
 """
 
 import asyncio
@@ -116,6 +121,11 @@ class VLLMEngine(BaseEngine):
                 f"draft={self.config.draft_model_path} "
                 f"gamma={self.config.speculative_gamma}"
             )
+        # Native vLLM automatic prefix caching: reuse KV for shared prompt
+        # prefixes (system prompt / RAG context) to skip re-prefill.
+        if self.config.prefix_cache_enabled:
+            kwargs["enable_prefix_caching"] = True
+            logger.info("VLLMEngine: automatic prefix caching ON")
         engine_args = self._AsyncEngineArgs(**kwargs)
         self._llm = self._AsyncLLM.from_engine_args(engine_args)
         try:
@@ -261,6 +271,8 @@ class VLLMEngine(BaseEngine):
             "max_tokens": self.config.max_tokens,
             "draft_model": self.config.draft_model_path,
             "speculative_enabled": self.config.speculative_enabled,
+            "prefix_cache_enabled": self.config.prefix_cache_enabled,
+            "prefix_cache_capacity": self.config.prefix_cache_capacity,
             "closed": self._closed,
         }
 

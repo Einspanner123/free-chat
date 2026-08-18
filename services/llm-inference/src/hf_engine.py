@@ -3,6 +3,14 @@ HuggingFace Transformers inference engine.
 
 Implements the BaseEngine contract using raw HF transformers.
 Serves as the fallback baseline when vLLM is not available.
+
+Prefix KV cache (serve-time prefix reuse) is supported and gated behind
+``prefix_cache_enabled`` (default off). When enabled it reuses the prefilled
+KV of shared prompt prefixes (system prompt / RAG context) to skip re-prefill,
+matching the 1.68–2.97× prefill speedup measured in
+``research/inference_optimization/run_kv_cache_speedup.py``. Prefix reuse and
+KV eviction are alternatives (the prefix path does not use the eviction cache);
+prefix reuse is disabled while speculative decoding is active.
 """
 
 import json
@@ -26,6 +34,22 @@ from engine_base import (
     PromptFormat,
 )
 from quantization import QuantizationConfig, QuantizationMethod
+from optimization.prefix_cache import PrefixCache
+
+
+def _clone_dynamic_cache(cache):
+    """Return a deep copy of a HF ``DynamicCache`` (or compatible) KV cache.
+
+    ``model.generate`` mutates the ``past_key_values`` it is given in place, so a
+    cached KV must be cloned before being reused, otherwise a later shorter
+    prefix request would resume from a longer (corrupted) cache.
+    """
+    cloned = type(cache)()
+    for i, layer in enumerate(cache.layers):
+        if layer.keys is None:
+            continue
+        cloned.update(layer.keys.clone(), layer.values.clone(), layer_idx=i)
+    return cloned
 
 
 class HFEngine(BaseEngine):
@@ -55,6 +79,13 @@ class HFEngine(BaseEngine):
         # _ensure_draft_loaded). Kept on the engine so the decoder is cheap.
         self._draft_model = None
         self._draft_tokenizer = None
+
+        # Serve-time prefix KV cache (opt-in). Holds prefilled KV for shared
+        # prompt prefixes so repeated prefixes skip re-prefill. Disabled while
+        # speculative decoding is active (it owns past_key_values rollback).
+        self._prefix_cache = None
+        if config.prefix_cache_enabled and not config.draft_model_path:
+            self._prefix_cache = PrefixCache(capacity=config.prefix_cache_capacity)
 
         # Device detection
         if device is None:
@@ -98,11 +129,13 @@ class HFEngine(BaseEngine):
         if self.config.speculative_enabled and self.config.draft_model_path:
             return self._generate_speculative(messages, kwargs)
         text = self._format_messages(messages)
-        inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
-
+        input_ids = self.tokenizer(text, return_tensors="pt").input_ids.to(self.device)
+        if self._prefix_cache is not None:
+            return self._generate_with_prefix(input_ids, kwargs)
+        # Default path: single prefill, no prefix reuse.
         with self._lock:
             output_ids = self.model.generate(
-                **inputs,
+                input_ids=input_ids,
                 past_key_values=self._build_eviction_cache(),
                 max_new_tokens=kwargs.get("max_tokens", self.config.max_tokens),
                 temperature=kwargs.get("temperature", self.config.temperature),
@@ -115,7 +148,7 @@ class HFEngine(BaseEngine):
             )
 
         # Decode only the new tokens
-        input_len = inputs["input_ids"].shape[1]
+        input_len = input_ids.shape[1]
         new_tokens = output_ids[0][input_len:]
         chunk = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
         generated_count = len(new_tokens)
@@ -132,6 +165,75 @@ class HFEngine(BaseEngine):
             generated_tokens=generated_count,
         )
 
+    def _generate_with_prefix(
+        self,
+        input_ids: torch.Tensor,
+        kwargs: dict,
+    ) -> GenerationResult:
+        """Synchronous generation reusing a matched prefix KV cache.
+
+        On a cache miss the full prompt is prefilled once to obtain its KV
+        (stored for future reuse); on a hit the matched prefix KV is cloned and
+        only the suffix is re-prefilled. ``model.generate`` mutates the cache in
+        place, so we always clone before reuse and never store the mutated one.
+        """
+        max_tokens = kwargs.get("max_tokens", self.config.max_tokens)
+        prompt_list = input_ids[0].tolist()
+        matched, cached = (0, None)
+        if self._prefix_cache is not None:
+            matched, cached = self._prefix_cache.lookup(prompt_list)
+
+        past = None
+        start = 0
+        if cached is not None and matched > 0:
+            # hit: clone the pristine prefix KV so the stored one stays intact
+            past = _clone_dynamic_cache(cached)
+            start = matched
+        else:
+            # miss: prefill the full prompt to obtain its KV, then store it
+            with self._lock:
+                out = self.model(input_ids=input_ids, use_cache=True)
+            cached = out.past_key_values
+            if self._prefix_cache is not None:
+                self._prefix_cache.store(prompt_list, cached)
+            past = _clone_dynamic_cache(cached)
+
+        suffix = input_ids[:, start:]
+        with self._lock:
+            output_ids = self.model.generate(
+                input_ids=suffix,
+                past_key_values=past,
+                max_new_tokens=max_tokens,
+                temperature=kwargs.get("temperature", self.config.temperature),
+                repetition_penalty=kwargs.get(
+                    "repetition_penalty", self.config.repetition_penalty
+                ),
+                top_p=kwargs.get("top_p", self.config.top_p),
+                top_k=kwargs.get("top_k", self.config.top_k),
+                do_sample=True,
+            )
+
+        # Persist the pristine prefix KV (still valid; `past` was the clone that
+        # got mutated) under the full prompt so identical/longer prompts reuse it.
+        if self._prefix_cache is not None and cached is not None:
+            self._prefix_cache.store(prompt_list, cached)
+
+        suffix_len = input_ids.shape[1] - start
+        new_tokens = output_ids[0][suffix_len:]
+        chunk = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
+        generated_count = len(new_tokens)
+
+        self._metrics = EngineMetrics(
+            tokens_generated=self._metrics.tokens_generated + generated_count,
+            total_time=self._metrics.total_time,
+            first_token_latency=self._metrics.first_token_latency,
+        )
+        return GenerationResult(
+            chunk=chunk,
+            is_finished=True,
+            generated_tokens=generated_count,
+        )
+
     def stream_generate(
         self,
         messages: List[Dict[str, str]],
@@ -142,10 +244,13 @@ class HFEngine(BaseEngine):
             yield from self._stream_speculative(messages, kwargs)
             return
         text = self._format_messages(messages)
+        input_ids = self.tokenizer(text, return_tensors="pt").input_ids.to(self.device)
+        if self._prefix_cache is not None:
+            yield from self._stream_with_prefix(input_ids, kwargs)
+            return
 
         self._last_input_tokens = self.count_tokens(text)
-        inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
-
+        inputs = input_ids
         streamer = TextIteratorStreamer(
             tokenizer=self.tokenizer,
             skip_prompt=True,
@@ -153,7 +258,7 @@ class HFEngine(BaseEngine):
         )
 
         gen_kwargs = dict(
-            **inputs,
+            input_ids=inputs,
             streamer=streamer,
             past_key_values=self._build_eviction_cache(),
             max_new_tokens=kwargs.get("max_tokens", self.config.max_tokens),
@@ -191,6 +296,92 @@ class HFEngine(BaseEngine):
 
         # Done
         total_time = time.time() - start_time
+        self._metrics = EngineMetrics(
+            tokens_generated=self._metrics.tokens_generated + generated_tokens,
+            total_time=self._metrics.total_time + total_time,
+            first_token_latency=self._metrics.first_token_latency,
+        )
+        self._metrics.compute_tps()
+
+        yield GenerationResult(
+            chunk="",
+            is_finished=True,
+            generated_tokens=generated_tokens,
+            metrics=self._metrics,
+        )
+
+    def _stream_with_prefix(
+        self,
+        input_ids: torch.Tensor,
+        kwargs: dict,
+    ) -> Iterator[GenerationResult]:
+        """Streaming generation reusing a matched prefix KV cache (see _generate_with_prefix)."""
+        max_tokens = kwargs.get("max_tokens", self.config.max_tokens)
+        prompt_list = input_ids[0].tolist()
+        matched, cached = (0, None)
+        if self._prefix_cache is not None:
+            matched, cached = self._prefix_cache.lookup(prompt_list)
+
+        past = None
+        start = 0
+        if cached is not None and matched > 0:
+            past = _clone_dynamic_cache(cached)
+            start = matched
+        else:
+            with self._lock:
+                out = self.model(input_ids=input_ids, use_cache=True)
+            cached = out.past_key_values
+            if self._prefix_cache is not None:
+                self._prefix_cache.store(prompt_list, cached)
+            past = _clone_dynamic_cache(cached)
+
+        suffix = input_ids[:, start:]
+        self._last_input_tokens = suffix.shape[1]
+        streamer = TextIteratorStreamer(
+            tokenizer=self.tokenizer,
+            skip_prompt=True,
+            skip_special_tokens=True,
+        )
+        gen_kwargs = dict(
+            input_ids=suffix,
+            past_key_values=past,
+            streamer=streamer,
+            max_new_tokens=max_tokens,
+            temperature=kwargs.get("temperature", self.config.temperature),
+            repetition_penalty=kwargs.get(
+                "repetition_penalty", self.config.repetition_penalty
+            ),
+            top_p=kwargs.get("top_p", self.config.top_p),
+            top_k=kwargs.get("top_k", self.config.top_k),
+            do_sample=True,
+        )
+
+        start_time = time.time()
+        first_token = True
+        generated_tokens = 0
+
+        def _safe_generate():
+            with self._lock:
+                self.model.generate(**gen_kwargs)
+
+        thread = Thread(target=_safe_generate)
+        thread.start()
+
+        for chunk in streamer:
+            if chunk:
+                if first_token:
+                    self._metrics.first_token_latency = time.time() - start_time
+                    first_token = False
+                generated_tokens += self.count_tokens(chunk)
+                yield GenerationResult(
+                    chunk=chunk,
+                    is_finished=False,
+                    generated_tokens=generated_tokens,
+                )
+
+        total_time = time.time() - start_time
+        if self._prefix_cache is not None and cached is not None:
+            self._prefix_cache.store(prompt_list, cached)
         self._metrics = EngineMetrics(
             tokens_generated=self._metrics.tokens_generated + generated_tokens,
             total_time=self._metrics.total_time + total_time,
@@ -425,6 +616,8 @@ class HFEngine(BaseEngine):
             "speculative_enabled": self.config.speculative_enabled,
             "kv_eviction_window": self.config.kv_eviction_window,
             "kv_eviction_sink": self.config.kv_eviction_sink,
+            "prefix_cache_enabled": self.config.prefix_cache_enabled,
+            "prefix_cache_capacity": self.config.prefix_cache_capacity,
             "closed": self._closed,
         }
 

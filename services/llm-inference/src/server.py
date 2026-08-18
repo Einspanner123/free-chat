@@ -110,6 +110,8 @@ class InferencerServiceServicer(pb2_grpc.InferencerServiceServicer):
             speculative_enabled=config.speculativeEnabled,
             kv_eviction_sink=config.kvEvictionSink,
             kv_eviction_window=config.kvEvictionWindow,
+            prefix_cache_enabled=config.prefixCacheEnabled,
+            prefix_cache_capacity=config.prefixCacheCapacity,
         )
 
         engine_info = self._engine.info()

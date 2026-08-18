@@ -44,6 +44,14 @@ class AppConfig:
         kv_window = os.getenv("KV_EVICTION_WINDOW", "0")
         self.kvEvictionWindow: Optional[int] = int(kv_window) or None
 
+        # ---- Prefix KV Cache (serve-time reuse) Configuration ----
+        # PREFIX_CACHE_ENABLED: reuse prefilled KV for shared prompt prefixes
+        # (system prompt / RAG context) to skip re-prefill. Default off.
+        self.prefixCacheEnabled = os.getenv("PREFIX_CACHE_ENABLED", "false").lower() in (
+            "1", "true", "yes",
+        )
+        self.prefixCacheCapacity = int(os.getenv("PREFIX_CACHE_CAPACITY", "8"))
+
         # 系统配置
         self.maxWorkers = int(os.getenv("MAX_WORKERS", 10))
 

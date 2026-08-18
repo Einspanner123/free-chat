@@ -51,6 +51,9 @@ class EngineConfig:
     # KV-cache eviction (StreamingLLM-style; opt-in via kv_eviction_window)
     kv_eviction_sink: int = 4
     kv_eviction_window: Optional[int] = None  # None / <=0 disables
+    # Prefix KV cache (serve-time prefix reuse; opt-in via prefix_cache_enabled)
+    prefix_cache_enabled: bool = False
+    prefix_cache_capacity: int = 8
 
     def __post_init__(self):
         if not self.model_path:
@@ -82,6 +85,10 @@ class EngineConfig:
                 "cache with crop(), which SinkWindowCache forbids. Enable one "
                 "or the other."
             )
+        if self.prefix_cache_capacity < 1:
+            raise ValueError(
+                f"prefix_cache_capacity must be >= 1, got {self.prefix_cache_capacity}"
+            )
         _validate_quantization(self.quantization)
 
     def _kv_eviction_enabled(self) -> bool:
@@ -98,6 +105,7 @@ class EngineConfig:
             "max_model_len", "quantization", "trust_remote_code",
             "draft_model_path", "speculative_gamma", "speculative_enabled",
             "kv_eviction_sink", "kv_eviction_window",
+            "prefix_cache_enabled", "prefix_cache_capacity",
         }
         filtered = {k: v for k, v in d.items() if k in valid_keys}
         return cls(**filtered)
