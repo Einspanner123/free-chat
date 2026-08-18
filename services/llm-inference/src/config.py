@@ -18,14 +18,31 @@ class AppConfig:
         self.topK = int(os.getenv("TOP_K", 40))
 
         # ---- New: Engine & Quantization Configuration ----
-        # Engine type: "auto", "vllm", "hf"
-        self.engineType = os.getenv("ENGINE_TYPE", "auto")
+        # Engine type: "vllm" (default), "hf", "auto"
+        self.engineType = os.getenv("ENGINE_TYPE", "vllm")
         # Quantization: None (FP16), "awq", "gptq", "squeezellm"
         self.quantization: Optional[str] = os.getenv("QUANTIZATION") or None
         # vLLM-specific settings
         self.gpuMemoryUtilization = float(os.getenv("GPU_MEMORY_UTILIZATION", "0.9"))
         self.tensorParallelSize = int(os.getenv("TENSOR_PARALLEL_SIZE", "1"))
         self.maxModelLen = int(os.getenv("MAX_MODEL_LEN", "8192"))
+
+        # ---- Speculative Decoding Configuration ----
+        # DRAFT_MODEL: HF model id of the draft model. None disables speculative decoding.
+        self.draftModel: Optional[str] = os.getenv("DRAFT_MODEL") or None
+        # SPECULATIVE_GAMMA: number of draft tokens proposed per verify round.
+        self.speculativeGamma = int(os.getenv("SPECULATIVE_GAMMA", "5"))
+        # SPECULATIVE_ENABLED: secondary gate; draft_model_path is the master opt-out.
+        self.speculativeEnabled = os.getenv("SPECULATIVE_ENABLED", "true").lower() in (
+            "1", "true", "yes",
+        )
+
+        # ---- KV Cache Eviction (StreamingLLM-style) Configuration ----
+        # KV_EVICTION_WINDOW: recent tokens kept per layer. 0 disables eviction.
+        # KV_EVICTION_SINK: attention-sink tokens always kept (recommend >= 4).
+        self.kvEvictionSink = int(os.getenv("KV_EVICTION_SINK", "4"))
+        kv_window = os.getenv("KV_EVICTION_WINDOW", "0")
+        self.kvEvictionWindow: Optional[int] = int(kv_window) or None
 
         # 系统配置
         self.maxWorkers = int(os.getenv("MAX_WORKERS", 10))

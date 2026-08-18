@@ -105,6 +105,11 @@ class InferencerServiceServicer(pb2_grpc.InferencerServiceServicer):
             gpu_memory_utilization=config.gpuMemoryUtilization,
             tensor_parallel_size=config.tensorParallelSize,
             max_model_len=config.maxModelLen,
+            draft_model_path=config.draftModel,
+            speculative_gamma=config.speculativeGamma,
+            speculative_enabled=config.speculativeEnabled,
+            kv_eviction_sink=config.kvEvictionSink,
+            kv_eviction_window=config.kvEvictionWindow,
         )
 
         engine_info = self._engine.info()

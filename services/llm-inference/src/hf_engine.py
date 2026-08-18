@@ -51,6 +51,11 @@ class HFEngine(BaseEngine):
         self._closed = False
         self._last_input_tokens = 0
 
+        # Draft model for speculative decoding (loaded lazily, see
+        # _ensure_draft_loaded). Kept on the engine so the decoder is cheap.
+        self._draft_model = None
+        self._draft_tokenizer = None
+
         # Device detection
         if device is None:
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -90,12 +95,15 @@ class HFEngine(BaseEngine):
         **kwargs,
     ) -> GenerationResult:
         """Synchronous generation (non-streaming)."""
+        if self.config.speculative_enabled and self.config.draft_model_path:
+            return self._generate_speculative(messages, kwargs)
         text = self._format_messages(messages)
         inputs = self.tokenizer(text, return_tensors="pt").to(self.device)
 
         with self._lock:
             output_ids = self.model.generate(
                 **inputs,
+                past_key_values=self._build_eviction_cache(),
                 max_new_tokens=kwargs.get("max_tokens", self.config.max_tokens),
                 temperature=kwargs.get("temperature", self.config.temperature),
                 repetition_penalty=kwargs.get(
@@ -130,6 +138,9 @@ class HFEngine(BaseEngine):
         **kwargs,
     ) -> Iterator[GenerationResult]:
         """Streaming generation."""
+        if self.config.speculative_enabled and self.config.draft_model_path:
+            yield from self._stream_speculative(messages, kwargs)
+            return
         text = self._format_messages(messages)
 
         self._last_input_tokens = self.count_tokens(text)
@@ -144,6 +155,7 @@ class HFEngine(BaseEngine):
         gen_kwargs = dict(
             **inputs,
             streamer=streamer,
+            past_key_values=self._build_eviction_cache(),
             max_new_tokens=kwargs.get("max_tokens", self.config.max_tokens),
             temperature=kwargs.get("temperature", self.config.temperature),
             repetition_penalty=kwargs.get(
@@ -193,6 +205,188 @@ class HFEngine(BaseEngine):
             metrics=self._metrics,
         )
 
+    # ------------------------------------------------------------------
+    # KV-cache eviction (opt-in via kv_eviction_window)
+    # ------------------------------------------------------------------
+
+    def _build_eviction_cache(self):
+        """Return a fresh SinkWindowCache if KV eviction is enabled, else None.
+
+        Lazy import so this module stays importable under the mocked-torch /
+        mocked-transformers test files (same pattern as speculative decoding).
+        A fresh cache per call — never shared across concurrent requests.
+        """
+        if not self.config._kv_eviction_enabled():
+            return None
+        from optimization.kv_eviction import SinkWindowCache
+
+        return SinkWindowCache(
+            sink_size=self.config.kv_eviction_sink,
+            window_size=self.config.kv_eviction_window,
+        )
+
+    # ------------------------------------------------------------------
+    # Speculative decoding (opt-in via draft_model_path)
+    # ------------------------------------------------------------------
+
+    def _ensure_draft_loaded(self):
+        """Load the draft model once; no-op if already loaded or disabled.
+
+        Called under ``self._lock`` so concurrent first requests serialize.
+        """
+        if self._draft_model is not None or not self.config.draft_model_path:
+            return
+        self._draft_tokenizer = AutoTokenizer.from_pretrained(
+            self.config.draft_model_path,
+            trust_remote_code=self.config.trust_remote_code,
+        )
+        self._draft_model = AutoModelForCausalLM.from_pretrained(
+            self.config.draft_model_path,
+            trust_remote_code=self.config.trust_remote_code,
+            torch_dtype="auto",
+        ).to(self.device)
+        self._draft_model.eval()
+        logger.info(
+            f"HFEngine: draft model '{self.config.draft_model_path}' "
+            f"loaded on {self.device}"
+        )
+
+    def _build_speculative_decoder(self, kwargs):
+        """Lazy-import and build the SpeculativeDecoder for this request."""
+        # Lazy import: this module must not import torch/transformers at top
+        # level is fine, but the decoder module stays importable under the
+        # mocked-torch test files.
+        from optimization.speculative_decoding import SpeculativeDecoder
+
+        self._ensure_draft_loaded()
+        return SpeculativeDecoder(
+            draft_model=self._draft_model,
+            draft_tokenizer=self._draft_tokenizer,
+            target_model=self.model,
+            target_tokenizer=self.tokenizer,
+            gamma=self.config.speculative_gamma,
+            device=self.device,
+            temperature=kwargs.get("temperature", self.config.temperature),
+            top_p=kwargs.get("top_p", self.config.top_p),
+            top_k=kwargs.get("top_k", self.config.top_k),
+            repetition_penalty=kwargs.get(
+                "repetition_penalty", self.config.repetition_penalty
+            ),
+        )
+
+    def _log_speculative(self, stats, generated_count):
+        logger.info(
+            f"HFEngine speculative: {generated_count} tokens, "
+            f"acceptance_rate={stats.acceptance_rate:.3f}, "
+            f"target_fwd={stats.n_target_forwards} "
+            f"draft_fwd={stats.n_draft_forwards}, "
+            f"E[tokens/verify]="
+            f"{stats.expected_tokens_per_verify(self.config.speculative_gamma):.2f}"
+        )
+
+    def _generate_speculative(
+        self,
+        messages: List[Dict[str, str]],
+        kwargs: dict,
+    ) -> GenerationResult:
+        """Non-streaming generation via the real draft-verify loop."""
+        prompt = self._format_messages(messages)
+        prompt_ids = self.tokenizer(prompt, return_tensors="pt")["input_ids"].to(
+            self.device
+        )
+        max_tokens = kwargs.get("max_tokens", self.config.max_tokens)
+
+        start_time = time.time()
+        with self._lock:
+            decoder = self._build_speculative_decoder(kwargs)
+            output_ids, stats = decoder.generate(
+                prompt_ids,
+                max_tokens,
+                eos_token_id=self.tokenizer.eos_token_id,
+            )
+        elapsed = time.time() - start_time
+
+        chunk = self.tokenizer.decode(output_ids, skip_special_tokens=True)
+        generated_count = len(output_ids)
+
+        self._metrics = EngineMetrics(
+            tokens_generated=self._metrics.tokens_generated + generated_count,
+            total_time=self._metrics.total_time + elapsed,
+            first_token_latency=self._metrics.first_token_latency,
+        )
+        self._metrics.compute_tps()
+        self._log_speculative(stats, generated_count)
+
+        return GenerationResult(
+            chunk=chunk,
+            is_finished=True,
+            generated_tokens=generated_count,
+            metrics=self._metrics,
+        )
+
+    def _stream_speculative(
+        self,
+        messages: List[Dict[str, str]],
+        kwargs: dict,
+    ) -> Iterator[GenerationResult]:
+        """Streaming generation via the real draft-verify loop.
+
+        Yields the delta of the full decoded buffer each round (prefix-stable
+        for byte-level BPE), so no partial-UTF8 or token-merge artifacts leak.
+        """
+        prompt = self._format_messages(messages)
+        prompt_ids = self.tokenizer(prompt, return_tensors="pt")["input_ids"].to(
+            self.device
+        )
+        max_tokens = kwargs.get("max_tokens", self.config.max_tokens)
+
+        start_time = time.time()
+        first_token = True
+        buffer: List[int] = []
+        prev_text = ""
+        generated_tokens = 0
+        stats = None
+
+        with self._lock:
+            decoder = self._build_speculative_decoder(kwargs)
+            for new_ids, stats in decoder.stream_tokens(
+                prompt_ids,
+                max_tokens,
+                eos_token_id=self.tokenizer.eos_token_id,
+            ):
+                buffer.extend(new_ids)
+                text = self.tokenizer.decode(buffer, skip_special_tokens=True)
+                delta = text[len(prev_text):]
+                prev_text = text
+                if delta:
+                    if first_token:
+                        self._metrics.first_token_latency = time.time() - start_time
+                        first_token = False
+                    generated_tokens = len(buffer)
+                    yield GenerationResult(
+                        chunk=delta,
+                        is_finished=False,
+                        generated_tokens=generated_tokens,
+                    )
+
+        # Done
+        total_time = time.time() - start_time
+        self._metrics = EngineMetrics(
+            tokens_generated=self._metrics.tokens_generated + generated_tokens,
+            total_time=self._metrics.total_time + total_time,
+            first_token_latency=self._metrics.first_token_latency,
+        )
+        self._metrics.compute_tps()
+        if stats is not None:
+            self._log_speculative(stats, generated_tokens)
+
+        yield GenerationResult(
+            chunk="",
+            is_finished=True,
+            generated_tokens=generated_tokens,
+            metrics=self._metrics,
+        )
+
     def count_tokens(self, text: str) -> int:
         """Token count using the loaded tokenizer."""
         if not text:
@@ -209,6 +403,12 @@ class HFEngine(BaseEngine):
             del self.model
         if hasattr(self, "tokenizer"):
             del self.tokenizer
+        if self._draft_model is not None:
+            del self._draft_model
+            self._draft_model = None
+        if self._draft_tokenizer is not None:
+            del self._draft_tokenizer
+            self._draft_tokenizer = None
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
         logger.info("HFEngine: resources released")
@@ -221,6 +421,10 @@ class HFEngine(BaseEngine):
             "max_tokens": self.config.max_tokens,
             "temperature": self.config.temperature,
             "quantization": self.config.quantization,
+            "draft_model": self.config.draft_model_path,
+            "speculative_enabled": self.config.speculative_enabled,
+            "kv_eviction_window": self.config.kv_eviction_window,
+            "kv_eviction_sink": self.config.kv_eviction_sink,
             "closed": self._closed,
         }
 

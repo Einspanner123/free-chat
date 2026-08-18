@@ -44,6 +44,13 @@ class EngineConfig:
     max_model_len: int = 8192
     quantization: Optional[str] = None
     trust_remote_code: bool = True
+    # Speculative decoding (opt-in via draft_model_path)
+    draft_model_path: Optional[str] = None
+    speculative_gamma: int = 5
+    speculative_enabled: bool = True
+    # KV-cache eviction (StreamingLLM-style; opt-in via kv_eviction_window)
+    kv_eviction_sink: int = 4
+    kv_eviction_window: Optional[int] = None  # None / <=0 disables
 
     def __post_init__(self):
         if not self.model_path:
@@ -52,7 +59,33 @@ class EngineConfig:
             raise ValueError(
                 f"tensor_parallel_size must be >= 1, got {self.tensor_parallel_size}"
             )
+        if self.speculative_gamma < 1:
+            raise ValueError(
+                f"speculative_gamma must be >= 1, got {self.speculative_gamma}"
+            )
+        if self.kv_eviction_sink < 0:
+            raise ValueError(
+                f"kv_eviction_sink must be >= 0, got {self.kv_eviction_sink}"
+            )
+        if self.kv_eviction_window is not None and self.kv_eviction_window < 0:
+            raise ValueError(
+                f"kv_eviction_window must be >= 0, got {self.kv_eviction_window}"
+            )
+        if (
+            self.draft_model_path
+            and self.speculative_enabled
+            and self._kv_eviction_enabled()
+        ):
+            raise ValueError(
+                "KV-cache eviction (SinkWindowCache) is incompatible with "
+                "speculative decoding: the speculative loop rolls back the KV "
+                "cache with crop(), which SinkWindowCache forbids. Enable one "
+                "or the other."
+            )
         _validate_quantization(self.quantization)
+
+    def _kv_eviction_enabled(self) -> bool:
+        return self.kv_eviction_window is not None and self.kv_eviction_window > 0
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -63,6 +96,8 @@ class EngineConfig:
             "model_path", "max_tokens", "temperature", "top_p", "top_k",
             "repetition_penalty", "gpu_memory_utilization", "tensor_parallel_size",
             "max_model_len", "quantization", "trust_remote_code",
+            "draft_model_path", "speculative_gamma", "speculative_enabled",
+            "kv_eviction_sink", "kv_eviction_window",
         }
         filtered = {k: v for k, v in d.items() if k in valid_keys}
         return cls(**filtered)
