@@ -182,6 +182,13 @@ BM25 命中率 100%（答案段落总在 top-1）；0.6B 模型凭单个检索�
 
 所有推理测量均报告 **p50/p95/p99 尾延迟**（而非仅均值）—生产服务由尾延迟而非均值决定。见 `research/inference_optimization/run_decode_optimization.py` 与 `run_kv_cache_speedup.py`。
 
+### 已上线的服务级开关
+
+`llm-inference` 内置三项面向生产的服务级优化，默认关闭：
+- **尾延迟上报** — 每个推理测量均报告 p50/p95/p99（见上）。
+- **前缀 KV 复用** — `PREFIX_CACHE_ENABLED=1` 跳过对已共享 prompt 前缀的重复 prefill。
+- **MLA 潜 KV 压缩** — `KV_COMPRESSION=mla` 为每个 token 存储低维潜变量并在读取时重建；可用 `KV_COMPRESSION_LATENT` 与 `KV_COMPRESSION_BASIS`（`.pt` 标定文件）调参。与 KV 驱逐互斥——二选一启用。
+
 ## 快速开始
 
 ```bash

@@ -52,6 +52,12 @@ class AppConfig:
         )
         self.prefixCacheCapacity = int(os.getenv("PREFIX_CACHE_CAPACITY", "8"))
 
+        # ---- KV Compression (MLA-style latent, opt-in) Configuration ----
+        # KV_COMPRESSION: "none" (default) or "mla"
+        self.kvCompression = os.getenv("KV_COMPRESSION", "none")
+        self.kvCompressionLatent = int(os.getenv("KV_COMPRESSION_LATENT", "16"))
+        self.kvCompressionBasis = os.getenv("KV_COMPRESSION_BASIS") or None
+
         # 系统配置
         self.maxWorkers = int(os.getenv("MAX_WORKERS", 10))
 

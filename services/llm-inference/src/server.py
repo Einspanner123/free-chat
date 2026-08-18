@@ -112,6 +112,9 @@ class InferencerServiceServicer(pb2_grpc.InferencerServiceServicer):
             kv_eviction_window=config.kvEvictionWindow,
             prefix_cache_enabled=config.prefixCacheEnabled,
             prefix_cache_capacity=config.prefixCacheCapacity,
+            kv_compression=config.kvCompression,
+            kv_compression_latent=config.kvCompressionLatent,
+            kv_compression_basis=config.kvCompressionBasis,
         )
 
         engine_info = self._engine.info()

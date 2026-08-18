@@ -54,6 +54,10 @@ class EngineConfig:
     # Prefix KV cache (serve-time prefix reuse; opt-in via prefix_cache_enabled)
     prefix_cache_enabled: bool = False
     prefix_cache_capacity: int = 8
+    # KV compression (MLA-style latent compression; opt-in via kv_compression)
+    kv_compression: str = "none"  # "none" | "mla"
+    kv_compression_latent: int = 16
+    kv_compression_basis: Optional[str] = None  # path to .pt basis
 
     def __post_init__(self):
         if not self.model_path:
@@ -89,6 +93,20 @@ class EngineConfig:
             raise ValueError(
                 f"prefix_cache_capacity must be >= 1, got {self.prefix_cache_capacity}"
             )
+        if self.kv_compression not in ("none", "mla"):
+            raise ValueError(
+                f"kv_compression must be 'none' or 'mla', got {self.kv_compression}"
+            )
+        if self.kv_compression_latent < 1:
+            raise ValueError(
+                f"kv_compression_latent must be >= 1, got {self.kv_compression_latent}"
+            )
+        if self.kv_compression != "none" and self._kv_eviction_enabled():
+            raise ValueError(
+                "KV compression (CompressedKVCache) is incompatible with KV "
+                "eviction (SinkWindowCache): both rewrite the KV cache. Enable "
+                "one or the other."
+            )
         _validate_quantization(self.quantization)
 
     def _kv_eviction_enabled(self) -> bool:
@@ -106,6 +124,7 @@ class EngineConfig:
             "draft_model_path", "speculative_gamma", "speculative_enabled",
             "kv_eviction_sink", "kv_eviction_window",
             "prefix_cache_enabled", "prefix_cache_capacity",
+            "kv_compression", "kv_compression_latent", "kv_compression_basis",
         }
         filtered = {k: v for k, v in d.items() if k in valid_keys}
         return cls(**filtered)

@@ -174,6 +174,7 @@ Framework gain is **scale-invariant** (7.4× vs 10× over truncation); strategy 
 | INT8 (bitsandbytes) on Ampere | 5.7× **slower** | Dequantization overhead; INT8 buys memory, not speed here |
 | KV eviction (StreamingLLM sink+window) | decode 0.97–1.0× (no speed), but **KV 1794MB → 28MB = 63× more context** on the same GPU; 7B ppl 3.12 → 3.3; needle retrieval in the evicted region collapses | Eviction's value is **memory**, not speed; the tradeoff is a measurable memory × quality curve |
 | KV low-rank analysis | rank95≈2 (layer 0) vs ≈50 (mid) | Token redundancy → token pruning; per-token dim PCA ≈ MLA's latent compression (inference-side analog) |
+| MLA-style latent KV compression (serve-time) | KV `[B,H,S,D]`→`[B,H,S,latent]` (e.g. 8× @ latent=16, D=128); reconstruction error on read = quality cost | Calibrated PCA basis (`run_kv_compression_quality.py`) or random orthonormal fallback; gated by `KV_COMPRESSION=mla`, mutually exclusive with KV eviction |
 | RoPE extension (NTK/YaRN) | default RoPE already 100% needle @ 30K–80K; YaRN adds nothing, drops to 75% @ 80K | The 0.6B never needed YaRN |
 
 Measurements that came back negative are reported too — they define where a technique does and doesn't pay off, so it doesn't get re-tried blindly.
@@ -181,6 +182,13 @@ Measurements that came back negative are reported too — they define where a te
 ---
 
 All inference measurements report **p50/p95/p99 tail latency** (not just means) — production serving is governed by tail latency, not averages. See `research/inference_optimization/run_decode_optimization.py` and `run_kv_cache_speedup.py`.
+
+### Serve-time flags (shipped)
+
+Three production-oriented serve-time optimizations are wired into `llm-inference` and off by default:
+- **Tail latency reporting** — every inference measurement reports p50/p95/p99 (see above).
+- **Prefix KV reuse** — `PREFIX_CACHE_ENABLED=1` skips re-prefilling shared prompt prefixes.
+- **MLA latent KV compression** — `KV_COMPRESSION=mla` stores a low-dim latent per token and reconstructs on read; set `KV_COMPRESSION_LATENT` and optionally `KV_COMPRESSION_BASIS` (`.pt` calibration). Incompatible with KV eviction — enable one or the other.
 
 ## Quick Start
 

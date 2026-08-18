@@ -136,7 +136,7 @@ class HFEngine(BaseEngine):
         with self._lock:
             output_ids = self.model.generate(
                 input_ids=input_ids,
-                past_key_values=self._build_eviction_cache(),
+                past_key_values=self._select_kv_cache(),
                 max_new_tokens=kwargs.get("max_tokens", self.config.max_tokens),
                 temperature=kwargs.get("temperature", self.config.temperature),
                 repetition_penalty=kwargs.get(
@@ -260,7 +260,7 @@ class HFEngine(BaseEngine):
         gen_kwargs = dict(
             input_ids=inputs,
             streamer=streamer,
-            past_key_values=self._build_eviction_cache(),
+            past_key_values=self._select_kv_cache(),
             max_new_tokens=kwargs.get("max_tokens", self.config.max_tokens),
             temperature=kwargs.get("temperature", self.config.temperature),
             repetition_penalty=kwargs.get(
@@ -415,6 +415,38 @@ class HFEngine(BaseEngine):
             sink_size=self.config.kv_eviction_sink,
             window_size=self.config.kv_eviction_window,
         )
+
+    def _select_kv_cache(self):
+        """Return the KV cache to inject: MLA compression if enabled, else eviction."""
+        if self.config.kv_compression == "mla":
+            return self._build_compression_cache()
+        return self._build_eviction_cache()
+
+    def _build_compression_cache(self):
+        """Return a fresh CompressedKVCache (MLA latent KV) if enabled, else None.
+
+        Uses a calibrated PCA basis from KV_COMPRESSION_BASIS (.pt) when given;
+        otherwise a random orthonormal projection (still compresses, quality
+        measured by research/inference_optimization/run_kv_compression_quality.py).
+        """
+        if self.config.kv_compression != "mla":
+            return None
+        from optimization.kv_compression import (
+            CompressedKVCache,
+            load_basis,
+            random_basis,
+        )
+
+        n_layers = self.model.config.num_hidden_layers
+        head_dim = getattr(self.model.config, "head_dim", None) or (
+            self.model.config.hidden_size // self.model.config.num_attention_heads
+        )
+        latent = self.config.kv_compression_latent
+        if self.config.kv_compression_basis:
+            basis_k, basis_v = load_basis(self.config.kv_compression_basis)
+        else:
+            basis_k, basis_v = random_basis(n_layers, head_dim, latent, device=str(self.device))
+        return CompressedKVCache(basis_k=basis_k, basis_v=basis_v, latent_dim=latent)
 
     # ------------------------------------------------------------------
     # Speculative decoding (opt-in via draft_model_path)
