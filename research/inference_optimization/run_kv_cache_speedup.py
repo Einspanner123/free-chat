@@ -7,20 +7,49 @@
 2. KV Cache 截断对 decode 的加速：减少 attention 计算量
    （Sliding Window Eviction 的真实效果）
 
-每个测量多次运行取中位数，保证稳定。
+每个测量多次运行，报告中位加速与 p50/p95/p99 尾加速分位。
 """
 
 import argparse
 import json
+import math
 import os
 import statistics
 import time
-from typing import Dict, List
+from typing import Dict, List, Sequence
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, DynamicCache
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "long_context", "data")
+
+
+def _percentile(values: Sequence[float], q: float) -> float:
+    if not values:
+        raise ValueError("percentile() requires >=1 value")
+    s = sorted(float(v) for v in values)
+    if q <= 0:
+        return s[0]
+    if q >= 100:
+        return s[-1]
+    k = (len(s) - 1) * (q / 100.0)
+    lo, hi = math.floor(k), math.ceil(k)
+    return s[lo] if lo == hi else s[lo] + (s[hi] - s[lo]) * (k - lo)
+
+
+def _summarize_speedups(speedups: Sequence[float]) -> Dict:
+    if not speedups:
+        return {"n": 0}
+    s = sorted(float(v) for v in speedups)
+    return {
+        "n": len(s),
+        "mean_x": round(sum(s) / len(s), 2),
+        "p50_x": round(_percentile(s, 50), 2),
+        "p95_x": round(_percentile(s, 95), 2),
+        "p99_x": round(_percentile(s, 99), 2),
+        "min_x": round(s[0], 2),
+        "max_x": round(s[-1], 2),
+    }
 
 
 def load_book_text(name: str = "pride_and_prejudice") -> str:
@@ -41,13 +70,23 @@ def median_time(fn, runs: int = 5) -> float:
 
 
 def measure_prefix_cache(model, tok, device, prefix_ids, suffix_ids, runs: int = 5) -> Dict:
-    """Prefix Cache：完整 prefill vs 复用 prefix KV + 只 prefill suffix。"""
+    """Prefix Cache：完整 prefill vs 复用 prefix KV + 只 prefill suffix。
+
+    多次运行收集逐次加速（speedup=full_ms/cached_ms），报告中位与尾分位。
+    """
     full_input = torch.cat([prefix_ids, suffix_ids], dim=1)
 
     # 完整 prefill（不含复用）
     def full_prefill():
         model(input_ids=full_input, use_cache=True)
-    full_ms = median_time(full_prefill, runs)
+    full_times = []
+    for _ in range(runs):
+        torch.cuda.synchronize()
+        t0 = time.time()
+        full_prefill()
+        torch.cuda.synchronize()
+        full_times.append((time.time() - t0) * 1000)
+    full_ms = statistics.median(full_times)
 
     # 提取 prefix KV cache
     with torch.no_grad():
@@ -62,8 +101,16 @@ def measure_prefix_cache(model, tok, device, prefix_ids, suffix_ids, runs: int =
     # 复用 prefix KV + 只 prefill suffix
     def cached_prefill():
         model(input_ids=suffix_ids, past_key_values=cache, use_cache=True)
-    cached_ms = median_time(cached_prefill, runs)
+    cached_times = []
+    for _ in range(runs):
+        torch.cuda.synchronize()
+        t0 = time.time()
+        cached_prefill()
+        torch.cuda.synchronize()
+        cached_times.append((time.time() - t0) * 1000)
+    cached_ms = statistics.median(cached_times)
 
+    speedups = [f / c for f, c in zip(full_times, cached_times)]
     return {
         "prefix_tokens": prefix_len,
         "suffix_tokens": suffix_ids.shape[1],
@@ -71,6 +118,7 @@ def measure_prefix_cache(model, tok, device, prefix_ids, suffix_ids, runs: int =
         "cached_prefill_ms": round(cached_ms, 1),
         "saved_ms": round(full_ms - cached_ms, 1),
         "speedup": round(full_ms / cached_ms, 2) if cached_ms > 0 else 0,
+        "speedup_percentiles": _summarize_speedups(speedups),
     }
 
 
@@ -164,8 +212,10 @@ def main():
     for name, s in suffixes.items():
         suffix_ids = tok(s, return_tensors="pt").input_ids.to(device)
         m = measure_prefix_cache(model, tok, device, prefix_ids, suffix_ids)
+        sp = m["speedup_percentiles"]
         print(f"  {name}: prefix={m['prefix_tokens']} tok, full={m['full_prefill_ms']}ms, "
-              f"cached={m['cached_prefill_ms']}ms, saved={m['saved_ms']}ms ({m['speedup']}x)")
+              f"cached={m['cached_prefill_ms']}ms, saved={m['saved_ms']}ms ({m['speedup']}x); "
+              f"speedup p50={sp['p50_x']}x p95={sp['p95_x']}x p99={sp['p99_x']}x")
         results["measurements"][f"prefix_cache_{name}"] = m
 
     # ============================================================

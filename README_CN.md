@@ -180,6 +180,8 @@ BM25 命中率 100%（答案段落总在 top-1）；0.6B 模型凭单个检索�
 
 ---
 
+所有推理测量均报告 **p50/p95/p99 尾延迟**（而非仅均值）—生产服务由尾延迟而非均值决定。见 `research/inference_optimization/run_decode_optimization.py` 与 `run_kv_cache_speedup.py`。
+
 ## 快速开始
 
 ```bash

@@ -180,6 +180,8 @@ Measurements that came back negative are reported too — they define where a te
 
 ---
 
+All inference measurements report **p50/p95/p99 tail latency** (not just means) — production serving is governed by tail latency, not averages. See `research/inference_optimization/run_decode_optimization.py` and `run_kv_cache_speedup.py`.
+
 ## Quick Start
 
 ```bash
