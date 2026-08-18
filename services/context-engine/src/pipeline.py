@@ -5,7 +5,7 @@ Composes the retriever layer and strategies layer into a single
 context-building pipeline. High cohesion: pipeline only orchestrates.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import List, Dict, Optional
 
 from strategies import (
@@ -13,16 +13,37 @@ from strategies import (
     compress_tiered, apply_attention_sink,
 )
 from retriever import RetrieverFactory, BaseContextRetriever
+from router import IntentClassifier, RuleClassifier, route
+from search.client import WebSearchClient
 
 
 @dataclass
 class PipelineConfig:
     """Pipeline configuration."""
-    strategy: str = "truncation"
+    strategy: str = "auto"
     budget: int = 1024
     retriever: str = "bm25"
     top_k: int = 1
     chunk_pattern: str = r'(?=Paragraph \d+:)'
+    classifier: Optional[IntentClassifier] = None
+    # Web search knobs (strategy="web_search" / auto-routed search intent).
+    search_provider: Optional[str] = None     # provider name, or None = first available
+    web_top_k: int = 3                        # results to assemble into context
+    search_client: Optional[WebSearchClient] = None  # injectable for tests
+
+
+def _format_web_results(results: List[Dict]) -> str:
+    """Assemble search hits into a "Sources:" context block."""
+    parts = ["Sources:"]
+    for i, r in enumerate(results, start=1):
+        title = (r.get("title") or "").strip()
+        url = (r.get("url") or "").strip()
+        desc = (r.get("description") or "").strip()
+        body = f"[{i}] {title}\n{url}" if title else f"[{i}] {url}"
+        if desc:
+            body += f"\n{desc}"
+        parts.append(body)
+    return "\n\n".join(parts)
 
 
 class ContextPipeline:
@@ -35,10 +56,13 @@ class ContextPipeline:
       - sink_topic:      same as attention_sink (combined)
       - bm25_top1:       BM25 retrieve top-1 paragraph (RAG)
       - keyword_top1:    keyword retrieve top-1 paragraph
+      - full:            identity, no compression (narrative / under budget)
+      - auto:            classify intent → route to the best strategy
     """
 
     def __init__(self, config: PipelineConfig):
         self.config = config
+        self._classifier: IntentClassifier = config.classifier or RuleClassifier()
         self._retriever: Optional[BaseContextRetriever] = None
         if config.strategy in ("bm25_top1", "keyword_top1"):
             rname = "bm25" if config.strategy == "bm25_top1" else "keyword"
@@ -67,6 +91,27 @@ class ContextPipeline:
         budget = self.config.budget
         full_tokens = len(tokenizer.encode(text, add_special_tokens=False))
 
+        # Identity: keep the full text (narrative / under budget)
+        if strat == "full":
+            return {
+                "context": text, "strategy": "full",
+                "tokens": full_tokens, "compression_ratio": 0.0,
+            }
+
+        # Auto: classify intent → route to the best strategy for this task
+        if strat == "auto":
+            intent = self._classifier.classify(text, query)
+            resolved = route(intent, over_budget=full_tokens > budget)
+            meta = {"routed_from": "auto", "intent": intent.task,
+                    "confidence": round(intent.confidence, 4)}
+            if resolved == "full":
+                return {
+                    "context": text, "strategy": "full",
+                    "tokens": full_tokens, "compression_ratio": 0.0, **meta,
+                }
+            sub = ContextPipeline(replace(self.config, strategy=resolved))
+            return {**sub.build_with_metadata(text, tokenizer, query), **meta}
+
         # RAG retrieval strategies
         if strat in ("bm25_top1", "keyword_top1"):
             if self._retriever is None:
@@ -79,6 +124,9 @@ class ContextPipeline:
             self._retriever.index(docs)
             results = self._retriever.retrieve(query, k=self.config.top_k)
             ctx = self._retriever.format_results(results, docs)
+            # 检索空结果 → 回退截断（recency），保证上下文永不为空
+            if not ctx:
+                ctx = truncate(text, tokenizer, budget)
             # Compress if over budget
             if len(tokenizer.encode(ctx, add_special_tokens=False)) > budget:
                 ctx = truncate(ctx, tokenizer, budget)
@@ -87,6 +135,25 @@ class ContextPipeline:
                 "context": ctx, "strategy": strat,
                 "tokens": used,
                 "compression_ratio": round(1 - used / full_tokens, 4) if full_tokens else 0,
+            }
+
+        # Live web search (recency / knowledge-cutoff questions)
+        if strat == "web_search":
+            client = self.config.search_client or WebSearchClient(provider=self.config.search_provider)
+            results = client.search(query, limit=self.config.web_top_k)
+            if not results:
+                # No provider / no hits → degrade to the safe default so the
+                # context is never empty and auto-routing never errors.
+                sub = ContextPipeline(replace(self.config, strategy="sink_topic"))
+                return sub.build_with_metadata(text, tokenizer, query)
+            ctx = _format_web_results(results)
+            if len(tokenizer.encode(ctx, add_special_tokens=False)) > budget:
+                ctx = truncate(ctx, tokenizer, budget)
+            used = len(tokenizer.encode(ctx, add_special_tokens=False))
+            return {
+                "context": ctx, "strategy": strat, "tokens": used,
+                "compression_ratio": round(1 - used / full_tokens, 4) if full_tokens else 0,
+                "source": "web",
             }
 
         # Strategy-layer paths

@@ -91,3 +91,49 @@ class TestContextEngineGRPC:
             text="A" * 200, strategy="truncation", budget=50, query="",
         ))
         assert resp.compression_ratio > 0
+
+    def test_default_strategy_auto_under_budget_full(self, stub):
+        resp = stub.BuildContext(BuildContextRequest(
+            text="A" * 200, budget=1000, query="",
+        ))
+        assert resp.strategy == "full"
+        assert resp.context == "A" * 200
+
+    def test_default_strategy_auto_routes_narrative(self, stub):
+        resp = stub.BuildContext(BuildContextRequest(
+            text="A" * 500, budget=50, query="Write a story.",
+        ))
+        assert resp.strategy == "full"
+
+    def test_build_web_search(self, stub, monkeypatch):
+        import pipeline
+        monkeypatch.setattr(
+            pipeline, "WebSearchClient",
+            lambda provider=None: _FakeSearchClient(),
+        )
+        resp = stub.BuildContext(BuildContextRequest(
+            text="", strategy="web_search", budget=500, query="latest AI news",
+        ))
+        assert resp.strategy == "web_search"
+        assert "Sources:" in resp.context
+        assert "AI News" in resp.context
+
+    def test_auto_recency_routes_to_web_search(self, stub, monkeypatch):
+        import pipeline
+        monkeypatch.setattr(
+            pipeline, "WebSearchClient",
+            lambda provider=None: _FakeSearchClient(),
+        )
+        resp = stub.BuildContext(BuildContextRequest(
+            text="", budget=1000, query="What is the latest news about AI?",
+        ))
+        assert resp.strategy == "web_search"
+        assert "Sources:" in resp.context
+
+
+class _FakeSearchClient:
+    def search(self, query, limit=5):
+        return [{
+            "title": "AI News", "url": "https://example.com/ai",
+            "description": "latest AI breakthroughs", "position": 1,
+        }]

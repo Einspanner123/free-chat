@@ -33,7 +33,7 @@ class ContextEngineServicer(ContextEngineServiceServicer):
         """Build an optimized context under a token budget."""
         # Validate strategy
         config = PipelineConfig(
-            strategy=request.strategy or "truncation",
+            strategy=request.strategy or "auto",
             budget=request.budget or 1024,
         )
         pipe = ContextPipeline(config)
