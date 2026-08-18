@@ -43,12 +43,12 @@ flowchart TB
 
     subgraph CONTROL["控制面 · Go"]
         CHAT["chat-service<br/>DDD · 会话 · 负载均衡"]
-        GOCTX["ContextBuilder (Go)<br/>sink → system → 压缩"]
+        GOCTX["ContextBuilder (Go)<br/>sink → system → 压缩 · 回退"]
     end
 
     subgraph COMPUTE["计算面 · Python"]
         LLM["llm-inference<br/>gRPC · HF / vLLM"]
-        CE["context-engine<br/>gRPC · 检索 → 压缩 → 布局"]
+        CE["context-engine<br/>gRPC · 路由 → 检索 → 压缩 → 布局"]
         RAG["rag<br/>BM25 / dense / hybrid"]
         TRAIN["finetune / alignment / rlhf"]
         EVAL["evaluation / synthetic-data"]
@@ -69,9 +69,9 @@ flowchart TB
     GW --> AUTH
     GW --> CHAT
     AUTH --> PG
-    CHAT --> GOCTX
-    CHAT -.->|"备选路径 · ContextClient 已就绪"| CE
+    CHAT --> CE
     CE --> RAG
+    CHAT -.->|"回退 · Go 原生"| GOCTX
     CHAT --> LLM
     CHAT --> PG
     CHAT --> RD
@@ -84,8 +84,8 @@ flowchart TB
 
 **设计说明**
 
-- **主聊天链路**（实线）用 Go 原生 `ContextBuilder` 组装上下文，再向 `llm-inference` 流式推理。
-- Python **`context-engine`** 以独立 gRPC 服务暴露；Go 侧 `ContextClient`（实现 `domain.ContextOptimizer`）已就绪，但**尚未接入主请求链路** —— 虚线标记为下一步集成点。
+- **主聊天链路**（实线）经 `RemoteBuilder` 走 Python `context-engine` 组装上下文（`路由 → 检索 → 压缩 → 布局`），再向 `llm-inference` 流式推理。Go 原生 `ContextBuilder` 保留为自动回退（虚线）：远程服务不可用时兜底。
+- **`context-engine`** 以独立 gRPC 服务暴露；Go 侧实现 `domain.ContextOptimizer` 并接入为主构建器，默认 `strategy=auto` 意图路由。
 - **研究层**反哺计算面：上下文压缩与推理优化的结论沉淀进 `context-engine` 与 `llm-inference`。
 
 ---
@@ -108,10 +108,11 @@ sequenceDiagram
     GW->>CS: gRPC StreamChat（服务端流式）
     CS->>PG: 确认/创建会话 + 保存用户消息
     CS->>PG: 读取近 10 条历史
-    CS->>CS: ContextBuilder 组装<br/>(sink → system → history → 超预算压缩)
-    Note over CS,CE: 备选路径：Python context-engine<br/>(ContextClient 已实现，未接入主链路)
-    CS-)CE: BuildContext（检索 → 压缩 → 布局）
-    CE-->>CS: 优化后的上下文
+    CS->>CS: RemoteBuilder：序列化历史<br/>+ 有效预算
+    CS->>CE: BuildContext(text, query, strategy=auto)
+    Note over CE: 意图路由 → 按任务选策略<br/>(locate / qa / narrative / …)
+    CE-->>CS: 优化上下文 + strategy/tokens/ratio
+    Note over CS: 回退 → Go ContextBuilder<br/>若 context-engine 不可用
     CS->>RD: SelectBestModel（原子计数选负载最小实例）
     RD-->>CS: 目标实例地址
     CS->>LI: gRPC 流式生成（优化后的上下文）
@@ -141,6 +142,8 @@ sequenceDiagram
 
 BM25 命中率 100%（答案段落总在 top-1）；0.6B 模型凭单个检索段落即可达 98%。
 
+**L2 端到端验证（生产管线）** —— 意图路由（`strategy=auto`）把 50/50 条查询全部判为 `locate` 并路由到 BM25 top-1，达 **98%**（budget 1024）——与手工选定策略一致，无需人工选择。验证还暴露并修复了一个真实陷阱：答案格式提示如 `(e.g., Paragraph 5)` 会把 0.6B 锚定到 "5"（去掉后 75% → 95%）；BM25 空结果现回退为近因截断，而非空上下文。
+
 **模型尺度不变性** —— 相同压缩上下文，两种模型规模（20 样本）：
 
 | 策略 | Qwen3-0.6B | Qwen2.5-7B |
@@ -169,7 +172,7 @@ BM25 命中率 100%（答案段落总在 top-1）；0.6B 模型凭单个检索�
 | 批处理解码 | batch 8 达 6.23× 吞吐 | 内存带宽摊销 |
 | 前缀缓存 | 1.68–2.97× prefill 加速 | 共享前缀免重算 |
 | INT8（bitsandbytes）@ Ampere | **慢 5.7×** | 反量化开销；此处 INT8 买的是显存不是速度 |
-| KV 逐出 | 0.97–1.0×（无增益） | 逐出不加速解码 |
+| KV 逐出（StreamingLLM sink+window） | decode 0.97–1.0×（不加速），但 **KV 1794MB → 28MB = 同显存 63× 上下文**；7B ppl 3.12 → 3.3；逐出区内的 needle 检索塌陷 | 逐出的价值是**显存**不是速度；权衡是可测的"显存 × 质量"曲线 |
 | KV 低秩分析 | 第 0 层 rank95≈2，中层≈50 | token 冗余 → 支持 token 剪枝；每 token 维度 PCA ≈ MLA 的 latent 压缩（推理侧类比） |
 | RoPE 扩展（NTK/YaRN） | 默认 RoPE 在 30K–80K 已 100%；YaRN 无增益，80K 掉到 75% | 0.6B 根本不需要 YaRN |
 
@@ -244,10 +247,10 @@ benchmark 数据集（495MB）不提交到 git，通过 `scripts/download_benchm
 
 | 模块 | 测试数 |
 |---|---|
-| llm-inference | 161 |
+| llm-inference | 175 |
 | evaluation | 90 |
 | rag | 52 |
-| context-engine | 47 |
+| context-engine | 74 |
 | alignment | 50 |
 | synthetic-data | 38 |
 | finetune | 115 |
@@ -259,6 +262,6 @@ benchmark 数据集（495MB）不提交到 git，通过 `scripts/download_benchm
 
 ## 深入阅读
 
-- **context-engine**（`services/context-engine/`）—— 分层管线为三个无状态阶段：`strategies`（分块、关键词提取、截断、分级压缩、attention-sink 布局）→ `retriever`（BM25 / 关键词 / 可选稠密，统一接口）→ `pipeline`（编排）。以 gRPC 暴露。
+- **context-engine**（`services/context-engine/`）—— 分层管线为三个无状态阶段：`strategies`（分块、关键词提取、截断、分级压缩、attention-sink 布局）→ `retriever`（BM25 / 关键词 / 可选稠密，统一接口）→ `pipeline`（编排）。前置一层意图路由（`strategy=auto`）：确定性规则分类器把请求映射到基准验证过的最优策略（locate → BM25 top-1、QA → 主题选择、narrative → 不压缩），带预算与置信度双守卫。时效性问题（最新/今天/新闻等）且无本地文档时路由到新增的 `web_search` 策略——通过可插拔 provider 注册表拉取实时搜索结果（设计借鉴 hermes，内置无 key 的 DuckDuckGo 后端）组装进上下文预算，弥合模型知识截止。以 gRPC 暴露。
 - **llm-inference**（`services/llm-inference/`）—— 可插拔 HF / vLLM 引擎与量化。服务化主路径使用 vLLM（`AsyncLLM`）实现真正的 token 级流式；HF 引擎作为兜底。
 - **仓库大小** —— benchmark 数据已从 git 排除；仓库约 51MB（源码 + 生成产物），数据按需下载。

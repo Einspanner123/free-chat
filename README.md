@@ -43,12 +43,12 @@ flowchart TB
 
     subgraph CONTROL["Control Plane · Go"]
         CHAT["chat-service<br/>DDD · sessions · load-balance"]
-        GOCTX["ContextBuilder (Go)<br/>sink → system → compress"]
+        GOCTX["ContextBuilder (Go)<br/>sink → system → compress · fallback"]
     end
 
     subgraph COMPUTE["Compute Plane · Python"]
         LLM["llm-inference<br/>gRPC · HF / vLLM"]
-        CE["context-engine<br/>gRPC · retrieve → compress → layout"]
+        CE["context-engine<br/>gRPC · route → retrieve → compress → layout"]
         RAG["rag<br/>BM25 / dense / hybrid"]
         TRAIN["finetune / alignment / rlhf"]
         EVAL["evaluation / synthetic-data"]
@@ -69,9 +69,9 @@ flowchart TB
     GW --> AUTH
     GW --> CHAT
     AUTH --> PG
-    CHAT --> GOCTX
-    CHAT -.->|"alt path · ContextClient ready"| CE
+    CHAT --> CE
     CE --> RAG
+    CHAT -.->|"fallback · Go-native"| GOCTX
     CHAT --> LLM
     CHAT --> PG
     CHAT --> RD
@@ -84,8 +84,8 @@ flowchart TB
 
 **Design notes**
 
-- The **main chat path** (solid lines) builds context with the Go-native `ContextBuilder`, then streams inference from `llm-inference`.
-- The Python **`context-engine`** is exposed as a standalone gRPC service; the Go `ContextClient` (`domain.ContextOptimizer`) is implemented and ready, but **not yet wired into the main request path** — the dashed edge marks it as the next integration step.
+- The **main chat path** (solid lines) builds context through the Python `context-engine` via a `RemoteBuilder` (`route → retrieve → compress → layout`), then streams inference from `llm-inference`. The Go-native `ContextBuilder` remains as an automatic fallback (dashed edge) when the remote service is unavailable.
+- The **`context-engine`** is exposed as a standalone gRPC service; the Go side implements `domain.ContextOptimizer` and wires it as the primary builder, with `strategy=auto` intent routing by default.
 - The **Research layer** feeds the compute plane: findings on context compression and inference optimization land in `context-engine` and `llm-inference`.
 
 ---
@@ -108,10 +108,11 @@ sequenceDiagram
     GW->>CS: gRPC StreamChat (server-stream)
     CS->>PG: ensure/create session + save user message
     CS->>PG: load last 10 messages
-    CS->>CS: ContextBuilder: sink → system → history<br/>compress if over token budget
-    Note over CS,CE: alt path: Python context-engine<br/>(ContextClient implemented, not yet wired)
-    CS-)CE: BuildContext (retrieve → compress → layout)
-    CE-->>CS: optimized context
+    CS->>CS: RemoteBuilder: serialize history<br/>+ effective budget
+    CS->>CE: BuildContext(text, query, strategy=auto)
+    Note over CE: intent routing → per-task strategy<br/>(locate / qa / narrative / …)
+    CE-->>CS: optimized context + strategy/tokens/ratio
+    Note over CS: fallback → Go ContextBuilder<br/>if context-engine unavailable
     CS->>RD: SelectBestModel (atomic counter)
     RD-->>CS: target instance addr
     CS->>LI: gRPC stream generate(optimized context)
@@ -141,6 +142,8 @@ Experiments run on an **NVIDIA RTX A6000** with **Qwen3-0.6B** and **Qwen2.5-7B*
 
 BM25 hit rate is 100% (the answer paragraph is always in top-1); a 0.6B model reaches 98% from a single retrieved paragraph.
 
+**L2 validation (production pipeline)** — the intent router (`strategy=auto`) classifies all 50/50 queries as `locate` and routes to BM25 top-1, reaching **98%** (budget 1024) — identical to the hand-picked strategy, no manual selection. Validation also caught a real pitfall: an answer hint like `(e.g., Paragraph 5)` anchors the 0.6B to output "5" (75% → 95% once removed), and an empty BM25 result now falls back to recency truncation instead of an empty context.
+
 **Model-scale invariance** — same compressed context, two model sizes (20 samples):
 
 | Strategy | Qwen3-0.6B | Qwen2.5-7B |
@@ -169,7 +172,7 @@ Framework gain is **scale-invariant** (7.4× vs 10× over truncation); strategy 
 | Batch decoding | 6.23× throughput @ batch 8 | Memory-bound bandwidth amortization |
 | Prefix caching | 1.68–2.97× prefill speedup | Avoids re-prefilling shared prefixes |
 | INT8 (bitsandbytes) on Ampere | 5.7× **slower** | Dequantization overhead; INT8 buys memory, not speed here |
-| KV eviction | 0.97–1.0× (no gain) | Eviction doesn't speed up decode |
+| KV eviction (StreamingLLM sink+window) | decode 0.97–1.0× (no speed), but **KV 1794MB → 28MB = 63× more context** on the same GPU; 7B ppl 3.12 → 3.3; needle retrieval in the evicted region collapses | Eviction's value is **memory**, not speed; the tradeoff is a measurable memory × quality curve |
 | KV low-rank analysis | rank95≈2 (layer 0) vs ≈50 (mid) | Token redundancy → token pruning; per-token dim PCA ≈ MLA's latent compression (inference-side analog) |
 | RoPE extension (NTK/YaRN) | default RoPE already 100% needle @ 30K–80K; YaRN adds nothing, drops to 75% @ 80K | The 0.6B never needed YaRN |
 
@@ -244,10 +247,10 @@ Benchmark datasets (495MB) are not committed; fetch via `scripts/download_benchm
 
 | Module | Tests |
 |---|---|
-| llm-inference | 161 |
+| llm-inference | 175 |
 | evaluation | 90 |
 | rag | 52 |
-| context-engine | 47 |
+| context-engine | 74 |
 | alignment | 50 |
 | synthetic-data | 38 |
 | finetune | 115 |
@@ -259,6 +262,6 @@ Benchmark datasets (495MB) are not committed; fetch via `scripts/download_benchm
 
 ## Deep Dive
 
-- **context-engine** (`services/context-engine/`) — the layered pipeline is three stateless stages: `strategies` (chunking, keyword extraction, truncation, tiered compression, attention-sink layout) → `retriever` (BM25 / keyword / optional dense, behind one interface) → `pipeline` (orchestration). Exposed as gRPC.
+- **context-engine** (`services/context-engine/`) — the layered pipeline is three stateless stages: `strategies` (chunking, keyword extraction, truncation, tiered compression, attention-sink layout) → `retriever` (BM25 / keyword / optional dense, behind one interface) → `pipeline` (orchestration). Fronted by an intent router (`strategy=auto`): a deterministic rule classifier maps the request to the strategy the benchmarks show works for that task (locate → BM25 top-1, QA → topic selection, narrative → no compression), with budget + confidence guards. Recency questions with no local document (latest/today/新闻) route to a new `web_search` strategy — a pluggable provider registry (design borrowed from hermes, ships a no-key DuckDuckGo backend) pulls live results into the context budget, bridging the model's knowledge cutoff. Exposed as gRPC.
 - **llm-inference** (`services/llm-inference/`) — pluggable HF / vLLM engines with quantization. The serving path uses vLLM (`AsyncLLM`) for true token-level streaming; the HF engine is the fallback.
 - **Repository size** — benchmark data is excluded from git; the repo is ~51MB of source + generated artifacts, with data fetched on demand.
