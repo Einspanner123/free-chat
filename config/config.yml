@@ -25,6 +25,10 @@ redis:
 chat:
   server_name: "chat-service"
   grpc_port: 8088
+  context_engine:
+    enabled: true
+    address: "localhost:8089"
+    strategy: "auto"
 
 auth:
   server_name: "auth-service"

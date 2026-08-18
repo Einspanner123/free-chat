@@ -64,11 +64,31 @@ func TestContextClientBuildContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildContext failed: %v", err)
 	}
-	if len(resp) > 11 { // budget 10 + margin
-		t.Errorf("context too long: %d chars", len(resp))
+	if len(resp.Context) > 11 { // budget 10 + margin
+		t.Errorf("context too long: %d chars", len(resp.Context))
 	}
-	if resp == "" {
+	if resp.Context == "" {
 		t.Error("expected non-empty context")
+	}
+}
+
+func TestContextClientReturnsMetadata(t *testing.T) {
+	conn := dialBufconn(t)
+	client := &ContextClient{conn: conn}
+
+	text := "hello world this is a test"
+	resp, err := client.BuildContext(context.Background(), text, "q", "auto", 100)
+	if err != nil {
+		t.Fatalf("BuildContext failed: %v", err)
+	}
+	if resp.Strategy != "auto" {
+		t.Errorf("expected strategy auto, got %q", resp.Strategy)
+	}
+	if resp.Tokens != len(text) {
+		t.Errorf("expected tokens %d, got %d", len(text), resp.Tokens)
+	}
+	if resp.CompressionRatio != 0.5 {
+		t.Errorf("expected compression_ratio 0.5, got %v", resp.CompressionRatio)
 	}
 }
 
@@ -80,8 +100,8 @@ func TestContextClientEmptyText(t *testing.T) {
 	if err != nil {
 		t.Fatalf("BuildContext failed: %v", err)
 	}
-	if resp != "" {
-		t.Errorf("expected empty context, got %q", resp)
+	if resp.Context != "" {
+		t.Errorf("expected empty context, got %q", resp.Context)
 	}
 }
 
@@ -95,8 +115,8 @@ func TestContextClientPreservesSuffix(t *testing.T) {
 		t.Fatalf("BuildContext failed: %v", err)
 	}
 	// mock keeps last 5 chars = "BBBBB"
-	if resp != "BBBBB" {
-		t.Errorf("expected suffix BBBBB, got %q", resp)
+	if resp.Context != "BBBBB" {
+		t.Errorf("expected suffix BBBBB, got %q", resp.Context)
 	}
 }
 

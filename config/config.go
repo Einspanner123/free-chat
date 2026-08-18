@@ -63,8 +63,17 @@ type ConsulConfig struct {
 }
 
 type ChatConfig struct {
-	ServerName string `mapstructure:"server_name" yaml:"server_name"`
-	GRPCPort   int    `mapstructure:"grpc_port" yaml:"grpc_port"`
+	ServerName    string              `mapstructure:"server_name" yaml:"server_name"`
+	GRPCPort      int                 `mapstructure:"grpc_port" yaml:"grpc_port"`
+	ContextEngine ContextEngineConfig `mapstructure:"context_engine" yaml:"context_engine"`
+}
+
+// ContextEngineConfig controls wiring the remote context-engine into the
+// main chat request path. Enabled + address + intent-routing strategy.
+type ContextEngineConfig struct {
+	Enabled  bool   `mapstructure:"enabled" yaml:"enabled"`
+	Address  string `mapstructure:"address" yaml:"address"`
+	Strategy string `mapstructure:"strategy" yaml:"strategy"`
 }
 
 type AuthConfig struct {

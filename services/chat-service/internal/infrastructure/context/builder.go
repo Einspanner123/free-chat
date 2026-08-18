@@ -16,6 +16,13 @@ const sinkToken = "\n\n"
 // 利用首位效应（sink 后立即出现）和近因效应（当前输入前重申）提高命中率。
 const globalInstruction = "You are a helpful assistant. Respond concisely and accurately."
 
+// reservedOutputTokens / safetyMarginTokens 从模型窗口内留出输出与安全余量，
+// 得到真正可用的上下文预算。默认构建器与 RemoteBuilder 共用同一预算口径。
+const (
+	reservedOutputTokens = 2048
+	safetyMarginTokens   = 256
+)
+
 // Budget manages token budget calculation for context window.
 type Budget struct {
 	MaxContextWindow int
@@ -109,7 +116,7 @@ func (b *defaultBuilder) Build(ctx context.Context, history []*domain.Message, u
 	}
 	usedTokens += inputTokens
 
-	budget := NewBudget(modelMaxTokens, 2048, 256)
+	budget := NewBudget(modelMaxTokens, reservedOutputTokens, safetyMarginTokens)
 	budget.UsedTokens = usedTokens
 
 	// Step 3: 预算不足时压缩（仅压缩历史部分，保留 prefix 结构）

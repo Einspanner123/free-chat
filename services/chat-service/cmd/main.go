@@ -141,7 +141,27 @@ func main() {
 		tk = nil
 	}
 	compressor := context.NewDefaultCompressor()
-	ctxBuilder := context.NewDefaultBuilder(compressor, tk)
+	goBuilder := context.NewDefaultBuilder(compressor, tk)
+
+	// 主链路上下文构建器：context-engine 可用时走远程（意图路由 + 检索/压缩/布局），
+	// 否则回退 Go 原生构建器（远程为主 + Go 回退）。
+	var ctxBuilder context.ContextBuilder
+	if cfg.Chat.ContextEngine.Enabled {
+		ceAddr := cfg.Chat.ContextEngine.Address
+		if ceAddr == "" {
+			ceAddr = "localhost:8089"
+		}
+		strategy := cfg.Chat.ContextEngine.Strategy
+		if strategy == "" {
+			strategy = "auto"
+		}
+		remote := handler.NewContextClient(ceAddr)
+		defer remote.Close()
+		ctxBuilder = context.NewRemoteBuilder(remote, goBuilder, strategy)
+		log.Printf("[INFO] context-engine wired via gRPC %s (strategy=%s)", ceAddr, strategy)
+	} else {
+		ctxBuilder = goBuilder
+	}
 
 	// Initialize Handler
 	chatHandler := handler.NewChatHandler(chatApp, llmClient, ctxBuilder)

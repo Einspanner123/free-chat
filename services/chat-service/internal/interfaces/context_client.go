@@ -64,10 +64,10 @@ func (c *ContextClient) BuildContext(
 	ctx context.Context,
 	text, query, strategy string,
 	budget int,
-) (string, error) {
+) (*domain.ContextOptimizationResult, error) {
 	conn, err := c.getConn()
 	if err != nil {
-		return "", fmt.Errorf("connect context-engine: %w", err)
+		return nil, fmt.Errorf("connect context-engine: %w", err)
 	}
 	client := contextpb.NewContextEngineServiceClient(conn)
 	req := &contextpb.BuildContextRequest{
@@ -78,9 +78,14 @@ func (c *ContextClient) BuildContext(
 	}
 	resp, err := client.BuildContext(ctx, req)
 	if err != nil {
-		return "", fmt.Errorf("BuildContext RPC: %w", err)
+		return nil, fmt.Errorf("BuildContext RPC: %w", err)
 	}
-	return resp.Context, nil
+	return &domain.ContextOptimizationResult{
+		Context:          resp.Context,
+		Strategy:         resp.Strategy,
+		Tokens:           int(resp.Tokens),
+		CompressionRatio: float64(resp.CompressionRatio),
+	}, nil
 }
 
 func (c *ContextClient) Close() error {
