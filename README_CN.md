@@ -130,6 +130,8 @@ sequenceDiagram
 
 实验运行在 **NVIDIA RTX A6000**，模型为 **Qwen3-0.6B** 与 **Qwen2.5-7B**。
 
+> 以下每条关键数字均可在 [](docs/BENCHMARKS.md) 中找到对应的脚本与结果文件（审计参考：含基线设计、负向结果与复现命令）。
+
 ### 长上下文应用（RAG）
 
 **passage_retrieval_en** —— 给定多段落文档，找到与描述匹配的段落。200 样本，每样本约 12.7K tokens。

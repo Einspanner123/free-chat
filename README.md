@@ -130,6 +130,8 @@ sequenceDiagram
 
 Experiments run on an **NVIDIA RTX A6000** with **Qwen3-0.6B** and **Qwen2.5-7B**.
 
+> Every headline number below is mapped to its script + result file in [](docs/BENCHMARKS.md) (audit-ready reference, including baseline design, negative results, and reproduction commands).
+
 ### Long-context application (RAG)
 
 **passage_retrieval_en** — given a multi-paragraph document, find the paragraph matching a description. 200 samples, ~12.7K tokens each.
