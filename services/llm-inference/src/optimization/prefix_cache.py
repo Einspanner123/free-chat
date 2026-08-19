@@ -9,16 +9,25 @@ measured (1.68–2.97× prefill speedup).
 
 This module is the *policy*: prefix matching + LRU eviction over prompt
 token-id prefixes. The actual KV tensors live in whatever cache object the
-engine uses (HF ``DynamicCache`` / ``SinkWindowCache``); this manager only
-stores and retrieves them by prompt prefix. The engine wires it into
-``model.generate`` (gated behind ``prefix_cache_enabled``).
+engine uses (HF ``DynamicCache``); this manager only stores and retrieves them
+by prompt prefix. The engine wires it into its generation path (gated behind
+``prefix_cache_enabled``).
 
-Correctness note: ``model.generate`` mutates the ``past_key_values`` it is
-given in place, so a cached KV must be **cloned** before being passed back in,
-otherwise a later shorter-prefix request would reuse a longer (corrupted) cache.
-The engine is responsible for cloning on reuse (see hf_engine.py).
+Thread safety: ``lookup`` / ``store`` take an internal lock so concurrent
+requests on a shared engine cannot corrupt the LRU dict. (The engine still
+serializes model forwards with its own lock; this guards the policy state.)
+
+Correctness note: ``model.generate`` mutates a ``past_key_values`` it is given
+in place, so a cached KV must be **cloned** before being reused. On
+transformers 5.x, ``model.generate`` does NOT accept a pre-populated
+``past_key_values`` with external ``input_ids`` (it drops/ignores the input and
+decodes from the cache tail). The HF engine therefore implements prefix reuse
+with a forward-based prefill + manual decode loop, resuming via
+``model(suffix, past_key_values=clone(cached))`` (a forward, which IS supported)
+rather than ``model.generate(suffix, past_key_values=...)``.
 """
 
+from threading import RLock
 from typing import Dict, List, Optional, Tuple
 
 
@@ -46,6 +55,7 @@ class PrefixCache:
         self._capacity = capacity
         # insertion-ordered dict; end = most-recently-used
         self._store: "Dict[Tuple[int, ...], object]" = {}
+        self._lock = RLock()
 
     @property
     def capacity(self) -> int:
@@ -59,32 +69,36 @@ class PrefixCache:
         (``prompt_ids[:len(key)] == key``), so the returned KV is exactly the
         matched prefix. Ties broken by most-recently-used.
         """
-        best_len = 0
-        best_key: Optional[Tuple[int, ...]] = None
-        for key in self._store:  # insertion order
-            if len(key) <= len(prompt_ids) and prompt_ids[: len(key)] == list(key):
-                if len(key) > best_len:
-                    best_len = len(key)
-                    best_key = key
-        if best_key is None or best_len == 0:
-            return 0, None
-        # touch LRU: move to end
-        val = self._store.pop(best_key)
-        self._store[best_key] = val
-        return best_len, val
+        with self._lock:
+            best_len = 0
+            best_key: Optional[Tuple[int, ...]] = None
+            for key in self._store:  # insertion order
+                if len(key) <= len(prompt_ids) and prompt_ids[: len(key)] == list(key):
+                    if len(key) > best_len:
+                        best_len = len(key)
+                        best_key = key
+            if best_key is None or best_len == 0:
+                return 0, None
+            # touch LRU: move to end
+            val = self._store.pop(best_key)
+            self._store[best_key] = val
+            return best_len, val
 
     def store(self, prompt_ids: List[int], cache: object) -> None:
         """Cache ``cache`` under the full prompt prefix; evict LRU if over capacity."""
         key = tuple(prompt_ids)
-        if key in self._store:
-            del self._store[key]
-        self._store[key] = cache
-        while len(self._store) > self._capacity:
-            oldest = next(iter(self._store))
-            del self._store[oldest]
+        with self._lock:
+            if key in self._store:
+                del self._store[key]
+            self._store[key] = cache
+            while len(self._store) > self._capacity:
+                oldest = next(iter(self._store))
+                del self._store[oldest]
 
     def __len__(self) -> int:
-        return len(self._store)
+        with self._lock:
+            return len(self._store)
 
     def keys(self) -> List[Tuple[int, ...]]:
-        return list(self._store.keys())
+        with self._lock:
+            return list(self._store.keys())

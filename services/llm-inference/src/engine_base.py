@@ -107,6 +107,18 @@ class EngineConfig:
                 "eviction (SinkWindowCache): both rewrite the KV cache. Enable "
                 "one or the other."
             )
+        if self.prefix_cache_enabled and self.kv_compression != "none":
+            raise ValueError(
+                "Prefix KV reuse (prefix_cache_enabled) is incompatible with KV "
+                "compression (kv_compression): the prefix path manages its own KV "
+                "and does not inject a CompressedKVCache. Enable one or the other."
+            )
+        if self.prefix_cache_enabled and self._kv_eviction_enabled():
+            raise ValueError(
+                "Prefix KV reuse (prefix_cache_enabled) is incompatible with KV "
+                "eviction (kv_eviction_window): the prefix path manages its own KV "
+                "and does not inject a SinkWindowCache. Enable one or the other."
+            )
         _validate_quantization(self.quantization)
 
     def _kv_eviction_enabled(self) -> bool:

@@ -137,6 +137,10 @@ def test_crop_keeps_prefix_layout():
     forward_sim(cache, 10)
     cache.crop(5)
     assert cache.latent_length() == 5
+    # get_seq_length must agree with the per-layer stored length after crop
+    # (regression guard: previously crop did not update the logical counter).
+    assert cache.get_seq_length(0) == 5
+    assert cache.get_query_offset(0) == 5
 
 
 # ---------------------------------------------------------------------------
@@ -192,7 +196,11 @@ def test_random_basis_shape():
     os.getenv("KV_E2E") != "1" or not torch.cuda.is_available(),
     reason="requires KV_E2E=1 on a CUDA host (real models)",
 )
-def test_real_compressed_cache_smoke():
+def test_real_mla_generate_matches_baseline():
+    """Real-model E2E: at a sufficient latent the compressed-cache generation
+    must reproduce the uncompressed greedy generation token-for-token; at an
+    aggressively small latent it must diverge (the quality cliff). This is the
+    validation that was missing -- it pins the transformers 5.x Cache contract."""
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     model_name = "Qwen/Qwen3-0.6B"
@@ -201,24 +209,51 @@ def test_real_compressed_cache_smoke():
         model_name, torch_dtype=torch.float16, trust_remote_code=True
     ).to("cuda")
     model.eval()
+    mdtype = next(model.parameters()).dtype
 
     ids = tok(
-        "The history of the railway is the history of iron and coal. " * 8,
+        "The history of the railway is the history of iron and coal. " * 4,
         return_tensors="pt",
-    )["input_ids"].to("cuda")[:, :128]
+    )["input_ids"].to("cuda")[:, :48]
+    n_new = 8
+
+    base = model.generate(
+        ids, do_sample=False, max_new_tokens=n_new, pad_token_id=tok.eos_token_id
+    )[0, ids.shape[1]:]
 
     with torch.no_grad():
         out = model(ids, use_cache=True)
-    key_cache = [l.keys.detach().float() for l in out.past_key_values.layers]
-    val_cache = [l.values.detach().float() for l in out.past_key_values.layers]
-    bk, bv = fit_pca_basis(key_cache, val_cache, latent_dim=16)
+    kc = [l.keys.detach().float() for l in out.past_key_values.layers]
+    vc = [l.values.detach().float() for l in out.past_key_values.layers]
 
-    out_comp = model(
+    # Sufficient latent (64 of 128) -> exact match (validated on 5.14.1).
+    bk, bv = fit_pca_basis(kc, vc, latent_dim=64)
+    bk = [b.to(mdtype) for b in bk]
+    bv = [b.to(mdtype) for b in bv]
+    g64 = model.generate(
         ids,
-        past_key_values=CompressedKVCache(basis_k=bk, basis_v=bv, latent_dim=16),
-        use_cache=True,
+        past_key_values=CompressedKVCache(basis_k=bk, basis_v=bv, latent_dim=64),
+        do_sample=False,
+        max_new_tokens=n_new,
+        pad_token_id=tok.eos_token_id,
+    )[0, ids.shape[1]:]
+    assert torch.equal(base.cpu(), g64.cpu()), (
+        f"MLA @ latent=64 diverged from baseline: {base.tolist()} vs {g64.tolist()}"
     )
-    # compressed cache must produce valid logits (generation-quality is a separate
-    # measurement in run_kv_compression_quality.py)
-    assert out_comp.logits.shape[-1] == out.logits.shape[-1]
-    print(f"[KV-E2E] compressed cache logits ok, latent bytes saved ~{D/16:.1f}x")
+
+    # Aggressive latent (16 of 128) -> must diverge (the quality cliff that
+    # makes a too-small latent unusable; documents the tradeoff, not a bug).
+    bk16, bv16 = fit_pca_basis(kc, vc, latent_dim=16)
+    bk16 = [b.to(mdtype) for b in bk16]
+    bv16 = [b.to(mdtype) for b in bv16]
+    g16 = model.generate(
+        ids,
+        past_key_values=CompressedKVCache(basis_k=bk16, basis_v=bv16, latent_dim=16),
+        do_sample=False,
+        max_new_tokens=n_new,
+        pad_token_id=tok.eos_token_id,
+    )[0, ids.shape[1]:]
+    assert not torch.equal(base.cpu(), g16.cpu()), (
+        "latent=16 unexpectedly matched baseline (quality cliff assertion failed)"
+    )
+    print(f"[KV-E2E] MLA latent=64 match OK; latent=16 diverges (quality cliff)")

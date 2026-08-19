@@ -120,6 +120,13 @@ class HFEngine(BaseEngine):
 
         logger.info(f"HFEngine: model loaded successfully on {self.device}")
 
+        # MLA latent KV compression basis: loaded ONCE at init (not per request)
+        # so a bad/missing basis fails fast and the model dtype is fixed. Stored
+        # immutably; _build_compression_cache creates a fresh cache per request.
+        self._mla_basis = None
+        if config.kv_compression == "mla":
+            self._mla_basis = self._load_mla_basis()
+
     def generate(
         self,
         messages: List[Dict[str, str]],
@@ -165,73 +172,149 @@ class HFEngine(BaseEngine):
             generated_tokens=generated_count,
         )
 
+    # ------------------------------------------------------------------
+    # Prefix KV reuse: forward-based prefill + manual decode loop.
+    #
+    # On transformers >=5, model.generate(input_ids, past_key_values=PRE_FILLED)
+    # does NOT resume correctly -- it ignores/drops the external input_ids and
+    # decodes from the cache tail (verified on 5.14.1). Prefix reuse therefore
+    # resumes with a FORWARD -- model(suffix, past_key_values=clone(cached)) --
+    # which IS supported, then runs a manual decode loop (1-token forwards). A
+    # greedy manual loop reproduces model.generate exactly (verified on 5.14.1).
+    # ------------------------------------------------------------------
+
+    def _sample_next(
+        self,
+        logits: torch.Tensor,
+        context_ids: torch.Tensor,
+        *,
+        temperature: float,
+        top_p: float,
+        top_k: int,
+        repetition_penalty: float,
+    ) -> torch.Tensor:
+        """Sample one token id from 1-D ``logits`` honoring the sampling params."""
+        logits = logits.float()
+        if repetition_penalty != 1.0 and context_ids.numel() > 0:
+            score = torch.gather(logits, 0, context_ids)
+            score = torch.where(score < 0, score * repetition_penalty, score / repetition_penalty)
+            logits = logits.scatter(0, context_ids, score)
+        if temperature is None or temperature <= 0:
+            return logits.argmax().reshape(1)
+        logits = logits / temperature
+        if top_k is not None and top_k > 0:
+            k = min(int(top_k), logits.size(-1))
+            topk = torch.topk(logits, k)
+            masked = torch.full_like(logits, float("-inf"))
+            masked[topk.indices] = topk.values
+            logits = masked
+        if top_p is not None and 0.0 < top_p < 1.0:
+            sorted_logits, sorted_idx = torch.sort(logits, descending=True)
+            cum = torch.softmax(sorted_logits, dim=-1).cumsum(dim=-1)
+            remove = cum > top_p
+            remove[1:] = remove[:-1].clone()
+            remove[0] = False
+            logits[sorted_idx[remove]] = float("-inf")
+        probs = torch.softmax(logits, dim=-1)
+        return torch.multinomial(probs, 1)
+
+    def _decode_steps(
+        self,
+        kv,
+        first_logits: torch.Tensor,
+        context: torch.Tensor,
+        max_new_tokens: int,
+        sampling: dict,
+    ):
+        """Yield generated token ids one at a time (greedy/sampling), stop at EOS.
+
+        ``kv`` covers the full prompt and is mutated in place as tokens decode.
+        ``first_logits`` is the next-token logits predicted by the prefill.
+        """
+        eos = self.tokenizer.eos_token_id
+        temperature = sampling.get("temperature", self.config.temperature)
+        top_p = sampling.get("top_p", self.config.top_p)
+        top_k = sampling.get("top_k", self.config.top_k)
+        rep = sampling.get("repetition_penalty", self.config.repetition_penalty)
+        next_logits = first_logits
+        with torch.no_grad():
+            for _ in range(max_new_tokens):
+                tok = self._sample_next(
+                    next_logits, context,
+                    temperature=temperature, top_p=top_p, top_k=top_k,
+                    repetition_penalty=rep,
+                )
+                if tok.item() == eos:
+                    return
+                yield tok
+                context = torch.cat([context, tok])
+                step = self.model(tok.reshape(1, 1), past_key_values=kv, use_cache=True)
+                kv = step.past_key_values
+                next_logits = step.logits[0, -1]
+
+    def _prefix_prefill(self, input_ids: torch.Tensor):
+        """Prefill and return (kv, first_logits, prompt_ids_1d, prompt_list).
+
+        On a prefix-cache HIT the suffix is forward-resumed onto a CLONED copy
+        of the cached prefix KV (stored pristine KV is never mutated). On a MISS
+        the full prompt is prefilled. The returned KV covers the full prompt.
+        """
+        prompt_ids_1d = input_ids[0]
+        prompt_list = prompt_ids_1d.tolist()
+        matched, cached = (0, None)
+        if self._prefix_cache is not None:
+            matched, cached = self._prefix_cache.lookup(prompt_list)
+
+        if cached is not None and matched > 0:
+            # HIT: re-feed the boundary token. Crop the cached prefix KV to
+            # matched-1 and feed input_ids[:, matched-1:] so the suffix is never
+            # empty -- a full-prefix hit (matched == prompt_len) would otherwise
+            # feed a 0-length suffix and crash the forward. Recomputing one
+            # token is cheap and keeps the resume path uniform.
+            past = _clone_dynamic_cache(cached)
+            past.crop(matched - 1)
+            suffix = input_ids[:, matched - 1:]
+            fwd = self.model(input_ids=suffix, past_key_values=past, use_cache=True)
+        else:
+            # MISS: prefill the full prompt.
+            fwd = self.model(input_ids=input_ids, use_cache=True)
+        return fwd.past_key_values, fwd.logits[0, -1], prompt_ids_1d, prompt_list
+
+    def _store_prefix(self, kv, prompt_len: int, prompt_list: list) -> None:
+        """Crop the (now prompt+generated) KV down to the prompt and cache a clone."""
+        if self._prefix_cache is None:
+            return
+        kv.crop(prompt_len)
+        self._prefix_cache.store(prompt_list, _clone_dynamic_cache(kv))
+
     def _generate_with_prefix(
         self,
         input_ids: torch.Tensor,
         kwargs: dict,
     ) -> GenerationResult:
-        """Synchronous generation reusing a matched prefix KV cache.
-
-        On a cache miss the full prompt is prefilled once to obtain its KV
-        (stored for future reuse); on a hit the matched prefix KV is cloned and
-        only the suffix is re-prefilled. ``model.generate`` mutates the cache in
-        place, so we always clone before reuse and never store the mutated one.
-        """
+        """Synchronous generation reusing a matched prefix KV cache."""
         max_tokens = kwargs.get("max_tokens", self.config.max_tokens)
-        prompt_list = input_ids[0].tolist()
-        matched, cached = (0, None)
-        if self._prefix_cache is not None:
-            matched, cached = self._prefix_cache.lookup(prompt_list)
+        prompt_len = input_ids.shape[1]
 
-        past = None
-        start = 0
-        if cached is not None and matched > 0:
-            # hit: clone the pristine prefix KV so the stored one stays intact
-            past = _clone_dynamic_cache(cached)
-            start = matched
-        else:
-            # miss: prefill the full prompt to obtain its KV, then store it
-            with self._lock:
-                out = self.model(input_ids=input_ids, use_cache=True)
-            cached = out.past_key_values
-            if self._prefix_cache is not None:
-                self._prefix_cache.store(prompt_list, cached)
-            past = _clone_dynamic_cache(cached)
-
-        suffix = input_ids[:, start:]
         with self._lock:
-            output_ids = self.model.generate(
-                input_ids=suffix,
-                past_key_values=past,
-                max_new_tokens=max_tokens,
-                temperature=kwargs.get("temperature", self.config.temperature),
-                repetition_penalty=kwargs.get(
-                    "repetition_penalty", self.config.repetition_penalty
-                ),
-                top_p=kwargs.get("top_p", self.config.top_p),
-                top_k=kwargs.get("top_k", self.config.top_k),
-                do_sample=True,
-            )
+            kv, first_logits, prompt_ids_1d, prompt_list = self._prefix_prefill(input_ids)
+            generated = [
+                int(t) for t in self._decode_steps(
+                    kv, first_logits, prompt_ids_1d, max_tokens, kwargs
+                )
+            ]
+            self._store_prefix(kv, prompt_len, prompt_list)
 
-        # Persist the pristine prefix KV (still valid; `past` was the clone that
-        # got mutated) under the full prompt so identical/longer prompts reuse it.
-        if self._prefix_cache is not None and cached is not None:
-            self._prefix_cache.store(prompt_list, cached)
-
-        suffix_len = input_ids.shape[1] - start
-        new_tokens = output_ids[0][suffix_len:]
-        chunk = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
-        generated_count = len(new_tokens)
-
+        chunk = self.tokenizer.decode(generated, skip_special_tokens=True)
         self._metrics = EngineMetrics(
-            tokens_generated=self._metrics.tokens_generated + generated_count,
+            tokens_generated=self._metrics.tokens_generated + len(generated),
             total_time=self._metrics.total_time,
             first_token_latency=self._metrics.first_token_latency,
         )
         return GenerationResult(
             chunk=chunk,
             is_finished=True,
-            generated_tokens=generated_count,
+            generated_tokens=len(generated),
         )
 
     def stream_generate(
@@ -315,73 +398,39 @@ class HFEngine(BaseEngine):
         input_ids: torch.Tensor,
         kwargs: dict,
     ) -> Iterator[GenerationResult]:
-        """Streaming generation reusing a matched prefix KV cache (see _generate_with_prefix)."""
+        """Streaming generation reusing a matched prefix KV cache."""
         max_tokens = kwargs.get("max_tokens", self.config.max_tokens)
-        prompt_list = input_ids[0].tolist()
-        matched, cached = (0, None)
-        if self._prefix_cache is not None:
-            matched, cached = self._prefix_cache.lookup(prompt_list)
-
-        past = None
-        start = 0
-        if cached is not None and matched > 0:
-            past = _clone_dynamic_cache(cached)
-            start = matched
-        else:
-            with self._lock:
-                out = self.model(input_ids=input_ids, use_cache=True)
-            cached = out.past_key_values
-            if self._prefix_cache is not None:
-                self._prefix_cache.store(prompt_list, cached)
-            past = _clone_dynamic_cache(cached)
-
-        suffix = input_ids[:, start:]
-        self._last_input_tokens = suffix.shape[1]
-        streamer = TextIteratorStreamer(
-            tokenizer=self.tokenizer,
-            skip_prompt=True,
-            skip_special_tokens=True,
-        )
-        gen_kwargs = dict(
-            input_ids=suffix,
-            past_key_values=past,
-            streamer=streamer,
-            max_new_tokens=max_tokens,
-            temperature=kwargs.get("temperature", self.config.temperature),
-            repetition_penalty=kwargs.get(
-                "repetition_penalty", self.config.repetition_penalty
-            ),
-            top_p=kwargs.get("top_p", self.config.top_p),
-            top_k=kwargs.get("top_k", self.config.top_k),
-            do_sample=True,
-        )
+        prompt_len = input_ids.shape[1]
 
         start_time = time.time()
         first_token = True
         generated_tokens = 0
+        buffer: List[int] = []
+        prev_text = ""
 
-        def _safe_generate():
-            with self._lock:
-                self.model.generate(**gen_kwargs)
-
-        thread = Thread(target=_safe_generate)
-        thread.start()
-
-        for chunk in streamer:
-            if chunk:
+        with self._lock:
+            kv, first_logits, prompt_ids_1d, prompt_list = self._prefix_prefill(input_ids)
+            self._last_input_tokens = prompt_len
+            for tok in self._decode_steps(
+                kv, first_logits, prompt_ids_1d, max_tokens, kwargs
+            ):
                 if first_token:
                     self._metrics.first_token_latency = time.time() - start_time
                     first_token = False
-                generated_tokens += self.count_tokens(chunk)
-                yield GenerationResult(
-                    chunk=chunk,
-                    is_finished=False,
-                    generated_tokens=generated_tokens,
-                )
+                generated_tokens += 1
+                buffer.append(int(tok))
+                text = self.tokenizer.decode(buffer, skip_special_tokens=True)
+                delta = text[len(prev_text):]
+                if delta:
+                    prev_text = text
+                    yield GenerationResult(
+                        chunk=delta,
+                        is_finished=False,
+                        generated_tokens=generated_tokens,
+                    )
+            self._store_prefix(kv, prompt_len, prompt_list)
 
         total_time = time.time() - start_time
-        if self._prefix_cache is not None and cached is not None:
-            self._prefix_cache.store(prompt_list, cached)
         self._metrics = EngineMetrics(
             tokens_generated=self._metrics.tokens_generated + generated_tokens,
             total_time=self._metrics.total_time + total_time,
@@ -422,31 +471,68 @@ class HFEngine(BaseEngine):
             return self._build_compression_cache()
         return self._build_eviction_cache()
 
-    def _build_compression_cache(self):
-        """Return a fresh CompressedKVCache (MLA latent KV) if enabled, else None.
+    def _load_mla_basis(self):
+        """Load + validate the MLA PCA basis once at engine init.
 
-        Uses a calibrated PCA basis from KV_COMPRESSION_BASIS (.pt) when given;
-        otherwise a random orthonormal projection (still compresses, quality
-        measured by research/inference_optimization/run_kv_compression_quality.py).
+        Calibrated basis from KV_COMPRESSION_BASIS (.pt) when given; otherwise a
+        random orthonormal projection (still compresses, but reconstruction
+        quality is POOR -- a warning is logged). The basis is cast to the model
+        dtype so the per-update matmul does not hit a Half/Float mismatch, and
+        its shape is validated against the model so a mismatched basis file
+        fails at startup instead of mid-request.
         """
-        if self.config.kv_compression != "mla":
-            return None
-        from optimization.kv_compression import (
-            CompressedKVCache,
-            load_basis,
-            random_basis,
-        )
+        from optimization.kv_compression import load_basis, random_basis
 
         n_layers = self.model.config.num_hidden_layers
         head_dim = getattr(self.model.config, "head_dim", None) or (
             self.model.config.hidden_size // self.model.config.num_attention_heads
         )
         latent = self.config.kv_compression_latent
+        mdtype = next(self.model.parameters()).dtype
         if self.config.kv_compression_basis:
             basis_k, basis_v = load_basis(self.config.kv_compression_basis)
+            if len(basis_k) != n_layers:
+                raise ValueError(
+                    f"KV_COMPRESSION_BASIS has {len(basis_k)} layers; model has {n_layers}"
+                )
+            for b in basis_k + basis_v:
+                if tuple(b.shape) != (head_dim, latent):
+                    raise ValueError(
+                        f"KV_COMPRESSION_BASIS layer shape {tuple(b.shape)} != "
+                        f"(head_dim={head_dim}, latent={latent})"
+                    )
+            basis_k = [b.to(mdtype) for b in basis_k]
+            basis_v = [b.to(mdtype) for b in basis_v]
+            logger.info(
+                f"HFEngine: MLA compression enabled (latent={latent}, calibrated basis)"
+            )
         else:
+            logger.warning(
+                "HFEngine: MLA compression enabled WITHOUT a calibrated basis "
+                "(KV_COMPRESSION_BASIS unset) -- using a RANDOM orthonormal "
+                "projection; reconstruction quality will be POOR. Calibrate via "
+                "research/inference_optimization/run_kv_compression_quality.py."
+            )
             basis_k, basis_v = random_basis(n_layers, head_dim, latent, device=str(self.device))
-        return CompressedKVCache(basis_k=basis_k, basis_v=basis_v, latent_dim=latent)
+            basis_k = [b.to(mdtype) for b in basis_k]
+            basis_v = [b.to(mdtype) for b in basis_v]
+        return basis_k, basis_v
+
+    def _build_compression_cache(self):
+        """Return a fresh CompressedKVCache for this request, or None.
+
+        The basis was loaded + validated at init (``self._mla_basis``); a fresh
+        cache is created per call because ``model.generate`` mutates the cache
+        in place. Returns None when MLA compression is not enabled.
+        """
+        if self.config.kv_compression != "mla":
+            return None
+        from optimization.kv_compression import CompressedKVCache
+
+        basis_k, basis_v = self._mla_basis
+        return CompressedKVCache(
+            basis_k=basis_k, basis_v=basis_v, latent_dim=self.config.kv_compression_latent
+        )
 
     # ------------------------------------------------------------------
     # Speculative decoding (opt-in via draft_model_path)
@@ -650,6 +736,9 @@ class HFEngine(BaseEngine):
             "kv_eviction_sink": self.config.kv_eviction_sink,
             "prefix_cache_enabled": self.config.prefix_cache_enabled,
             "prefix_cache_capacity": self.config.prefix_cache_capacity,
+            "kv_compression": self.config.kv_compression,
+            "kv_compression_latent": self.config.kv_compression_latent,
+            "kv_compression_basis": self.config.kv_compression_basis,
             "closed": self._closed,
         }
 

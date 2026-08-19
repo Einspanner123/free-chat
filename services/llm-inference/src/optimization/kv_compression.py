@@ -147,26 +147,23 @@ class CompressedKVCache(DynamicCache):
 
     def update(self, key_states, value_states, layer_idx, *args, **kwargs):
         self._ensure(layer_idx)
-        Uk = self._basis_k[layer_idx]
-        Uv = self._basis_v[layer_idx]
-        if Uk is None:  # no compression configured -> behave as plain cache
-            return super().update(key_states, value_states, layer_idx, *args, **kwargs)
+        # Cast the basis to the incoming KV dtype. KV runs in the model dtype
+        # (e.g. fp16) while a loaded basis may be fp32; without this cast the
+        # matmul raises "expected scalar type Half but found Float".
+        Uk = self._basis_k[layer_idx].to(key_states.dtype)
+        Uv = self._basis_v[layer_idx].to(value_states.dtype)
 
-        # reconstruct past from stored latent
-        past_k = None
-        past_v = None
+        # reconstruct past from stored latent ([B,H,S_past,latent] @ [latent,D])
         if self._lk[layer_idx] is not None:
             past_k = self._lk[layer_idx] @ Uk.T  # [B,H,S_past,D]
             past_v = self._lv[layer_idx] @ Uv.T
-
-        if past_k is None:
-            recon_k = key_states
-            recon_v = value_states
-        else:
             recon_k = torch.cat([past_k, key_states], dim=-2)
             recon_v = torch.cat([past_v, value_states], dim=-2)
+        else:
+            recon_k = key_states
+            recon_v = value_states
 
-        # project back to latent for storage
+        # project back to latent for storage ([B,H,S,D] @ [D,latent])
         self._lk[layer_idx] = recon_k @ Uk  # [B,H,S,latent]
         self._lv[layer_idx] = recon_v @ Uv
 
@@ -175,23 +172,36 @@ class CompressedKVCache(DynamicCache):
         return recon_k, recon_v
 
     def get_seq_length(self, layer_idx: int = 0) -> int:
-        return self._logical_seq_len
+        # Per-layer: the past length THIS layer has stored. Must NOT use a global
+        # counter — transformers reads get_seq_length(layer_idx) mid-forward for
+        # layers not yet updated this round; a global counter (incremented at
+        # layer 0's update) would report past+q for layer>0 and corrupt
+        # position_ids / masks during decode (verified on transformers 5.14.1).
+        return self._stored_len(layer_idx)
 
     def get_query_offset(self, layer_idx: int = 0) -> int:
-        return self._logical_seq_len
+        # Matches DynamicCache: query offset == this layer's past length.
+        return self._stored_len(layer_idx)
 
     def get_mask_sizes(self, query_length: int, layer_idx: int):
+        # (kv_length, kv_offset) — DynamicCache returns offset 0 (append-only);
+        # the query's own position comes from get_query_offset, not here.
         return self._stored_len(layer_idx) + query_length, 0
 
     def get_max_length(self, layer_idx: int | None = None) -> int:
-        # compression does not cap the sequence; return a safe large bound.
-        return 1 << 30
+        # -1 is the transformers sentinel for "no maximum / unbounded" (matches
+        # DynamicCache). A huge int previously risked tripping length-check code
+        # paths that expect -1.
+        return -1
 
     def crop(self, maximum_length: int):
         for li in range(len(self._lk)):
             if self._lk[li] is not None and self._lk[li].shape[-2] > maximum_length:
                 self._lk[li] = self._lk[li][..., -maximum_length:, :]
                 self._lv[li] = self._lv[li][..., -maximum_length:, :]
+        # Keep the logical counter consistent with the per-layer stored length
+        # so introspection stays valid after a crop.
+        self._logical_seq_len = min(self._logical_seq_len, maximum_length)
 
     # ------------------------------------------------------------------
     # Introspection

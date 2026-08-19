@@ -186,8 +186,8 @@ BM25 命中率 100%（答案段落总在 top-1）；0.6B 模型凭单个检索�
 
 `llm-inference` 内置三项面向生产的服务级优化，默认关闭：
 - **尾延迟上报** — 每个推理测量均报告 p50/p95/p99（见上）。
-- **前缀 KV 复用** — `PREFIX_CACHE_ENABLED=1` 跳过对已共享 prompt 前缀的重复 prefill。
-- **MLA 潜 KV 压缩** — `KV_COMPRESSION=mla` 为每个 token 存储低维潜变量并在读取时重建；可用 `KV_COMPRESSION_LATENT` 与 `KV_COMPRESSION_BASIS`（`.pt` 标定文件）调参。与 KV 驱逐互斥——二选一启用。
+- **前缀 KV 复用** — `PREFIX_CACHE_ENABLED=1` 跳过对已共享 prompt 前缀的重复 prefill。HF 引擎通过前向（`model(suffix, past_key_values=clone(cached))`）+ 手动解码循环实现续接——transformers ≥5 的 `model.generate` 无法从已填充的 `past_key_values` 续接（会丢弃外部输入）；vLLM 走原生 `enable_prefix_caching`。与 KV 驱逐、MLA 压缩互斥。
+- **MLA 潜 KV 压缩** — `KV_COMPRESSION=mla` 为每个 token 存储低维潜变量并在读取时重建；用 `KV_COMPRESSION_LATENT`（建议 ≥ head_dim 的一半，过小会发散）与可选 `KV_COMPRESSION_BASIS`（`.pt` 标定文件；不提供则用随机投影并打印告警）调参。basis 在引擎 init 期加载并校验形状。与 KV 驱逐、前缀复用互斥。
 
 ## 快速开始
 
