@@ -10,8 +10,8 @@ COPY pyproject.toml uv.lock ./
 COPY libs ./libs
 COPY services ./services
 COPY worker ./worker
-RUN uv sync --frozen --package freechat-gateway --no-dev
+RUN uv sync --frozen --all-packages --no-dev
 
 USER 65532:65532
 EXPOSE 8080
-ENTRYPOINT ["freechat-gateway"]
+CMD ["freechat-gateway"]

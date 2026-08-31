@@ -22,13 +22,34 @@ services:
       FREECHAT_API_KEYS: ${FREECHAT_API_KEYS:?set tenant API keys}
       FREECHAT_CACHE_SALT_SECRET: ${FREECHAT_CACHE_SALT_SECRET:?set cache salt secret}
       FREECHAT_DEFAULT_WORKER_ENDPOINT: ${FREECHAT_DEFAULT_WORKER_ENDPOINT:-http://host.docker.internal:8000}
+      FREECHAT_SCHEDULER_TARGET: scheduler:50051
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
     expose: ["8080"]
     extra_hosts: ["host.docker.internal:host-gateway"]
     depends_on:
+      scheduler: { condition: service_started }
       etcd: { condition: service_healthy }
       nats: { condition: service_healthy }
       minio: { condition: service_healthy }
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    restart: unless-stopped
+
+  scheduler:
+    build:
+      context: ../..
+      dockerfile: deploy/images/control.Dockerfile
+    command: ["freechat-scheduler"]
+    environment:
+      FREECHAT_SCHEDULER_LISTEN: 0.0.0.0:50051
+      ETCD_ENDPOINT: http://etcd:2379
+      NATS_URL: nats://nats:4222
+    expose: ["50051"]
+    depends_on:
+      etcd: { condition: service_healthy }
+      nats: { condition: service_healthy }
     read_only: true
     tmpfs: ["/tmp"]
     security_opt: ["no-new-privileges:true"]

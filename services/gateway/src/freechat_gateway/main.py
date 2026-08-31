@@ -3,6 +3,7 @@ import os
 import uvicorn
 
 from freechat_gateway.app import GatewayConfig, create_app
+from freechat_gateway.routing import GrpcSchedulerClient
 
 
 def _keys_from_environment() -> dict[str, str]:
@@ -18,6 +19,8 @@ def _keys_from_environment() -> dict[str, str]:
 
 def build_app():  # type: ignore[no-untyped-def]
     secret = os.environ.get("FREECHAT_CACHE_SALT_SECRET", "s" * 32).encode()
+    scheduler_target = os.environ.get("FREECHAT_SCHEDULER_TARGET")
+    scheduler = GrpcSchedulerClient(scheduler_target) if scheduler_target else None
     return create_app(
         GatewayConfig(
             api_keys=_keys_from_environment(),
@@ -25,7 +28,8 @@ def build_app():  # type: ignore[no-untyped-def]
             default_worker_endpoint=os.environ.get(
                 "FREECHAT_DEFAULT_WORKER_ENDPOINT", "http://worker:8000"
             ),
-        )
+        ),
+        scheduler=scheduler,
     )
 
 

@@ -54,6 +54,7 @@ def create_app(
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         yield
         await http_client.aclose()
+        await scheduler_client.aclose()
 
     app = FastAPI(
         title="FreeChat Agent-Aware Inference Infrastructure",

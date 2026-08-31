@@ -1,0 +1,1 @@
+"""Generated FreeChat protocol namespace."""

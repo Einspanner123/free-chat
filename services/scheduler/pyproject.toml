@@ -4,6 +4,8 @@ version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "freechat-contracts",
+  "freechat-protocol",
+  "grpcio>=1.74,<2",
   "pydantic>=2.11,<3",
   "pydantic-settings>=2.10,<3",
   "structlog>=25.4,<26",
@@ -18,3 +20,7 @@ packages = ["src/freechat_scheduler"]
 
 [tool.uv.sources]
 freechat-contracts = { workspace = true }
+freechat-protocol = { workspace = true }
+
+[project.scripts]
+freechat-scheduler = "freechat_scheduler.grpc_server:run"
