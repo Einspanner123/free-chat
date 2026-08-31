@@ -5,7 +5,9 @@ requires-python = "==3.12.*"
 [manifest]
 members = [
     "freechat-contracts",
+    "freechat-control-store",
     "freechat-gateway",
+    "freechat-harness-adapters",
     "freechat-infra-workspace",
     "freechat-kv-controller",
     "freechat-scheduler",
@@ -297,6 +299,21 @@ dependencies = [
 requires-dist = [{ name = "pydantic", specifier = ">=2.11,<3" }]
 
 [[package]]
+name = "freechat-control-store"
+version = "0.1.0"
+source = { editable = "libs/control-store" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "httpx", specifier = ">=0.28,<1" },
+    { name = "pydantic", specifier = ">=2.11,<3" },
+]
+
+[[package]]
 name = "freechat-gateway"
 version = "0.1.0"
 source = { editable = "services/gateway" }
@@ -319,6 +336,21 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.11,<3" },
     { name = "pydantic-settings", specifier = ">=2.10,<3" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.35,<1" },
+]
+
+[[package]]
+name = "freechat-harness-adapters"
+version = "0.1.0"
+source = { editable = "libs/harness-adapters" }
+dependencies = [
+    { name = "freechat-contracts" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "freechat-contracts", editable = "libs/contracts" },
+    { name = "pydantic", specifier = ">=2.11,<3" },
 ]
 
 [[package]]
@@ -408,6 +440,7 @@ source = { editable = "services/trace-replay" }
 dependencies = [
     { name = "boto3" },
     { name = "freechat-contracts" },
+    { name = "freechat-control-store" },
     { name = "nats-py" },
     { name = "pyarrow" },
     { name = "pydantic" },
@@ -418,6 +451,7 @@ dependencies = [
 requires-dist = [
     { name = "boto3", specifier = ">=1.40,<2" },
     { name = "freechat-contracts", editable = "libs/contracts" },
+    { name = "freechat-control-store", editable = "libs/control-store" },
     { name = "nats-py", specifier = ">=2.11,<3" },
     { name = "pyarrow", specifier = ">=21,<22" },
     { name = "pydantic", specifier = ">=2.11,<3" },

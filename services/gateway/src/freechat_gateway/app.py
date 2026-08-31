@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 from freechat_contracts import RequestProfile, derive_cache_salt
 
 from freechat_gateway.auth import APIKeyAuthenticator, AuthContext
+from freechat_gateway.console import ConsoleReadModel, EmptyConsoleReadModel
 from freechat_gateway.hints import estimate_input_tokens, extract_agent_hints
 from freechat_gateway.routing import SchedulerClient, StaticSchedulerClient
 
@@ -35,6 +36,7 @@ def create_app(
     config: GatewayConfig,
     *,
     scheduler: SchedulerClient | None = None,
+    console: ConsoleReadModel | None = None,
     transport: httpx.AsyncBaseTransport | None = None,
 ) -> FastAPI:
     authenticator = APIKeyAuthenticator(config.api_keys)
@@ -42,6 +44,7 @@ def create_app(
         worker_id="compose-worker",
         endpoint=config.default_worker_endpoint,
     )
+    console_read_model = console or EmptyConsoleReadModel()
     http_client = httpx.AsyncClient(
         timeout=httpx.Timeout(config.request_timeout_seconds),
         transport=transport,
@@ -60,6 +63,21 @@ def create_app(
     @app.get("/healthz")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @app.get("/control/ui/{view}")
+    async def console_snapshot(
+        view: str,
+        authorization: str | None = Header(default=None),
+        x_api_key: str | None = Header(default=None),
+    ) -> Response:
+        if view not in {"topology", "traces", "kv-cache", "benchmarks", "playground"}:
+            raise HTTPException(status_code=404, detail="unknown console view")
+        auth = _authenticate(authenticator, authorization, x_api_key)
+        snapshot = await console_read_model.snapshot(view, auth.tenant_id)
+        return Response(
+            content=snapshot.model_dump_json(by_alias=True),
+            media_type="application/json",
+        )
 
     async def proxy(
         path: str,

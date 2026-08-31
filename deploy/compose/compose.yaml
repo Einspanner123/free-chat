@@ -1,0 +1,97 @@
+name: freechat
+
+services:
+  webui:
+    build:
+      context: ../..
+      dockerfile: deploy/images/webui.Dockerfile
+    ports: ["3000:8080"]
+    depends_on:
+      gateway: { condition: service_started }
+    read_only: true
+    tmpfs: ["/tmp", "/var/cache/nginx", "/var/run"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: ../..
+      dockerfile: deploy/images/control.Dockerfile
+    environment:
+      FREECHAT_API_KEYS: ${FREECHAT_API_KEYS:?set tenant API keys}
+      FREECHAT_CACHE_SALT_SECRET: ${FREECHAT_CACHE_SALT_SECRET:?set cache salt secret}
+      FREECHAT_DEFAULT_WORKER_ENDPOINT: ${FREECHAT_DEFAULT_WORKER_ENDPOINT:-http://host.docker.internal:8000}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    expose: ["8080"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    depends_on:
+      etcd: { condition: service_healthy }
+      nats: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    restart: unless-stopped
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.6.5@sha256:3397341272b9e0a6f44d7e3fc7c321c6efe6cbe82ce866b9b01d0c704bfc5bf3
+    command:
+      - /usr/local/bin/etcd
+      - --name=compose
+      - --data-dir=/etcd-data
+      - --listen-client-urls=http://0.0.0.0:2379
+      - --advertise-client-urls=http://etcd:2379
+      - --listen-peer-urls=http://0.0.0.0:2380
+      - --initial-advertise-peer-urls=http://etcd:2380
+      - --initial-cluster=compose=http://etcd:2380
+      - --initial-cluster-state=new
+    volumes: ["etcd-data:/etcd-data"]
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  nats:
+    image: nats:2.14.6-alpine@sha256:ad7a43eb7e3337c3c38ce5d784d1461791f95f730f252d2b25eee699752a0ca3
+    command: ["--jetstream", "--store_dir=/data", "--http_port=8222"]
+    volumes: ["nats-data:/data"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8222/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  minio:
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MinIO user}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MinIO password}
+    volumes: ["minio-data:/data"]
+    ports: ["9001:9001"]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  otel-collector:
+    image: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.136.0@sha256:45392d534c1edcc809c2d112394029246bc679d2ae5ea7081414a1fc74f2c621
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    ports: ["4317:4317", "9464:9464"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    restart: unless-stopped
+
+volumes:
+  etcd-data:
+  nats-data:
+  minio-data:

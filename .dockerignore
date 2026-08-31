@@ -1,0 +1,13 @@
+.git
+.venv*
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+research
+inference-engine
+webui/node_modules
+webui/dist
+profiles
+benchmarks/results
+.hermes

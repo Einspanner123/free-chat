@@ -82,3 +82,21 @@ def test_missing_credentials_is_rejected() -> None:
         json={"model": "model", "messages": []},
     )
     assert response.status_code == 401
+
+
+def test_console_is_authenticated_and_never_fabricates_evidence() -> None:
+    app = create_app(
+        GatewayConfig(api_keys={"tenant-a": "secret-key"}, cache_salt_secret=b"s" * 32)
+    )
+    with TestClient(app) as client:
+        denied = client.get("/control/ui/topology")
+        response = client.get("/control/ui/topology", headers={"x-api-key": "secret-key"})
+    assert denied.status_code == 401
+    assert response.status_code == 200
+    assert response.json() == {
+        "state": "UNVERIFIED",
+        "generated_at": None,
+        "summary": "No control-plane evidence has been ingested for topology.",
+        "metrics": [],
+        "records": [],
+    }
