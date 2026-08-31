@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 
@@ -16,36 +17,28 @@ def gather_block_rows_reference(block_table: Any, row_indices: Any) -> Any:
     return torch.index_select(block_table, 0, row_indices.to(dtype=torch.int64))
 
 
-def gather_block_rows(block_table: Any, row_indices: Any) -> Any:
+def gather_block_rows(
+    block_table: Any,
+    row_indices: Any,
+    *,
+    enable_triton: bool | None = None,
+) -> Any:
     """Gather active branch rows with a Triton kernel and safe fallback."""
     import torch
 
-    if not block_table.is_cuda or not row_indices.is_cuda:
+    enabled = (
+        os.environ.get("FREECHAT_ENABLE_TRITON_BLOCK_TABLE") == "1"
+        if enable_triton is None
+        else enable_triton
+    )
+    if not enabled or not block_table.is_cuda or not row_indices.is_cuda:
         return gather_block_rows_reference(block_table, row_indices)
     if block_table.dtype != torch.int32 or row_indices.dtype != torch.int32:
         return gather_block_rows_reference(block_table, row_indices)
     if not block_table.is_contiguous() or not row_indices.is_contiguous():
         return gather_block_rows_reference(block_table, row_indices)
 
-    import triton  # type: ignore[import-not-found]
-    import triton.language as tl  # type: ignore[import-not-found]
-
-    @triton.jit  # type: ignore[untyped-decorator]
-    def gather_kernel(
-        source: Any,
-        rows: Any,
-        output: Any,
-        width: int,
-        output_size: int,
-        block_size: tl.constexpr,
-    ) -> None:
-        offsets = tl.program_id(0) * block_size + tl.arange(0, block_size)
-        mask = offsets < output_size
-        output_row = offsets // width
-        column = offsets % width
-        source_row = tl.load(rows + output_row, mask=mask, other=0)
-        values = tl.load(source + source_row * width + column, mask=mask)
-        tl.store(output + offsets, values, mask=mask)
+    from freechat_worker.kernels.triton_block_table import launch_gather
 
     output = torch.empty(
         (row_indices.numel(), block_table.shape[1]),
@@ -54,14 +47,5 @@ def gather_block_rows(block_table: Any, row_indices: Any) -> Any:
     )
     output_size = output.numel()
     if output_size:
-        block_size = 256
-        grid = (triton.cdiv(output_size, block_size),)
-        gather_kernel[grid](
-            block_table,
-            row_indices,
-            output,
-            block_table.shape[1],
-            output_size,
-            block_size=block_size,
-        )
+        launch_gather(block_table, row_indices, output)  # type: ignore[no-untyped-call]
     return output

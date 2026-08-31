@@ -53,7 +53,9 @@ def main() -> None:
         lambda: gather_block_rows_reference(table, indices), arguments.warmup, arguments.repetitions
     )
     candidate = measure(
-        lambda: gather_block_rows(table, indices), arguments.warmup, arguments.repetitions
+        lambda: gather_block_rows(table, indices, enable_triton=True),
+        arguments.warmup,
+        arguments.repetitions,
     )
     speedups = [
         baseline / optimized

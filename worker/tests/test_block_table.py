@@ -26,6 +26,6 @@ def test_triton_gather_matches_reference_on_cuda() -> None:
     generator = torch.Generator(device="cuda").manual_seed(7)
     table = torch.randint(0, 100_000, (513, 257), dtype=torch.int32, device="cuda")
     rows = torch.randint(0, 513, (37,), dtype=torch.int32, device="cuda", generator=generator)
-    actual = gather_block_rows(table, rows)
+    actual = gather_block_rows(table, rows, enable_triton=True)
     expected = gather_block_rows_reference(table, rows)
     assert torch.equal(actual, expected)

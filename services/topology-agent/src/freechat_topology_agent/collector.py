@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import platform
 import shutil
 import subprocess
@@ -32,9 +33,15 @@ class TopologySnapshot(BaseModel):
     memory_total_bytes: int
     gpus: tuple[GPUDevice, ...]
     nvidia_smi_topology: str | None
+    nvidia_p2p_read: str | None
+    nvidia_p2p_write: str | None
+    numa_hardware: str | None
+    pcie_devices: str | None
+    network_links_json: str | None
     nvcc_version: str | None
     nsight_compute_version: str | None
     nsight_systems_version: str | None
+    collection_scope: str
 
 
 def collect_snapshot() -> TopologySnapshot:
@@ -46,9 +53,15 @@ def collect_snapshot() -> TopologySnapshot:
         memory_total_bytes=psutil.virtual_memory().total,
         gpus=tuple(_collect_gpus()),
         nvidia_smi_topology=_run_optional(["nvidia-smi", "topo", "-m"]),
+        nvidia_p2p_read=_run_optional(["nvidia-smi", "topo", "-p2p", "r"]),
+        nvidia_p2p_write=_run_optional(["nvidia-smi", "topo", "-p2p", "w"]),
+        numa_hardware=_run_optional(["numactl", "--hardware"]),
+        pcie_devices=_run_optional(["lspci", "-Dnn"]),
+        network_links_json=_run_optional(["ip", "-j", "link", "show"]),
         nvcc_version=_run_optional(["nvcc", "--version"]),
         nsight_compute_version=_run_optional(["ncu", "--version"]),
         nsight_systems_version=_run_optional(["nsys", "--version"]),
+        collection_scope=os.environ.get("FREECHAT_TOPOLOGY_SCOPE", "host-observation"),
     )
 
 
