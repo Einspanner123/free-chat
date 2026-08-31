@@ -29,6 +29,17 @@ outside the Git working tree and are addressed by SHA-256.
   division, round, clamp and cast work; the candidate emits one `_quantize_kernel`.
 - Guardrail: disabled by default, group sizes below 128 use the PyTorch reference,
   and unsupported devices, layouts or dtypes fall back safely.
+- Replication on workstation with the same locked PyTorch/CUDA/Triton stack:
+  - RTX A5000: reference 619.520 us, candidate 95.232 us, 6.5054x;
+    latency-reduction bootstrap 95% CI `[524.288, 525.152]` us. Artifact
+    `/data/freechat/profiles/20260831/kv-quantize-a5000-torch211-triton36-ci.json`,
+    SHA-256 `c44f7eb393e0b7f3607c63f170f2e143d49f7ffdb8ed356dd0ea01b77dbbe735`.
+  - RTX A4000: reference 1049.600 us, candidate 136.192 us, 7.7068x;
+    latency-reduction bootstrap 95% CI `[913.408, 913.408]` us. Artifact
+    `/data/freechat/profiles/20260831/kv-quantize-a4000-torch211-triton36-ci.json`,
+    SHA-256 `a506160491b2171c03465d1f2c9c10a41c0a35c9a8b7fd579bd662d9f613d746`.
 - Remaining gates: target Harness trace selection, vLLM hook integration,
   end-to-end Agent task confidence interval, non-target workload regression,
-  cancellation/restart behavior, and workstation GPU replication.
+  and cancellation/restart behavior. The workstation replication closes only
+  the isolated-kernel replication gate; it does not establish an Agent-task or
+  serving-system improvement.

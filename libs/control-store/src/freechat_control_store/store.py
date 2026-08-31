@@ -25,6 +25,10 @@ class KeyValueStore(Protocol):
 
     async def compare_and_put(self, key: str, expected_revision: int, value: bytes) -> KeyValue: ...
 
+    async def list_prefix(self, prefix: str) -> tuple[KeyValue, ...]: ...
+
+    async def compare_and_delete(self, key: str, expected_revision: int) -> bool: ...
+
 
 class InMemoryStore:
     """Deterministic test store with etcd-style monotonic revisions."""
@@ -50,6 +54,22 @@ class InMemoryStore:
                 f"revision mismatch for {key}: expected {expected_revision}, got {current_revision}"
             )
         return await self.put(key, value)
+
+    async def list_prefix(self, prefix: str) -> tuple[KeyValue, ...]:
+        return tuple(self._values[key] for key in sorted(self._values) if key.startswith(prefix))
+
+    async def compare_and_delete(self, key: str, expected_revision: int) -> bool:
+        current = self._values.get(key)
+        current_revision = 0 if current is None else current.revision
+        if current_revision != expected_revision:
+            raise CompareFailed(
+                f"revision mismatch for {key}: expected {expected_revision}, got {current_revision}"
+            )
+        if current is None:
+            return False
+        self._revision += 1
+        del self._values[key]
+        return True
 
 
 class EtcdHttpStore:
@@ -124,6 +144,43 @@ class EtcdHttpStore:
             raise RuntimeError(f"etcd transaction succeeded but key is absent: {key}")
         return item
 
+    async def list_prefix(self, prefix: str) -> tuple[KeyValue, ...]:
+        start = prefix.encode()
+        response = await self._client.post(
+            f"{self._endpoint}/v3/kv/range",
+            json={"key": _encode(start), "range_end": _encode(_prefix_end(start))},
+        )
+        response.raise_for_status()
+        return tuple(
+            KeyValue(
+                key=_decode(entry["key"]).decode(),
+                value=_decode(entry["value"]),
+                revision=int(entry["mod_revision"]),
+            )
+            for entry in response.json().get("kvs", [])
+        )
+
+    async def compare_and_delete(self, key: str, expected_revision: int) -> bool:
+        response = await self._client.post(
+            f"{self._endpoint}/v3/kv/txn",
+            json={
+                "compare": [
+                    {
+                        "key": _encode(key),
+                        "target": "MOD",
+                        "result": "EQUAL",
+                        "mod_revision": str(expected_revision),
+                    }
+                ],
+                "success": [{"request_delete_range": {"key": _encode(key)}}],
+                "failure": [],
+            },
+        )
+        response.raise_for_status()
+        if not response.json().get("succeeded", False):
+            raise CompareFailed(f"revision mismatch for {key}")
+        return True
+
 
 def _encode(value: str | bytes) -> str:
     raw = value.encode() if isinstance(value, str) else value
@@ -132,3 +189,13 @@ def _encode(value: str | bytes) -> str:
 
 def _decode(value: str) -> bytes:
     return base64.b64decode(value, validate=True)
+
+
+def _prefix_end(prefix: bytes) -> bytes:
+    """Return the smallest byte string strictly above every key with prefix."""
+    candidate = bytearray(prefix)
+    for index in range(len(candidate) - 1, -1, -1):
+        if candidate[index] < 0xFF:
+            candidate[index] += 1
+            return bytes(candidate[: index + 1])
+    return b"\x00"

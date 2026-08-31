@@ -30,3 +30,21 @@ def test_etcd_transaction_failure_is_explicit() -> None:
         await client.aclose()
 
     asyncio.run(scenario())
+
+
+def test_prefix_listing_and_fenced_delete() -> None:
+    async def scenario() -> None:
+        store = InMemoryStore()
+        first = await store.put("/workers/a", b"a")
+        await store.put("/workers/b", b"b")
+        await store.put("/leases/c", b"c")
+        assert [item.key for item in await store.list_prefix("/workers/")] == [
+            "/workers/a",
+            "/workers/b",
+        ]
+        with pytest.raises(CompareFailed):
+            await store.compare_and_delete(first.key, first.revision + 1)
+        assert await store.compare_and_delete(first.key, first.revision)
+        assert await store.get(first.key) is None
+
+    asyncio.run(scenario())

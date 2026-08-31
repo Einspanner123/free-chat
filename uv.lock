@@ -431,7 +431,9 @@ version = "0.1.0"
 source = { editable = "services/scheduler" }
 dependencies = [
     { name = "freechat-contracts" },
+    { name = "freechat-control-store" },
     { name = "freechat-protocol" },
+    { name = "freechat-trace-replay" },
     { name = "grpcio" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -441,7 +443,9 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "freechat-contracts", editable = "libs/contracts" },
+    { name = "freechat-control-store", editable = "libs/control-store" },
     { name = "freechat-protocol", editable = "libs/protocol" },
+    { name = "freechat-trace-replay", editable = "services/trace-replay" },
     { name = "grpcio", specifier = ">=1.74,<2" },
     { name = "pydantic", specifier = ">=2.11,<3" },
     { name = "pydantic-settings", specifier = ">=2.10,<3" },

@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from freechat_contracts import CandidateCost, RouteDecision
 from freechat_scheduler.grpc_server import LeaseBook
@@ -30,9 +32,12 @@ def decision() -> RouteDecision:
 
 
 def test_lease_generation_fences_stale_release() -> None:
-    leases = LeaseBook()
-    route = decision()
-    leases.remember(route)
-    with pytest.raises(ValueError, match="fencing"):
-        leases.release(route.decision_id, route.worker_id, 3)
-    assert leases.require(route.decision_id, route.worker_id, 4) == route
+    async def scenario() -> None:
+        leases = LeaseBook()
+        route = decision()
+        await leases.remember(route)
+        with pytest.raises(ValueError, match="fencing"):
+            await leases.release(route.decision_id, route.worker_id, 3)
+        assert await leases.require(route.decision_id, route.worker_id, 4) == route
+
+    asyncio.run(scenario())
