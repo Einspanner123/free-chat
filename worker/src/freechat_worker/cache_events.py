@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import queue
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 
@@ -26,7 +27,7 @@ class CacheEventBuffer:
     def __init__(self, *, capacity: int = 65_536, batch_size: int = 256) -> None:
         if capacity < 1 or batch_size < 1 or batch_size > capacity:
             raise ValueError("invalid event buffer capacity or batch size")
-        self._queue: asyncio.Queue[CacheEvent] = asyncio.Queue(maxsize=capacity)
+        self._queue: queue.Queue[CacheEvent] = queue.Queue(maxsize=capacity)
         self._batch_size = batch_size
         self._accepted = 0
         self._dropped = 0
@@ -35,7 +36,7 @@ class CacheEventBuffer:
     def try_emit(self, event: CacheEvent) -> bool:
         try:
             self._queue.put_nowait(event)
-        except asyncio.QueueFull:
+        except queue.Full:
             self._dropped += 1
             return False
         self._accepted += 1
@@ -46,12 +47,15 @@ class CacheEventBuffer:
         return BufferStats(self._accepted, self._dropped, self._delivered)
 
     async def drain_once(self, sink: EventSink) -> int:
-        first = await self._queue.get()
+        try:
+            first = self._queue.get_nowait()
+        except queue.Empty:
+            return 0
         batch = [first]
         while len(batch) < self._batch_size:
             try:
                 batch.append(self._queue.get_nowait())
-            except asyncio.QueueEmpty:
+            except queue.Empty:
                 break
         immutable_batch = tuple(batch)
         try:
@@ -61,7 +65,7 @@ class CacheEventBuffer:
                 self._queue.task_done()
                 try:
                     self._queue.put_nowait(event)
-                except asyncio.QueueFull:
+                except queue.Full:
                     self._dropped += 1
             raise
         for _ in immutable_batch:
@@ -71,7 +75,6 @@ class CacheEventBuffer:
 
     async def run(self, sink: EventSink, stop: asyncio.Event) -> None:
         while not stop.is_set() or not self._queue.empty():
-            try:
-                await asyncio.wait_for(self.drain_once(sink), timeout=0.25)
-            except TimeoutError:
-                continue
+            delivered = await self.drain_once(sink)
+            if delivered == 0:
+                await asyncio.sleep(0.01)

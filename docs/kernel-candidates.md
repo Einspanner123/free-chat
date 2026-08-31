@@ -38,8 +38,8 @@ outside the Git working tree and are addressed by SHA-256.
     latency-reduction bootstrap 95% CI `[913.408, 913.408]` us. Artifact
     `/data/freechat/profiles/20260831/kv-quantize-a4000-torch211-triton36-ci.json`,
     SHA-256 `a506160491b2171c03465d1f2c9c10a41c0a35c9a8b7fd579bd662d9f613d746`.
-- Remaining gates: target Harness trace selection, vLLM hook integration,
-  end-to-end Agent task confidence interval, non-target workload regression,
-  and cancellation/restart behavior. The workstation replication closes only
+- Remaining gates: target Harness trace selection, worker-image integration of
+  the pinned vLLM hook, end-to-end Agent task confidence interval, non-target
+  workload regression, and cancellation/restart behavior. The workstation replication closes only
   the isolated-kernel replication gate; it does not establish an Agent-task or
   serving-system improvement.

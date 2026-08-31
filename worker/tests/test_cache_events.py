@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from freechat_contracts import CacheEvent, CacheEventKind
@@ -51,3 +52,13 @@ def test_failed_delivery_is_requeued_with_observable_failure() -> None:
         assert sorted(delivered) == ["a", "b"]
 
     asyncio.run(scenario())
+
+
+def test_hot_path_buffer_accepts_cross_thread_callbacks() -> None:
+    buffer = CacheEventBuffer(capacity=64, batch_size=64)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        accepted = list(
+            executor.map(lambda index: buffer.try_emit(event(str(index))), range(64))
+        )
+    assert all(accepted)
+    assert buffer.stats.accepted == 64
