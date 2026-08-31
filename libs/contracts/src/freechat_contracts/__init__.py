@@ -1,0 +1,38 @@
+from freechat_contracts.cache_identity import derive_cache_salt, make_cache_identity
+from freechat_contracts.models import (
+    AgentHints,
+    CacheAction,
+    CacheActionKind,
+    CacheEvent,
+    CacheEventKind,
+    CandidateCost,
+    HintSource,
+    Lifecycle,
+    ModelCapability,
+    PrefixScope,
+    RequestProfile,
+    ReuseClass,
+    RouteDecision,
+    WorkerCapabilities,
+    WorkerTelemetry,
+)
+
+__all__ = [
+    "AgentHints",
+    "CacheAction",
+    "CacheActionKind",
+    "CacheEvent",
+    "CacheEventKind",
+    "CandidateCost",
+    "HintSource",
+    "Lifecycle",
+    "ModelCapability",
+    "PrefixScope",
+    "RequestProfile",
+    "ReuseClass",
+    "RouteDecision",
+    "WorkerCapabilities",
+    "WorkerTelemetry",
+    "derive_cache_salt",
+    "make_cache_identity",
+]

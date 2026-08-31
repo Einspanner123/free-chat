@@ -1,0 +1,21 @@
+schema: 1
+python: "3.12"
+gpu_stack:
+  pytorch: "2.11.0+cu130"
+  cuda_runtime: "13.0"
+  triton: "3.6.0"
+  transformers: "5.14.1"
+vllm:
+  upstream_release: "0.26.0"
+  upstream_commit: "UNRESOLVED"
+  fork_repository: "UNRESOLVED"
+  fork_commit: "UNRESOLVED"
+  worker_image_digest: "UNRESOLVED"
+infrastructure:
+  etcd_image_digest: "UNRESOLVED"
+  nats_image_digest: "UNRESOLVED"
+  minio_image_digest: "UNRESOLVED"
+  otel_collector_image_digest: "UNRESOLVED"
+policy:
+  unresolved_values_block_release: true
+  floating_container_tags_forbidden: true

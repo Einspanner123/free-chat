@@ -1,0 +1,6 @@
+FreeChat Agent-Aware Inference Infrastructure
+Copyright 2026 FreeChat contributors
+
+This product is designed to interoperate with vLLM and other independently
+licensed open-source software. Third-party code is not vendored unless its
+license and modification notice are recorded here.

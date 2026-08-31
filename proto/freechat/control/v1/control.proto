@@ -1,0 +1,151 @@
+syntax = "proto3";
+
+package freechat.control.v1;
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+message RequestContext {
+  string request_id = 1;
+  string idempotency_key = 2;
+  string tenant_id = 3;
+  string traceparent = 4;
+  google.protobuf.Timestamp deadline = 5;
+  uint32 schema_version = 6;
+}
+
+message AgentHints {
+  string task_id = 1;
+  string session_id = 2;
+  string agent_id = 3;
+  string parent_agent_id = 4;
+  string branch_id = 5;
+  string parent_branch_id = 6;
+  string turn_id = 7;
+  string call_id = 8;
+  string lifecycle = 9;
+  string prefix_scope = 10;
+  string reuse_class = 11;
+  double expected_reuse_probability = 12;
+  uint64 expected_resume_ms = 13;
+  uint64 ttl_ms = 14;
+  int32 priority = 15;
+  uint64 deadline_ms = 16;
+  uint64 expected_output_tokens = 17;
+  string privacy_domain = 18;
+  bool allow_preemption = 19;
+  bool allow_kv_offload = 20;
+  bool allow_remote_worker = 21;
+  double confidence = 22;
+  string source = 23;
+}
+
+message RouteRequest {
+  RequestContext context = 1;
+  AgentHints hints = 2;
+  string model = 3;
+  uint64 input_tokens = 4;
+  uint64 output_tokens = 5;
+  string cache_key = 6;
+  bool streaming = 7;
+}
+
+message CostBreakdown {
+  double queue_ms = 1;
+  double prefill_ms = 2;
+  double decode_ms = 3;
+  double cache_ms = 4;
+  double network_ms = 5;
+  double cold_start_ms = 6;
+  double deadline_risk = 7;
+  double eviction_externality = 8;
+  double total = 9;
+}
+
+message RouteDecision {
+  string decision_id = 1;
+  string worker_id = 2;
+  string endpoint = 3;
+  uint64 worker_generation = 4;
+  CostBreakdown cost = 5;
+  repeated string rejected_candidates = 6;
+  uint64 lease_ttl_ms = 7;
+}
+
+message LeaseRequest {
+  RequestContext context = 1;
+  string decision_id = 2;
+  string worker_id = 3;
+  uint64 worker_generation = 4;
+}
+
+message WorkerRegistration {
+  RequestContext context = 1;
+  string worker_id = 2;
+  uint64 generation = 3;
+  string endpoint = 4;
+  string capabilities_json = 5;
+}
+
+message WorkerHeartbeat {
+  RequestContext context = 1;
+  string worker_id = 2;
+  uint64 generation = 3;
+  string telemetry_json = 4;
+}
+
+message CacheEventBatch {
+  RequestContext context = 1;
+  string worker_id = 2;
+  uint64 worker_generation = 3;
+  uint64 cache_generation = 4;
+  bytes events_json = 5;
+}
+
+message CacheActionRequest {
+  RequestContext context = 1;
+  string worker_id = 2;
+  uint64 worker_generation = 3;
+  uint64 cache_generation = 4;
+  bytes actions_json = 5;
+}
+
+message ReplayRequest {
+  RequestContext context = 1;
+  string manifest_uri = 2;
+  string policy = 3;
+  string mode = 4;
+}
+
+message Operation {
+  string operation_id = 1;
+  string status = 2;
+  string detail = 3;
+}
+
+service SchedulerService {
+  rpc Route(RouteRequest) returns (RouteDecision);
+  rpc RenewLease(LeaseRequest) returns (Operation);
+  rpc Release(LeaseRequest) returns (Operation);
+  rpc Cancel(LeaseRequest) returns (Operation);
+  rpc ExplainDecision(LeaseRequest) returns (RouteDecision);
+}
+
+service WorkerControlService {
+  rpc Register(WorkerRegistration) returns (Operation);
+  rpc Heartbeat(stream WorkerHeartbeat) returns (stream Operation);
+  rpc Drain(WorkerRegistration) returns (Operation);
+  rpc ApplyCacheAction(CacheActionRequest) returns (Operation);
+}
+
+service KVControlService {
+  rpc ReportCacheEvents(CacheEventBatch) returns (Operation);
+  rpc ApplyLifecycle(AgentHints) returns (Operation);
+}
+
+service TraceReplayService {
+  rpc StartReplay(ReplayRequest) returns (Operation);
+  rpc StopReplay(Operation) returns (Operation);
+  rpc GetReplayStatus(Operation) returns (Operation);
+  rpc Health(google.protobuf.Empty) returns (Operation);
+}

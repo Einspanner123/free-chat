@@ -12,7 +12,7 @@
 ### 0.1 权威关系
 
 - 本文件取代 `.hermes/plans/production-inference-platform-plan.md`，成为新增实现的唯一上位计划。
-- 历史计划进入 `SUPERSEDED_PENDING_MIGRATION`，用于迁移审计；在目标系统验收和负责人确认前不得删除。
+- 需求来源记录进入 `REFERENCE_ONLY`，仅用于决策溯源；在目标系统验收和负责人确认前不得删除。
 - `.hermes/plans/context-management-plan.md` 仅作为历史设计资料，不再定义产品边界。
 - 出现设计冲突时，必须创建 `CONFLICT` 状态，记录冲突内容、相关文件/提交、可选方案、影响和负责人回复；得到用户明确决定前不得自行越过冲突。
 - 不允许用人力或日历时间缩减范围。功能边界由本计划的产品职责、非目标与验收门禁决定。
