@@ -1,7 +1,10 @@
 # PyTorch and vLLM stack conflict
 
-- Status: `OPEN_USER_DECISION`
+- Status: `RESOLVED`
 - Detected: 2026-09-01 Asia/Shanghai
+- Resolved: 2026-09-01 Asia/Shanghai
+- Owner decision: Option A; align every worker and benchmark to the pinned
+  vLLM PyTorch/CUDA/Triton stack and rebuild the evidence baseline.
 - Scope blocked: worker image, three-model baseline, Harness end-to-end metrics,
   kernel-to-serving comparison, resume/cancellation fault tests.
 
@@ -55,3 +58,7 @@ kernel and end-to-end results would not share one deployable artifact.
 Only an explicit owner selection closes this conflict. After selection, record
 the answer here, set status to `RESOLVED`, update the lock and rebuild the
 evidence baseline before producing resume metrics.
+
+The owner selected option A. The dependency lock may advance immediately, but
+performance claims remain blocked until all three GPUs have reproduced the
+correctness, profiler and benchmark artifacts under the resolved stack.

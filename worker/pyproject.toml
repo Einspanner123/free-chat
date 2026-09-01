@@ -13,9 +13,9 @@ dependencies = [
 
 [project.optional-dependencies]
 gpu = [
-  "torch==2.11.0",
+  "torch==2.13.0",
   "transformers==5.14.1",
-  "triton==3.6.0",
+  "triton==3.7.1",
 ]
 
 [build-system]

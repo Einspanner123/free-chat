@@ -3,6 +3,11 @@
 No entry in this file is an end-to-end performance claim. Raw artifacts live
 outside the Git working tree and are addressed by SHA-256.
 
+The 2026-08-31 measurements below used PyTorch 2.11/Triton 3.6. After the
+2026-09-01 owner decision aligned the deployable worker with the pinned vLLM
+stack, these measurements became historical evidence. They cannot be quoted as
+current project performance until replicated under PyTorch 2.13/Triton 3.7.
+
 ## Branch resume block-table gather — rejected
 
 - Environment: NVIDIA RTX A6000, PyTorch 2.11.0+cu130, Triton 3.6.0.
