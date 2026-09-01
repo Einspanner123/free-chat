@@ -9,6 +9,10 @@ def upstream(request: httpx.Request) -> httpx.Response:
     body = json.loads(request.content)
     assert "freechat" not in body
     assert len(body["cache_salt"]) == 64
+    if request.url.path in {"/v1/chat/completions", "/v1/responses"}:
+        assert body["agent_lifecycle"]["tenant_id"] == "tenant-a"
+        assert body["agent_lifecycle"]["worker_generation"] == 1
+        assert body["agent_lifecycle"]["cache_generation"] == 1
     assert request.headers["x-freechat-internal-tenant"] == "tenant-a"
     return httpx.Response(200, json={"id": "completion", "model": body["model"]})
 
@@ -74,6 +78,19 @@ def test_tenant_cannot_be_supplied_in_hints() -> None:
         },
     )
     assert response.status_code == 422
+
+
+def test_client_cannot_forge_internal_agent_lifecycle() -> None:
+    response = client().post(
+        "/v1/chat/completions",
+        headers={"x-api-key": "secret-key"},
+        json={
+            "model": "Qwen/Qwen2.5-7B-Instruct",
+            "messages": [{"role": "user", "content": "hello"}],
+            "agent_lifecycle": {"tenant_id": "attacker", "worker_generation": 999},
+        },
+    )
+    assert response.status_code == 200
 
 
 def test_missing_credentials_is_rejected() -> None:

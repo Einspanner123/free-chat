@@ -10,7 +10,7 @@ from uuid import uuid4
 import httpx
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
-from freechat_contracts import RequestProfile, derive_cache_salt
+from freechat_contracts import AgentHints, RequestProfile, derive_cache_salt
 
 from freechat_gateway.auth import APIKeyAuthenticator, AuthContext
 from freechat_gateway.console import ConsoleReadModel, EmptyConsoleReadModel
@@ -124,6 +124,13 @@ def create_app(
             worker_generation=decision.worker_generation,
         )
         body["cache_salt"] = cache_salt
+        if path in {"/v1/chat/completions", "/v1/responses"}:
+            body["agent_lifecycle"] = _agent_lifecycle_body(
+                auth,
+                hints,
+                cache_key=profile.cache_key or cache_salt,
+                worker_generation=decision.worker_generation,
+            )
         stream = bool(body.get("stream", False))
         response_headers = {
             "x-freechat-request-id": request_id,
@@ -171,6 +178,33 @@ def create_app(
         return await proxy("/v1/messages", request, authorization, x_api_key)
 
     return app
+
+
+def _agent_lifecycle_body(
+    auth: AuthContext,
+    hints: AgentHints,
+    *,
+    cache_key: str,
+    worker_generation: int,
+) -> dict[str, Any]:
+    metadata: dict[str, Any] = {
+        "tenant_id": auth.tenant_id,
+        "cache_key": cache_key,
+        "task_id": hints.task_id,
+        "agent_id": hints.agent_id,
+        "branch_id": hints.branch_id,
+        "call_id": hints.call_id,
+        "lifecycle": hints.lifecycle,
+        "worker_generation": worker_generation,
+        "cache_generation": worker_generation,
+        "priority": hints.priority,
+        "allow_kv_offload": hints.allow_kv_offload,
+    }
+    if hints.session_id is not None:
+        metadata["session_id"] = hints.session_id
+    if hints.expected_resume_ms is not None:
+        metadata["expected_resume_ms"] = hints.expected_resume_ms
+    return metadata
 
 
 def _authenticate(
