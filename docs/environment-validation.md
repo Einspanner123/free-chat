@@ -36,6 +36,34 @@ as proof that a workload used that toolchain.
 - Topology SHA-256:
   `61c2ecd59574c7c7417b838c83dd2fa86b50067d644b972cade6386f429b7624`.
 
+### Current serving environment
+
+- Editable vLLM fork source: `/home/linkst/workspace/freechat-vllm-fork`, with
+  FreeChat fork content through `5871f38ee947760ed7f5dd5487bb04456db8bc98`.
+- Runtime: `/home/linkst/.venvs/freechat-current`, PyTorch 2.13.0+cu130,
+  CUDA runtime 13.0, Triton 3.7.1 and Transformers 5.14.1.
+- A4000 serving startup, Chat Completions lifecycle propagation and
+  EngineCore allocate/free/hit event emission were exercised with Qwen2.5
+  tokenizer/config and vLLM dummy weights. This validates the serving
+  mechanism only; it is not a real-model performance run.
+- The pinned Qwen2.5-0.5B weight transfer to workstation is incomplete because
+  both the inter-host Tailscale route and the external model route sustained
+  only about 0.1--0.2 MB/s. No partial file is accepted as a model artifact.
+
+The constrained-cache mechanism probe is archived under
+`/media/ross/8TB/linkst/freechat/evidence/20260901/mechanism`:
+
+- Native probe JSON: `b144dc885c9faf0f5255282b2afb0ceedff6fe8fd99829c5fe37799b76a37fe9`.
+- Native cache events: `000df3f08bfc8aefe6ee8152c0cc8c991de2ff3979cd4a6835cf1195c395f0ea`.
+- Lifecycle probe JSON: `5195d4e1ad26fb112b28730273a2786546dfd4634a83d2286ffbc61c8ec2077c`.
+- Lifecycle cache events: `cb236f27048029ee2125974267178b12ad068e4a4e6a13da06a447b009625607`.
+
+The probe used a 32 MiB KV cache, one 930-token target prompt and four
+approximately 1030-token pressure prompts. Native eviction left a 16-token
+resume hit; lifecycle-aware ordering retained 928 tokens. The artifact itself
+sets `performance_claim_admissible=false`; these values must not populate the
+resume placeholders.
+
 ## Control-plane recovery integration
 
 On workstation, the digest-pinned Compose services started a real etcd 3.6.5,

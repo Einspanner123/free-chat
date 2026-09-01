@@ -27,6 +27,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "libs", "services", "worker"]
+pythonpath = ["."]
 addopts = "-ra --strict-markers"
 asyncio_mode = "auto"
 markers = [
