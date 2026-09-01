@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import random
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -14,6 +15,7 @@ class RequestMeasurement(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     run_id: str
+    trial_id: int = Field(ge=0)
     workload_id: str
     strategy: str
     model_revision: str
@@ -71,6 +73,7 @@ class BenchmarkSummary(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     run_id: str
+    trial_id: int
     workload_id: str
     strategy: str
     model_revision: str
@@ -93,6 +96,24 @@ class PairedLatencyComparison:
     p95_reduction_percent: float
     mean_reduction_percent: float
     mean_reduction_ci95: tuple[float, float]
+
+
+@dataclass(frozen=True, slots=True)
+class EstimateWithCI:
+    estimate: float
+    ci95: tuple[float, float]
+
+
+@dataclass(frozen=True, slots=True)
+class PairedRunComparison:
+    trial_count: int
+    task_latency_p95_reduction_percent: EstimateWithCI
+    prefix_cache_hit_lift_points: EstimateWithCI
+    resume_repeated_prefill_reduction_percent: EstimateWithCI
+    tasks_per_second_per_gpu_improvement_percent: EstimateWithCI
+    gpu_utilization_lift_points: EstimateWithCI
+    fault_recovery_lift_points: EstimateWithCI | None
+    recovery_time_p95_reduction_percent: EstimateWithCI | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,11 +171,12 @@ def summarize_run(
     if not requests:
         raise ValueError("at least one request measurement is required")
     identity = {
-        (item.run_id, item.workload_id, item.strategy, item.model_revision) for item in requests
+        (item.run_id, item.trial_id, item.workload_id, item.strategy, item.model_revision)
+        for item in requests
     }
     if len(identity) != 1:
         raise ValueError("a summary cannot mix run, workload, strategy, or model identity")
-    run_id, workload_id, strategy, model_revision = next(iter(identity))
+    run_id, trial_id, workload_id, strategy, model_revision = next(iter(identity))
     if any(item.run_id != run_id for item in gpu_samples):
         raise ValueError("GPU samples belong to a different run")
     if any(item.run_id != run_id for item in faults):
@@ -210,6 +232,7 @@ def summarize_run(
     )
     return BenchmarkSummary(
         run_id=run_id,
+        trial_id=trial_id,
         workload_id=workload_id,
         strategy=strategy,
         model_revision=model_revision,
@@ -224,6 +247,92 @@ def summarize_run(
         fault_recovery_success_rate=recovery_rate,
         recovery_time_p95_ms=recovery_p95,
         duplicate_event_rate=duplicate_rate,
+    )
+
+
+def compare_paired_runs(
+    baseline: list[BenchmarkSummary],
+    candidate: list[BenchmarkSummary],
+    *,
+    bootstrap_repetitions: int = 10_000,
+    seed: int = 20260901,
+) -> PairedRunComparison:
+    if len(baseline) < 3 or len(candidate) < 3:
+        raise ValueError("run comparison requires at least three trials per strategy")
+    baseline_by_trial = {item.trial_id: item for item in baseline}
+    candidate_by_trial = {item.trial_id: item for item in candidate}
+    if len(baseline_by_trial) != len(baseline) or len(candidate_by_trial) != len(candidate):
+        raise ValueError("trial IDs must be unique within each strategy")
+    if baseline_by_trial.keys() != candidate_by_trial.keys():
+        raise ValueError("baseline and candidate must contain the same trial IDs")
+    identities = {
+        (item.workload_id, item.model_revision, item.harnesses) for item in baseline + candidate
+    }
+    if len(identities) != 1:
+        raise ValueError("paired trials must share workload, model revision, and Harnesses")
+    if (
+        len({item.strategy for item in baseline}) != 1
+        or len({item.strategy for item in candidate}) != 1
+    ):
+        raise ValueError("each side must contain exactly one strategy")
+
+    pairs = [(baseline_by_trial[index], candidate_by_trial[index]) for index in baseline_by_trial]
+    latency = [
+        _relative_reduction(left.task_latency_p95_ms, right.task_latency_p95_ms)
+        for left, right in pairs
+    ]
+    hit_lift = [
+        (right.prefix_cache_token_hit_rate - left.prefix_cache_token_hit_rate) * 100
+        for left, right in pairs
+    ]
+    prefill = [
+        _relative_reduction(
+            float(left.resume_repeated_prefill_tokens),
+            float(right.resume_repeated_prefill_tokens),
+        )
+        for left, right in pairs
+    ]
+    throughput = [
+        _relative_improvement(
+            left.tasks_per_second_per_gpu,
+            right.tasks_per_second_per_gpu,
+        )
+        for left, right in pairs
+    ]
+    utilization = [
+        right.mean_gpu_utilization_percent - left.mean_gpu_utilization_percent
+        for left, right in pairs
+    ]
+    recovery_lift = _optional_pair_values(
+        pairs,
+        lambda item: item.fault_recovery_success_rate,
+        lambda left, right: (right - left) * 100,
+    )
+    recovery_time = _optional_pair_values(
+        pairs,
+        lambda item: item.recovery_time_p95_ms,
+        _relative_reduction,
+    )
+    rng = random.Random(seed)
+    return PairedRunComparison(
+        trial_count=len(pairs),
+        task_latency_p95_reduction_percent=_estimate_ci(latency, bootstrap_repetitions, rng),
+        prefix_cache_hit_lift_points=_estimate_ci(hit_lift, bootstrap_repetitions, rng),
+        resume_repeated_prefill_reduction_percent=_estimate_ci(prefill, bootstrap_repetitions, rng),
+        tasks_per_second_per_gpu_improvement_percent=_estimate_ci(
+            throughput, bootstrap_repetitions, rng
+        ),
+        gpu_utilization_lift_points=_estimate_ci(utilization, bootstrap_repetitions, rng),
+        fault_recovery_lift_points=(
+            _estimate_ci(recovery_lift, bootstrap_repetitions, rng)
+            if recovery_lift is not None
+            else None
+        ),
+        recovery_time_p95_reduction_percent=(
+            _estimate_ci(recovery_time, bootstrap_repetitions, rng)
+            if recovery_time is not None
+            else None
+        ),
     )
 
 
@@ -294,6 +403,45 @@ def _successful_task_latencies(
         for task_id, task in by_task.items()
         if all(item.success for item in task)
     }
+
+
+def _relative_reduction(baseline: float, candidate: float) -> float:
+    if baseline <= 0:
+        raise ValueError("relative reduction requires a positive baseline")
+    return (baseline - candidate) / baseline * 100
+
+
+def _relative_improvement(baseline: float, candidate: float) -> float:
+    if baseline <= 0:
+        raise ValueError("relative improvement requires a positive baseline")
+    return (candidate - baseline) / baseline * 100
+
+
+def _optional_pair_values(
+    pairs: list[tuple[BenchmarkSummary, BenchmarkSummary]],
+    getter: Callable[[BenchmarkSummary], float | None],
+    transform: Callable[[float, float], float],
+) -> list[float] | None:
+    values: list[float] = []
+    for left, right in pairs:
+        left_value = getter(left)
+        right_value = getter(right)
+        if left_value is None or right_value is None:
+            return None
+        values.append(transform(left_value, right_value))
+    return values
+
+
+def _estimate_ci(values: list[float], repetitions: int, rng: random.Random) -> EstimateWithCI:
+    if not values or repetitions < 100:
+        raise ValueError("confidence interval requires values and at least 100 resamples")
+    bootstrapped = [
+        sum(rng.choice(values) for _ in values) / len(values) for _ in range(repetitions)
+    ]
+    return EstimateWithCI(
+        estimate=sum(values) / len(values),
+        ci95=(_percentile(bootstrapped, 0.025), _percentile(bootstrapped, 0.975)),
+    )
 
 
 def _percentile(values: list[float], quantile: float) -> float:

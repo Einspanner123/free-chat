@@ -1,10 +1,12 @@
 import pytest
 from freechat_trace_replay.artifacts import ParquetTraceArchive
 from freechat_trace_replay.benchmark_metrics import (
+    BenchmarkSummary,
     FaultMeasurement,
     GpuUtilizationSample,
     RequestMeasurement,
     archive_benchmark_run,
+    compare_paired_runs,
     compare_paired_task_latency,
     summarize_run,
 )
@@ -34,6 +36,7 @@ def request(
 ) -> RequestMeasurement:
     return RequestMeasurement(
         run_id=f"run-{strategy}",
+        trial_id=1,
         workload_id="coding-agent-fixture-1",
         strategy=strategy,
         model_revision="model-sha",
@@ -171,3 +174,45 @@ def test_archive_contains_raw_inputs_summary_and_resolved_config() -> None:
     assert artifacts.summary.sha256
     assert artifacts.resolved_config.sha256
     assert len(store.objects) == 4
+
+
+def summary(trial: int, strategy: str, factor: float = 1.0) -> BenchmarkSummary:
+    return BenchmarkSummary(
+        run_id=f"{strategy}-{trial}",
+        trial_id=trial,
+        workload_id="coding-agent-fixture-1",
+        strategy=strategy,
+        model_revision="model-sha",
+        harnesses=("opencode",),
+        completed_tasks=20,
+        failed_tasks=0,
+        task_latency_p95_ms=1_000 * factor,
+        prefix_cache_token_hit_rate=0.8 if factor < 1 else 0.5,
+        resume_repeated_prefill_tokens=int(1_000 * factor),
+        tasks_per_second_per_gpu=2 / factor,
+        mean_gpu_utilization_percent=70 if factor < 1 else 60,
+        fault_recovery_success_rate=1.0 if factor < 1 else 0.8,
+        recovery_time_p95_ms=500 * factor,
+        duplicate_event_rate=0.0,
+    )
+
+
+def test_run_comparison_requires_three_trials_and_reports_metric_intervals() -> None:
+    baseline = [summary(trial, "round-robin") for trial in range(3)]
+    candidate = [summary(trial, "lifecycle-aware", 0.8) for trial in range(3)]
+    result = compare_paired_runs(
+        baseline,
+        candidate,
+        bootstrap_repetitions=1_000,
+    )
+    assert result.trial_count == 3
+    assert result.task_latency_p95_reduction_percent.ci95[0] > 0
+    assert result.prefix_cache_hit_lift_points.estimate == pytest.approx(30)
+    assert result.resume_repeated_prefill_reduction_percent.estimate == pytest.approx(20)
+    assert result.tasks_per_second_per_gpu_improvement_percent.estimate == pytest.approx(25)
+    assert result.gpu_utilization_lift_points.estimate == pytest.approx(10)
+    assert result.fault_recovery_lift_points is not None
+    assert result.recovery_time_p95_reduction_percent is not None
+
+    with pytest.raises(ValueError, match="at least three trials"):
+        compare_paired_runs(baseline[:2], candidate[:2])

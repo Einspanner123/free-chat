@@ -8,6 +8,51 @@ The 2026-08-31 measurements below used PyTorch 2.11/Triton 3.6. After the
 stack, these measurements became historical evidence. They cannot be quoted as
 current project performance until replicated under PyTorch 2.13/Triton 3.7.
 
+## Current stack replication status
+
+- The A6000 correctness matrix passed for FP16, BF16 and FP32 at group sizes
+  32, 128 and 256 under PyTorch 2.13.0+cu130 and Triton 3.7.1.
+- The first A6000 timing run is `INVALID/CONTENDED`: another training process
+  occupied the GPU, which was at P2, about 196 W and 84 C during inspection.
+  Its artifact is retained as
+  `/media/ross/8TB/linkst/freechat/evidence/20260901/INVALID-contended-kv-quantize-a6000-torch213-triton371.json`
+  with SHA-256
+  `1ca81026e5a9c60ddba39f3a7c1da36524c7ee19cf218f69a33ac438036cf9ae`.
+  The observed value is forbidden in claims.
+- The benchmark now refuses to run when another compute process occupies the
+  selected GPU and records pre/post temperature, power, clocks and P-state.
+- Valid timing, profiler and Agent-task evidence remain open.
+
+### A4000 current-stack evidence
+
+- Environment: RTX A4000, driver 580.173.02, PyTorch 2.13.0+cu130,
+  CUDA 13.0 and Triton 3.7.1. The GPU was exclusive for every accepted run.
+- Correctness: all 9 combinations of FP16/BF16/FP32 and group sizes
+  32/128/256 passed against the PyTorch reference.
+- Shape: 8,388,608 FP16 elements, group size 128, 50 warm-ups and 500
+  randomized paired measurements per trial.
+- Three trial medians: reference 1037.31--1038.34 us, candidate
+  119.81--131.07 us, or 7.92--8.66x isolated speedup. Paired-bootstrap
+  latency-reduction intervals were positive in all three trials.
+- Raw artifact SHA-256 values:
+  - seed 20260901: `c0ee3c76cc683bc828fc40bead3e107abe1f9d5fef621ff816fb8b4f89a83ea9`;
+  - seed 20260902: `35ebbaca677ea55a98cc18c2a115c99a8876e49d824acc5478772cbd4ec106f7`;
+  - seed 20260903: `a9e779bb94d87a68f12d71be63c2abb3d09021d05f757a88b34de62409f4eb3b`.
+- Current-stack profiler: the reference launched separate `abs`, `amax`,
+  `div`, `round` and `clamp` operations; the candidate launched one
+  `_quantize_kernel`. Summary SHA-256
+  `76855739b122a34751402b58a90674b1ecced1940991e25437bac58c4a4ffd16`;
+  Chrome trace SHA-256
+  `ded731702c7d7148edbe2a78da5744ffa38b5108557747af0b5ee9064fee4b2d`.
+- Environment manifests: pip freeze SHA-256
+  `96934ddec944c4e08b6e235c4c491e5c598fc0cc4fe1e58ad9d364f71672cc02`;
+  full `nvidia-smi -q` SHA-256
+  `e1b76ca9fb14f0b87be5d49da2f6ba2dd4a806e12f4b4de54ddd32b6ba69aa0f`.
+- This closes only one-GPU correctness, repeatability and profiler-mechanism
+  evidence. A6000/A5000 replication, serving integration, non-target guardrail
+  and Agent-task end-to-end gates remain open, so Claims Ledger stays
+  `UNVERIFIED`.
+
 ## Branch resume block-table gather — rejected
 
 - Environment: NVIDIA RTX A6000, PyTorch 2.11.0+cu130, Triton 3.6.0.
