@@ -74,6 +74,7 @@ message RouteDecision {
   repeated string rejected_candidates = 6;
   uint64 lease_ttl_ms = 7;
   uint64 topology_generation = 8;
+  string strategy = 9;
 }
 
 message LeaseRequest {

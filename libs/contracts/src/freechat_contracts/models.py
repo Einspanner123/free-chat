@@ -224,6 +224,7 @@ class RouteDecision(BaseModel):
     candidates: tuple[CandidateCost, ...]
     rejected: dict[str, tuple[str, ...]]
     topology_generation: int
+    strategy: str = "lifecycle-aware"
     lease_ttl_ms: int = Field(default=30_000, ge=1_000)
 
 

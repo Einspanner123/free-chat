@@ -5,7 +5,7 @@ from freechat_scheduler.parallel import (
     ParallelMode,
     ParallelPlanner,
 )
-from freechat_scheduler.scheduler import NoEligibleWorker, Scheduler
+from freechat_scheduler.scheduler import NoEligibleWorker, RoutingStrategy, Scheduler
 
 __all__ = [
     "DeviceLink",
@@ -14,5 +14,6 @@ __all__ = [
     "ParallelDecision",
     "ParallelMode",
     "ParallelPlanner",
+    "RoutingStrategy",
     "Scheduler",
 ]

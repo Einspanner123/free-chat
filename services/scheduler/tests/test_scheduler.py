@@ -6,7 +6,7 @@ from freechat_contracts import (
     WorkerCapabilities,
     WorkerTelemetry,
 )
-from freechat_scheduler import NoEligibleWorker, Scheduler
+from freechat_scheduler import NoEligibleWorker, RoutingStrategy, Scheduler
 from freechat_scheduler.registry import InMemoryWorkerRegistry
 
 MODEL = ModelCapability(
@@ -26,6 +26,7 @@ def add_worker(
     *,
     node: str,
     queue: int = 0,
+    active: int = 0,
     cached: frozenset[str] = frozenset(),
     healthy: bool = True,
 ) -> None:
@@ -47,6 +48,7 @@ def add_worker(
             worker_id=worker_id,
             generation=1,
             queue_depth=queue,
+            active_requests=active,
             free_vram_bytes=20 * 1024**3,
             cached_prefixes=cached,
             estimated_prefill_tokens_per_second=10_000,
@@ -78,9 +80,73 @@ def test_cache_affinity_can_beat_small_queue_difference() -> None:
     registry = InMemoryWorkerRegistry()
     add_worker(registry, "warm", node="ross", queue=1, cached=frozenset({"shared-prefix"}))
     add_worker(registry, "cold", node="ross", queue=0)
-    decision = Scheduler(registry).route(profile())
+    hints = AgentHints(
+        harness_id="agents",
+        task_id="task",
+        agent_id="agent",
+        expected_reuse_probability=1.0,
+    )
+    decision = Scheduler(registry).route(profile(hints=hints))
     assert decision.worker_id == "warm"
     assert decision.selected.affinity_credit_ms > 0
+
+
+def test_round_robin_rotates_only_across_eligible_workers() -> None:
+    registry = InMemoryWorkerRegistry()
+    add_worker(registry, "worker-a", node="ross")
+    add_worker(registry, "worker-b", node="ross")
+    scheduler = Scheduler(registry, strategy=RoutingStrategy.ROUND_ROBIN)
+    assert [scheduler.route(profile()).worker_id for _ in range(3)] == [
+        "worker-a",
+        "worker-b",
+        "worker-a",
+    ]
+
+
+def test_least_load_uses_active_requests_before_queue_depth() -> None:
+    registry = InMemoryWorkerRegistry()
+    add_worker(registry, "queued", node="ross", queue=5, active=0)
+    add_worker(registry, "active", node="ross", queue=0, active=1)
+    decision = Scheduler(registry, strategy=RoutingStrategy.LEAST_LOAD).route(profile())
+    assert decision.worker_id == "queued"
+    assert decision.strategy == RoutingStrategy.LEAST_LOAD
+
+
+def test_prefix_affinity_is_a_distinct_reproducible_baseline() -> None:
+    registry = InMemoryWorkerRegistry()
+    add_worker(
+        registry,
+        "warm",
+        node="ross",
+        queue=20,
+        cached=frozenset({"shared-prefix"}),
+    )
+    add_worker(registry, "cold", node="ross")
+    decision = Scheduler(registry, strategy=RoutingStrategy.PREFIX_AFFINITY).route(profile())
+    assert decision.worker_id == "warm"
+
+
+def test_lifecycle_credit_changes_selection_relative_to_cost_aware() -> None:
+    registry = InMemoryWorkerRegistry()
+    add_worker(
+        registry,
+        "warm",
+        node="ross",
+        queue=18,
+        cached=frozenset({"shared-prefix"}),
+    )
+    add_worker(registry, "cold", node="ross")
+    hints = AgentHints(
+        harness_id="agents",
+        task_id="task",
+        agent_id="agent",
+        expected_reuse_probability=1.0,
+    )
+    request = profile(hints=hints)
+    cost = Scheduler(registry, strategy=RoutingStrategy.COST_AWARE).route(request)
+    lifecycle = Scheduler(registry, strategy=RoutingStrategy.LIFECYCLE_AWARE).route(request)
+    assert cost.worker_id == "cold"
+    assert lifecycle.worker_id == "warm"
 
 
 def test_remote_worker_is_hard_filtered() -> None:

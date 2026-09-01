@@ -1,5 +1,3 @@
-# mypy: ignore-errors
-
 import datetime
 
 from google.protobuf import empty_pb2 as _empty_pb2
@@ -125,7 +123,7 @@ class CostBreakdown(_message.Message):
     def __init__(self, queue_ms: _Optional[float] = ..., prefill_ms: _Optional[float] = ..., decode_ms: _Optional[float] = ..., cache_ms: _Optional[float] = ..., network_ms: _Optional[float] = ..., cold_start_ms: _Optional[float] = ..., deadline_risk: _Optional[float] = ..., eviction_externality: _Optional[float] = ..., total: _Optional[float] = ..., affinity_credit_ms: _Optional[float] = ...) -> None: ...
 
 class RouteDecision(_message.Message):
-    __slots__ = ("decision_id", "worker_id", "endpoint", "worker_generation", "cost", "rejected_candidates", "lease_ttl_ms", "topology_generation")
+    __slots__ = ("decision_id", "worker_id", "endpoint", "worker_generation", "cost", "rejected_candidates", "lease_ttl_ms", "topology_generation", "strategy")
     DECISION_ID_FIELD_NUMBER: _ClassVar[int]
     WORKER_ID_FIELD_NUMBER: _ClassVar[int]
     ENDPOINT_FIELD_NUMBER: _ClassVar[int]
@@ -134,6 +132,7 @@ class RouteDecision(_message.Message):
     REJECTED_CANDIDATES_FIELD_NUMBER: _ClassVar[int]
     LEASE_TTL_MS_FIELD_NUMBER: _ClassVar[int]
     TOPOLOGY_GENERATION_FIELD_NUMBER: _ClassVar[int]
+    STRATEGY_FIELD_NUMBER: _ClassVar[int]
     decision_id: str
     worker_id: str
     endpoint: str
@@ -142,7 +141,8 @@ class RouteDecision(_message.Message):
     rejected_candidates: _containers.RepeatedScalarFieldContainer[str]
     lease_ttl_ms: int
     topology_generation: int
-    def __init__(self, decision_id: _Optional[str] = ..., worker_id: _Optional[str] = ..., endpoint: _Optional[str] = ..., worker_generation: _Optional[int] = ..., cost: _Optional[_Union[CostBreakdown, _Mapping]] = ..., rejected_candidates: _Optional[_Iterable[str]] = ..., lease_ttl_ms: _Optional[int] = ..., topology_generation: _Optional[int] = ...) -> None: ...
+    strategy: str
+    def __init__(self, decision_id: _Optional[str] = ..., worker_id: _Optional[str] = ..., endpoint: _Optional[str] = ..., worker_generation: _Optional[int] = ..., cost: _Optional[_Union[CostBreakdown, _Mapping]] = ..., rejected_candidates: _Optional[_Iterable[str]] = ..., lease_ttl_ms: _Optional[int] = ..., topology_generation: _Optional[int] = ..., strategy: _Optional[str] = ...) -> None: ...
 
 class LeaseRequest(_message.Message):
     __slots__ = ("context", "decision_id", "worker_id", "worker_generation")

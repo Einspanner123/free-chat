@@ -129,6 +129,7 @@ class GrpcSchedulerClient:
             candidates=(cost,),
             rejected=_parse_rejections(response.rejected_candidates),
             topology_generation=response.topology_generation,
+            strategy=response.strategy or "lifecycle-aware",
             lease_ttl_ms=response.lease_ttl_ms,
         )
 

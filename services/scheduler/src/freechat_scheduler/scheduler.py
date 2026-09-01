@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 
 from freechat_contracts import (
     CandidateCost,
@@ -16,6 +17,14 @@ class NoEligibleWorker(RuntimeError):
     def __init__(self, rejected: dict[str, tuple[str, ...]]) -> None:
         super().__init__("no worker satisfies the request's hard constraints")
         self.rejected = rejected
+
+
+class RoutingStrategy(StrEnum):
+    ROUND_ROBIN = "round-robin"
+    LEAST_LOAD = "least-load"
+    PREFIX_AFFINITY = "prefix-affinity"
+    COST_AWARE = "cost-aware"
+    LIFECYCLE_AWARE = "lifecycle-aware"
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,9 +43,12 @@ class Scheduler:
         registry: InMemoryWorkerRegistry,
         *,
         weights: CostWeights | None = None,
+        strategy: RoutingStrategy = RoutingStrategy.LIFECYCLE_AWARE,
     ) -> None:
         self._registry = registry
         self._weights = weights or CostWeights()
+        self._strategy = strategy
+        self._round_robin_index = 0
 
     def route(self, request: RequestProfile) -> RouteDecision:
         topology_generation, workers = self._registry.snapshot()
@@ -52,7 +64,16 @@ class Scheduler:
         if not eligible:
             raise NoEligibleWorker(rejected)
 
-        costs = tuple(sorted((self._cost(request, worker) for worker in eligible), key=_sort_key))
+        cost_by_worker = {
+            worker.capabilities.worker_id: self._cost(
+                request,
+                worker,
+                include_lifecycle=self._strategy is RoutingStrategy.LIFECYCLE_AWARE,
+            )
+            for worker in eligible
+        }
+        ordered_workers = self._order_workers(request, eligible, cost_by_worker)
+        costs = tuple(cost_by_worker[item.capabilities.worker_id] for item in ordered_workers)
         selected = costs[0]
         worker_caps = next(
             item.capabilities
@@ -68,6 +89,45 @@ class Scheduler:
             candidates=costs,
             rejected=rejected,
             topology_generation=topology_generation,
+            strategy=self._strategy,
+        )
+
+    def _order_workers(
+        self,
+        request: RequestProfile,
+        workers: list[WorkerSnapshot],
+        costs: dict[str, CandidateCost],
+    ) -> list[WorkerSnapshot]:
+        if self._strategy is RoutingStrategy.ROUND_ROBIN:
+            ordered = sorted(workers, key=lambda item: item.capabilities.worker_id)
+            selected_index = self._round_robin_index % len(ordered)
+            self._round_robin_index += 1
+            return ordered[selected_index:] + ordered[:selected_index]
+        if self._strategy is RoutingStrategy.LEAST_LOAD:
+            return sorted(
+                workers,
+                key=lambda item: (
+                    item.telemetry.active_requests,
+                    item.telemetry.queue_depth,
+                    item.capabilities.worker_id,
+                ),
+            )
+        if self._strategy is RoutingStrategy.PREFIX_AFFINITY:
+            return sorted(
+                workers,
+                key=lambda item: (
+                    not (
+                        request.cache_key is not None
+                        and request.cache_key in item.telemetry.cached_prefixes
+                    ),
+                    item.telemetry.active_requests,
+                    item.telemetry.queue_depth,
+                    item.capabilities.worker_id,
+                ),
+            )
+        return sorted(
+            workers,
+            key=lambda item: _sort_key(costs[item.capabilities.worker_id]),
         )
 
     @staticmethod
@@ -95,7 +155,13 @@ class Scheduler:
             reasons.append("worker_rejects_remote")
         return reasons
 
-    def _cost(self, request: RequestProfile, worker: WorkerSnapshot) -> CandidateCost:
+    def _cost(
+        self,
+        request: RequestProfile,
+        worker: WorkerSnapshot,
+        *,
+        include_lifecycle: bool,
+    ) -> CandidateCost:
         caps = worker.capabilities
         telemetry = worker.telemetry
         model_loaded = any(item.model_id == request.model_id for item in caps.models)
@@ -105,9 +171,7 @@ class Scheduler:
         cache_hit = request.cache_key is not None and request.cache_key in telemetry.cached_prefixes
         cache_ms = 0.0
         if request.estimated_kv_bytes and not cache_hit:
-            cache_ms = (
-                request.estimated_kv_bytes / telemetry.cache_load_bytes_per_second * 1_000
-            )
+            cache_ms = request.estimated_kv_bytes / telemetry.cache_load_bytes_per_second * 1_000
         remote = request.local_node_id is not None and caps.node_id != request.local_node_id
         network_ms = telemetry.network_rtt_ms if remote else 0.0
         cold_start_ms = 0.0 if model_loaded else self._weights.cold_model_ms
@@ -116,17 +180,22 @@ class Scheduler:
         if request.hints.deadline_ms is not None and predicted_ms > request.hints.deadline_ms:
             overrun = (predicted_ms - request.hints.deadline_ms) / request.hints.deadline_ms
             deadline_risk = overrun * self._weights.deadline_risk_weight
-        externality = (
-            request.estimated_kv_bytes / (1024**3)
-        ) * self._weights.eviction_externality_per_gib_ms
+        externality = 0.0
+        if include_lifecycle:
+            externality = (
+                request.estimated_kv_bytes / (1024**3)
+            ) * self._weights.eviction_externality_per_gib_ms
         affinity_credit_ms = 0.0
-        if cache_hit:
+        if include_lifecycle and cache_hit:
             base_credit = (
                 self._weights.explicit_affinity_credit_ms
                 if request.hints.source is HintSource.EXPLICIT
                 else self._weights.inferred_affinity_credit_ms * request.hints.confidence
             )
-            affinity_credit_ms = min(base_credit, prefill_ms)
+            lifecycle_probability = request.hints.expected_reuse_probability
+            if request.hints.lifecycle.value == "resume":
+                lifecycle_probability = 1.0
+            affinity_credit_ms = min(base_credit * lifecycle_probability, prefill_ms)
         total_ms = max(
             0.0,
             predicted_ms + deadline_risk + externality - affinity_credit_ms,

@@ -25,7 +25,7 @@ from freechat_trace_replay import EventEnvelope
 from freechat_trace_replay.bus import DurableLifecycleEmitter, connect_lifecycle_stream
 
 from freechat_scheduler.registry import InMemoryWorkerRegistry, PersistentWorkerRegistry
-from freechat_scheduler.scheduler import NoEligibleWorker, Scheduler
+from freechat_scheduler.scheduler import NoEligibleWorker, RoutingStrategy, Scheduler
 
 
 @dataclass(slots=True)
@@ -104,6 +104,7 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
                 "worker_id": decision.worker_id,
                 "worker_generation": decision.worker_generation,
                 "topology_generation": decision.topology_generation,
+                "strategy": decision.strategy,
             },
         )
         return _decision_message(decision)
@@ -357,6 +358,7 @@ def _decision_message(decision: RouteDecision) -> control_pb2.RouteDecision:
         ],
         lease_ttl_ms=decision.lease_ttl_ms,
         topology_generation=decision.topology_generation,
+        strategy=decision.strategy,
     )
 
 
@@ -382,7 +384,16 @@ async def serve(address: str) -> None:
         await emitter.replay()
     server = grpc.aio.server()
     control_pb2_grpc.add_SchedulerServiceServicer_to_server(  # type: ignore[no-untyped-call]
-        SchedulerGrpcService(Scheduler(registry), LeaseBook(store), emitter),
+        SchedulerGrpcService(
+            Scheduler(
+                registry,
+                strategy=RoutingStrategy(
+                    os.environ.get("FREECHAT_ROUTING_STRATEGY", "lifecycle-aware")
+                ),
+            ),
+            LeaseBook(store),
+            emitter,
+        ),
         server,
     )
     control_pb2_grpc.add_WorkerControlServiceServicer_to_server(  # type: ignore[no-untyped-call]
