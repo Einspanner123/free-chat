@@ -98,6 +98,23 @@ successfully executed and synchronized a FlashInfer top-k/top-p sampling
 kernel. The image still failed the candidate gate, as intended, because its
 PyTorch 2.11, Triton 3.6 and upstream revision do not match the locked fork.
 
+The authoritative worker image was subsequently built on workstation as local
+tag `freechat-worker:8e78a3c61307`, image ID
+`sha256:5527760b5854807b7c9d6c0544ea8f619a76c86b220a3f345b47823c6aa19288`.
+It packages fork commit `8e78a3c613072632aa822c9aed2f698e76046219`
+and reuses CUDA extensions from exact upstream commit
+`9c22668436a4d94aab87ea74a220e060415cf1d8`; the fork has no C++ or CUDA
+source changes. CPU inspection confirmed Python 3.12.13, CUDA compiler and
+runtime 13.0, PyTorch 2.13.0+cu130, Triton 3.7.1, Transformers 5.16.1,
+FlashInfer 0.6.15.post1 and vLLM `0.1.dev19622+g8e78a3c61`.
+
+The inspection report is archived at
+`evidence/worker-images/worker-8e78a3c61307-cpu.json` with SHA-256
+`33c0ac0ece1ee9bb5ea7b1931569afed9451058bef04a7a86d2c196199dd97ba`.
+It records `accepted=false`: no GPU was requested, FlashInfer was not executed
+on a GPU, and a local tag has no immutable repository digest. These pending
+checks prevent the image from being promoted as an accepted worker.
+
 Docker data is mounted at `/data/freechat/docker` on an ext4 volume. The
 `overlay2` driver, existing named volumes, digest-pinned images and the etcd,
 NATS and scheduler containers recovered after migration.

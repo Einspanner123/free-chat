@@ -14,11 +14,24 @@ docker buildx build \
   --build-arg CUDA_VERSION=13.0.3 \
   --build-arg PYTHON_VERSION=3.12 \
   --build-arg torch_cuda_arch_list=8.6 \
+  --build-arg VLLM_USE_PRECOMPILED=1 \
+  --build-arg VLLM_MERGE_BASE_COMMIT=9c22668436a4d94aab87ea74a220e060415cf1d8 \
+  --build-arg VLLM_MAIN_CUDA_VERSION=13.0 \
   --label org.opencontainers.image.revision=8e78a3c613072632aa822c9aed2f698e76046219 \
+  --label io.freechat.vllm.upstream-revision=9c22668436a4d94aab87ea74a220e060415cf1d8 \
   --tag freechat-worker:8e78a3c61307 \
   --load \
   .
 ```
+
+The fork changes Python lifecycle, scheduling and cache-policy integration but
+does not modify vLLM C++ or CUDA sources. The build therefore reuses the
+commit-specific CUDA 13 extension wheel published for the exact upstream
+commit recorded in `versions.lock.yaml`, while packaging the fork's Python and
+Rust layers from source. Both revisions are OCI labels and acceptance checks;
+using a wheel from a different upstream commit fails closed. A source build
+remains available for auditing, but is not required merely to rebuild unchanged
+upstream kernels.
 
 The build is not release evidence. Push it to the project registry, resolve the
 repository digest, and replace `worker_image_digest: UNRESOLVED` only after the
@@ -40,6 +53,7 @@ Acceptance requires all of the following in one run:
 - A CUDA-visible physical GPU and a real FlashInfer top-k/top-p sampling kernel
   invocation, including synchronization so JIT/compiler failures are observable.
 - The authoritative fork revision in the OCI image label.
+- The exact upstream revision that supplied the precompiled CUDA extensions.
 - An immutable repository digest rather than a mutable local tag.
 
 The upstream `vllm/vllm-openai:v0.26.0` image is retained only as a direct-vLLM

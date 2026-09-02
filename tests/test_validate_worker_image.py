@@ -23,7 +23,12 @@ def valid_inspection() -> dict[str, Any]:
     return {
         "Id": "sha256:candidate",
         "RepoDigests": ["registry.example/freechat@sha256:candidate"],
-        "Config": {"Labels": {"org.opencontainers.image.revision": EXPECTED["fork_revision"]}},
+        "Config": {
+            "Labels": {
+                "org.opencontainers.image.revision": EXPECTED["fork_revision"],
+                "io.freechat.vllm.upstream-revision": EXPECTED["upstream_revision"],
+            }
+        },
     }
 
 
@@ -71,6 +76,21 @@ def test_rejects_local_tag_without_immutable_digest() -> None:
     assert report["checks"]["immutable_repo_digest"]["passed"] is False
 
 
+def test_rejects_image_without_exact_upstream_revision() -> None:
+    inspected = valid_inspection()
+    inspected["Config"]["Labels"]["io.freechat.vllm.upstream-revision"] = "wrong"
+
+    report = build_report(
+        image="registry.example/freechat@sha256:candidate",
+        inspected=inspected,
+        probe=valid_probe(),
+        gpu_required=True,
+    )
+
+    assert report["accepted"] is False
+    assert report["checks"]["upstream_revision"]["passed"] is False
+
+
 def test_cpu_inspection_does_not_masquerade_as_gpu_acceptance() -> None:
     probe = valid_probe()
     probe["cuda_available"] = False
@@ -102,4 +122,5 @@ def test_omitting_gpu_never_produces_an_accepted_report() -> None:
 
     assert report["accepted"] is False
     assert report["gpu_requested"] is False
+    assert report["checks"]["gpu_requested"]["passed"] is False
     assert report["checks"]["flashinfer_sampling"]["passed"] is False

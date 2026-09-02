@@ -17,6 +17,7 @@ EXPECTED = {
     "triton": "3.7.1",
     "transformers": "5.16.1",
     "fork_revision": "8e78a3c613072632aa822c9aed2f698e76046219",
+    "upstream_revision": "9c22668436a4d94aab87ea74a220e060415cf1d8",
 }
 
 
@@ -119,6 +120,7 @@ def build_report(
         "triton": probe.get("triton"),
         "transformers": probe.get("transformers"),
         "fork_revision": labels.get("org.opencontainers.image.revision"),
+        "upstream_revision": labels.get("io.freechat.vllm.upstream-revision"),
     }
     checks = {
         name: {
@@ -147,6 +149,11 @@ def build_report(
         "expected": True,
         "actual": bool(repo_digests),
         "passed": bool(repo_digests),
+    }
+    checks["gpu_requested"] = {
+        "expected": True,
+        "actual": gpu_required,
+        "passed": gpu_required,
     }
     return {
         "schema": 1,
