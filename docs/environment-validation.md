@@ -91,7 +91,16 @@ GPU startup failed before container creation because workstation does not have
 `--gpus device=1` and the declared `nvidia` runtime are unusable in this state.
 The CUDA compiler mismatch is container-solvable, but remains operationally
 blocked until the host runtime is installed and Docker is safely restarted.
-No GPU-container or FlashInfer execution claim is admitted from this probe.
+NVIDIA Container Toolkit 1.20.0 was subsequently installed and Docker was
+configured with the NVIDIA runtime. A GPU probe against the digest-pinned
+upstream image exposed the A4000, reported CUDA compiler/runtime 13.0 and
+successfully executed and synchronized a FlashInfer top-k/top-p sampling
+kernel. The image still failed the candidate gate, as intended, because its
+PyTorch 2.11, Triton 3.6 and upstream revision do not match the locked fork.
+
+Docker data is mounted at `/data/freechat/docker` on an ext4 volume. The
+`overlay2` driver, existing named volumes, digest-pinned images and the etcd,
+NATS and scheduler containers recovered after migration.
 
 The constrained-cache mechanism probe is archived under
 `/media/ross/8TB/linkst/freechat/evidence/20260901/mechanism`:
