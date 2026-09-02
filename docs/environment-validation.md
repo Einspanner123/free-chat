@@ -39,7 +39,9 @@ as proof that a workload used that toolchain.
 ### Current serving environment
 
 - Editable vLLM fork source: `/home/linkst/workspace/freechat-vllm-fork`, with
-  FreeChat fork content through `8681c8040632e0790c1880c90cddb92420189b07`.
+  deployment commit `17539077af862832a2804429e9c0fd8896e274bc`, whose
+  Anthropic lifecycle changes match authoritative fork commit
+  `8681c8040632e0790c1880c90cddb92420189b07`.
 - Runtime: `/home/linkst/.venvs/freechat-current`, PyTorch 2.13.0+cu130,
   CUDA runtime 13.0, Triton 3.7.1 and Transformers 5.14.1.
 - A4000 serving startup, Chat Completions lifecycle propagation and
@@ -54,6 +56,27 @@ as proof that a workload used that toolchain.
   Qwen2 configuration, 151665-token tokenizer and 290 safetensor keys. A
   separate incomplete tar-stream artifact remains explicitly quarantined and
   is not accepted as a model weight.
+
+On 2026-09-02 the real Qwen2.5-0.5B weight served on the idle A4000 and
+returned exact expected text through Chat Completions (`READY`), Responses
+(`RESPONSE_OK`) and Anthropic Messages (`MESSAGE_OK`). A second Messages
+request returned `LIFECYCLE_OK`; its EngineCore audit contained nine
+allocate/free events and the final free event covered block IDs 1, 2 and 3.
+Every event preserved tenant, task, session, agent, branch, call, Tool Wait,
+worker/cache generation, 500 ms expected resume, priority and offload fields.
+The JSONL is archived at
+`/media/ross/8TB/linkst/freechat/evidence/20260902/real-model/real-qwen-messages.jsonl`
+with SHA-256
+`5562bd487d3f870fff199efdfc61d5fc0a3db1b3d0e89b257d4ea6ce2b4908b2`.
+This is correctness and integration evidence only, not a latency, throughput
+or cache-hit improvement claim.
+
+The host's `/usr/bin/nvcc` is CUDA 11.5 and cannot compile the current
+FlashInfer sampling JIT. The successful run therefore set
+`VLLM_USE_FLASHINFER_SAMPLER=0` and used the safe non-FlashInfer sampler while
+retaining the PyTorch CUDA 13 runtime. CUDA 13 compiler/profiler evidence must
+come from the locked worker/profiler image; this host run cannot satisfy that
+gate.
 
 The constrained-cache mechanism probe is archived under
 `/media/ross/8TB/linkst/freechat/evidence/20260901/mechanism`:
