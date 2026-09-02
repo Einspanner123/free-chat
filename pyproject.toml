@@ -16,6 +16,7 @@ dev = [
   "httpx2>=2.9,<3",
   "grpcio-tools>=1.74,<2",
   "mypy>=1.17,<2",
+  "openai-agents==0.22.0",
   "pytest>=8.4,<10",
   "pytest-asyncio>=1.1,<2",
   "pytest-cov>=6.2,<8",

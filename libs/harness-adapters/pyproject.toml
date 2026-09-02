@@ -2,7 +2,13 @@
 name = "freechat-harness-adapters"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
-dependencies = ["freechat-contracts", "pydantic>=2.11,<3"]
+dependencies = [
+  "freechat-contracts",
+  "pydantic>=2.11,<3",
+]
+
+[project.optional-dependencies]
+openai-agents = ["openai-agents==0.22.0"]
 
 [build-system]
 requires = ["hatchling"]
