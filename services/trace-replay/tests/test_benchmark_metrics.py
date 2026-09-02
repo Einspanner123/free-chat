@@ -5,7 +5,9 @@ from freechat_trace_replay.benchmark_metrics import (
     FaultMeasurement,
     GpuUtilizationSample,
     RequestMeasurement,
+    ResolvedBenchmarkConfig,
     archive_benchmark_run,
+    compare_paired_evidence,
     compare_paired_runs,
     compare_paired_task_latency,
     summarize_run,
@@ -197,6 +199,29 @@ def summary(trial: int, strategy: str, factor: float = 1.0) -> BenchmarkSummary:
     )
 
 
+def resolved_config(trial: int, strategy: str) -> ResolvedBenchmarkConfig:
+    character = str(trial + 1)
+    return ResolvedBenchmarkConfig(
+        run_id=f"{strategy}-{trial}",
+        trial_id=trial,
+        seed=20260910 + trial,
+        strategy=strategy,
+        workload_revision="coding-agent-fixture-1",
+        model_revision="model-sha",
+        tokenizer_revision="tokenizer-sha",
+        prompt_template_sha256=character * 64,
+        freechat_git_sha="a" * 40,
+        vllm_git_sha="b" * 40,
+        worker_image_digest=f"sha256:{'c' * 64}",
+        topology_sha256="d" * 64,
+        harness_versions=("opencode=0.1.0",),
+        concurrency_schedule=(1, 4, 8),
+        warmup_tasks=4,
+        fault_schedule_sha256="e" * 64,
+        collector_version="dcgm-exporter-4.4.1",
+    )
+
+
 def test_run_comparison_requires_three_trials_and_reports_metric_intervals() -> None:
     baseline = [summary(trial, "round-robin") for trial in range(3)]
     candidate = [summary(trial, "lifecycle-aware", 0.8) for trial in range(3)]
@@ -216,3 +241,54 @@ def test_run_comparison_requires_three_trials_and_reports_metric_intervals() -> 
 
     with pytest.raises(ValueError, match="at least three trials"):
         compare_paired_runs(baseline[:2], candidate[:2])
+
+
+def test_evidence_comparison_rejects_image_or_schedule_drift() -> None:
+    baseline = [summary(trial, "round-robin") for trial in range(3)]
+    candidate = [summary(trial, "lifecycle-aware", 0.8) for trial in range(3)]
+    baseline_configs = [resolved_config(trial, "round-robin") for trial in range(3)]
+    candidate_configs = [resolved_config(trial, "lifecycle-aware") for trial in range(3)]
+
+    result = compare_paired_evidence(
+        baseline,
+        candidate,
+        baseline_configs,
+        candidate_configs,
+        bootstrap_repetitions=1_000,
+    )
+    assert result.task_latency_p95_reduction_percent.ci95[0] > 0
+
+    drifted = candidate_configs.copy()
+    drifted[1] = drifted[1].model_copy(
+        update={"worker_image_digest": f"sha256:{'f' * 64}"}
+    )
+    with pytest.raises(ValueError, match="worker_image_digest"):
+        compare_paired_evidence(
+            baseline,
+            candidate,
+            baseline_configs,
+            drifted,
+            bootstrap_repetitions=1_000,
+        )
+
+
+def test_evidence_comparison_requires_independent_seeds() -> None:
+    baseline = [summary(trial, "round-robin") for trial in range(3)]
+    candidate = [summary(trial, "lifecycle-aware", 0.8) for trial in range(3)]
+    baseline_configs = [
+        resolved_config(trial, "round-robin").model_copy(update={"seed": 7})
+        for trial in range(3)
+    ]
+    candidate_configs = [
+        resolved_config(trial, "lifecycle-aware").model_copy(update={"seed": 7})
+        for trial in range(3)
+    ]
+
+    with pytest.raises(ValueError, match="three independent seeds"):
+        compare_paired_evidence(
+            baseline,
+            candidate,
+            baseline_configs,
+            candidate_configs,
+            bootstrap_repetitions=1_000,
+        )

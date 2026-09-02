@@ -90,6 +90,28 @@ class BenchmarkSummary(BaseModel):
     duplicate_event_rate: float | None
 
 
+class ResolvedBenchmarkConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    run_id: str
+    trial_id: int = Field(ge=0)
+    seed: int
+    strategy: str
+    workload_revision: str
+    model_revision: str
+    tokenizer_revision: str
+    prompt_template_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    freechat_git_sha: str = Field(pattern=r"^[0-9a-f]{40}$")
+    vllm_git_sha: str = Field(pattern=r"^[0-9a-f]{40}$")
+    worker_image_digest: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    topology_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    harness_versions: tuple[str, ...]
+    concurrency_schedule: tuple[int, ...]
+    warmup_tasks: int = Field(ge=0)
+    fault_schedule_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    collector_version: str
+
+
 @dataclass(frozen=True, slots=True)
 class PairedLatencyComparison:
     task_count: int
@@ -336,6 +358,26 @@ def compare_paired_runs(
     )
 
 
+def compare_paired_evidence(
+    baseline: list[BenchmarkSummary],
+    candidate: list[BenchmarkSummary],
+    baseline_configs: list[ResolvedBenchmarkConfig],
+    candidate_configs: list[ResolvedBenchmarkConfig],
+    *,
+    bootstrap_repetitions: int = 10_000,
+    seed: int = 20260901,
+) -> PairedRunComparison:
+    _require_paired_configs(baseline_configs, candidate_configs)
+    _require_summary_configs(baseline, baseline_configs)
+    _require_summary_configs(candidate, candidate_configs)
+    return compare_paired_runs(
+        baseline,
+        candidate,
+        bootstrap_repetitions=bootstrap_repetitions,
+        seed=seed,
+    )
+
+
 def compare_paired_task_latency(
     baseline: list[RequestMeasurement],
     candidate: list[RequestMeasurement],
@@ -369,6 +411,50 @@ def compare_paired_task_latency(
             _percentile(bootstrapped, 0.975),
         ),
     )
+
+
+def _require_paired_configs(
+    baseline: list[ResolvedBenchmarkConfig],
+    candidate: list[ResolvedBenchmarkConfig],
+) -> None:
+    if len(baseline) < 3 or len(candidate) < 3:
+        raise ValueError("evidence comparison requires at least three paired configurations")
+    baseline_by_trial = {item.trial_id: item for item in baseline}
+    candidate_by_trial = {item.trial_id: item for item in candidate}
+    if len(baseline_by_trial) != len(baseline) or len(candidate_by_trial) != len(candidate):
+        raise ValueError("configuration trial IDs must be unique")
+    if baseline_by_trial.keys() != candidate_by_trial.keys():
+        raise ValueError("baseline and candidate configurations must pair by trial ID")
+    if len({item.seed for item in baseline}) < 3:
+        raise ValueError("evidence comparison requires at least three independent seeds")
+
+    excluded = {"run_id", "strategy"}
+    for trial_id, left in baseline_by_trial.items():
+        right = candidate_by_trial[trial_id]
+        left_invariants = left.model_dump(exclude=excluded)
+        right_invariants = right.model_dump(exclude=excluded)
+        if left_invariants != right_invariants:
+            drift = sorted(
+                key
+                for key in left_invariants
+                if left_invariants[key] != right_invariants[key]
+            )
+            raise ValueError(f"paired configuration drift in trial {trial_id}: {drift}")
+
+
+def _require_summary_configs(
+    summaries: list[BenchmarkSummary],
+    configs: list[ResolvedBenchmarkConfig],
+) -> None:
+    config_by_trial = {item.trial_id: item for item in configs}
+    for summary in summaries:
+        config = config_by_trial.get(summary.trial_id)
+        if config is None:
+            raise ValueError(f"missing resolved configuration for trial {summary.trial_id}")
+        expected = (config.run_id, config.strategy, config.model_revision)
+        actual = (summary.run_id, summary.strategy, summary.model_revision)
+        if actual != expected:
+            raise ValueError(f"summary/config identity mismatch in trial {summary.trial_id}")
 
 
 def _require_comparable(

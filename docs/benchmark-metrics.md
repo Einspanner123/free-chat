@@ -50,6 +50,12 @@ and a non-target workload guardrail. P95, failure count and sample size are alwa
 reported together. Kernel microbenchmarks follow the stricter candidate gate in
 `docs/kernel-candidates.md`.
 
+`ResolvedBenchmarkConfig` enforces the comparison boundary in code. Paired trials
+must match workload, model and tokenizer revisions, prompt-template hash, FreeChat
+and vLLM commits, Worker image digest, topology hash, Harness versions, concurrency,
+warm-up, fault schedule and collector version. Only strategy and run identity may
+differ. A mismatch fails before a confidence interval is calculated.
+
 ## Artifact gate
 
 Raw request records, GPU samples and fault records are stored as Parquet. Each

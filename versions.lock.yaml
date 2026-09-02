@@ -10,8 +10,9 @@ vllm:
   upstream_commit: "9c22668436a4d94aab87ea74a220e060415cf1d8"
   fork_repository: "/media/ross/8TB/linkst/freechat/vllm-fork.git"
   fork_branch: "freechat-agent-aware"
-  fork_commit: "5871f38ee947760ed7f5dd5487bb04456db8bc98"
+  fork_commit: "8681c8040632e0790c1880c90cddb92420189b07"
   worker_image_digest: "UNRESOLVED"
+  upstream_worker_image: "vllm/vllm-openai:v0.26.0@sha256:ffb2d59b1c059a5bd8d781320c9f5189de8293693b7d95da54befddaa54abf52"
 infrastructure:
   etcd_image: "quay.io/coreos/etcd:v3.6.5@sha256:3397341272b9e0a6f44d7e3fc7c321c6efe6cbe82ce866b9b01d0c704bfc5bf3"
   nats_image: "nats:2.14.6-alpine@sha256:ad7a43eb7e3337c3c38ce5d784d1461791f95f730f252d2b25eee699752a0ca3"

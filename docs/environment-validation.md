@@ -78,6 +78,21 @@ retaining the PyTorch CUDA 13 runtime. CUDA 13 compiler/profiler evidence must
 come from the locked worker/profiler image; this host run cannot satisfy that
 gate.
 
+### Container remediation status
+
+On 2026-09-02 workstation pulled the upstream baseline
+`vllm/vllm-openai:v0.26.0@sha256:ffb2d59b1c059a5bd8d781320c9f5189de8293693b7d95da54befddaa54abf52`.
+CPU inspection confirmed CUDA compiler 13.0, PyTorch 2.11.0+cu130, Triton
+3.6.0, Transformers 5.14.1, vLLM 0.26.0 and FlashInfer 0.6.14. It is therefore
+eligible as an upstream baseline but does not match the candidate worker lock.
+
+GPU startup failed before container creation because workstation does not have
+`nvidia-container-runtime` or NVIDIA Container Toolkit installed. Both Docker
+`--gpus device=1` and the declared `nvidia` runtime are unusable in this state.
+The CUDA compiler mismatch is container-solvable, but remains operationally
+blocked until the host runtime is installed and Docker is safely restarted.
+No GPU-container or FlashInfer execution claim is admitted from this probe.
+
 The constrained-cache mechanism probe is archived under
 `/media/ross/8TB/linkst/freechat/evidence/20260901/mechanism`:
 
