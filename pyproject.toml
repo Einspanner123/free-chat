@@ -14,6 +14,7 @@ members = ["libs/*", "services/*", "worker"]
 dev = [
   "hypothesis>=6.138,<7",
   "httpx2>=2.9,<3",
+  "langgraph==1.2.11",
   "grpcio-tools>=1.74,<2",
   "mypy>=1.17,<2",
   "openai-agents==0.22.0",
