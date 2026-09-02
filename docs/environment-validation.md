@@ -39,16 +39,21 @@ as proof that a workload used that toolchain.
 ### Current serving environment
 
 - Editable vLLM fork source: `/home/linkst/workspace/freechat-vllm-fork`, with
-  FreeChat fork content through `5871f38ee947760ed7f5dd5487bb04456db8bc98`.
+  FreeChat fork content through `8681c8040632e0790c1880c90cddb92420189b07`.
 - Runtime: `/home/linkst/.venvs/freechat-current`, PyTorch 2.13.0+cu130,
   CUDA runtime 13.0, Triton 3.7.1 and Transformers 5.14.1.
 - A4000 serving startup, Chat Completions lifecycle propagation and
   EngineCore allocate/free/hit event emission were exercised with Qwen2.5
   tokenizer/config and vLLM dummy weights. This validates the serving
   mechanism only; it is not a real-model performance run.
-- The pinned Qwen2.5-0.5B weight transfer to workstation is incomplete because
-  both the inter-host Tailscale route and the external model route sustained
-  only about 0.1--0.2 MB/s. No partial file is accepted as a model artifact.
+- The pinned Qwen2.5-0.5B weight is available at
+  `/data/freechat/models/Qwen2.5-0.5B-Instruct/model.safetensors`. Its exact
+  size is 988097824 bytes and its SHA-256 is
+  `fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe`,
+  matching the ross artifact and source blob. Offline validation loaded the
+  Qwen2 configuration, 151665-token tokenizer and 290 safetensor keys. A
+  separate incomplete tar-stream artifact remains explicitly quarantined and
+  is not accepted as a model weight.
 
 The constrained-cache mechanism probe is archived under
 `/media/ross/8TB/linkst/freechat/evidence/20260901/mechanism`:

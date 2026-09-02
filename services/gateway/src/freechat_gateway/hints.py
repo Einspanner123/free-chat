@@ -15,7 +15,10 @@ def extract_agent_hints(request: Request, body: dict[str, Any]) -> AgentHints:
         try:
             return AgentHints.model_validate(raw)
         except ValidationError as error:
-            raise HTTPException(status_code=422, detail=error.errors()) from error
+            raise HTTPException(
+                status_code=422,
+                detail=error.errors(include_context=False),
+            ) from error
 
     harness_id = request.headers.get("x-freechat-harness-id", "openai-compatible")
     task_id = request.headers.get(

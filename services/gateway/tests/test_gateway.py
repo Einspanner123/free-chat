@@ -9,10 +9,9 @@ def upstream(request: httpx.Request) -> httpx.Response:
     body = json.loads(request.content)
     assert "freechat" not in body
     assert len(body["cache_salt"]) == 64
-    if request.url.path in {"/v1/chat/completions", "/v1/responses"}:
-        assert body["agent_lifecycle"]["tenant_id"] == "tenant-a"
-        assert body["agent_lifecycle"]["worker_generation"] == 1
-        assert body["agent_lifecycle"]["cache_generation"] == 1
+    assert body["agent_lifecycle"]["tenant_id"] == "tenant-a"
+    assert body["agent_lifecycle"]["worker_generation"] == 1
+    assert body["agent_lifecycle"]["cache_generation"] == 1
     assert request.headers["x-freechat-internal-tenant"] == "tenant-a"
     return httpx.Response(200, json={"id": "completion", "model": body["model"]})
 
@@ -58,6 +57,54 @@ def test_anthropic_messages_is_proxied() -> None:
     )
     assert response.status_code == 200
     assert response.headers["x-freechat-route-class"] == "compatible"
+
+
+def test_anthropic_messages_receives_authenticated_lifecycle() -> None:
+    response = client().post(
+        "/v1/messages",
+        headers={"x-api-key": "secret-key"},
+        json={
+            "model": "Qwen/Qwen2.5-7B-Instruct",
+            "max_tokens": 32,
+            "messages": [{"role": "user", "content": "continue"}],
+            "freechat": {
+                "agent_hints": {
+                    "harness_id": "openhands",
+                    "task_id": "task-1",
+                    "agent_id": "agent-1",
+                    "lifecycle": "resume",
+                    "expected_resume_ms": 100,
+                }
+            },
+            "cache_salt": "attacker-controlled",
+            "agent_lifecycle": {"tenant_id": "attacker"},
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["x-freechat-route-class"] == "agent-aware"
+
+
+def test_invalid_resume_hints_return_serializable_422() -> None:
+    response = client().post(
+        "/v1/messages",
+        headers={"x-api-key": "secret-key"},
+        json={
+            "model": "Qwen/Qwen2.5-7B-Instruct",
+            "max_tokens": 32,
+            "messages": [{"role": "user", "content": "continue"}],
+            "freechat": {
+                "agent_hints": {
+                    "harness_id": "openhands",
+                    "task_id": "task-1",
+                    "agent_id": "agent-1",
+                    "lifecycle": "resume",
+                }
+            },
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["type"] == "value_error"
 
 
 def test_tenant_cannot_be_supplied_in_hints() -> None:

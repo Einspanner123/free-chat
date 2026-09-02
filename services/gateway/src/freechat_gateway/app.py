@@ -124,7 +124,7 @@ def create_app(
             worker_generation=decision.worker_generation,
         )
         body["cache_salt"] = cache_salt
-        if path in {"/v1/chat/completions", "/v1/responses"}:
+        if path in {"/v1/chat/completions", "/v1/responses", "/v1/messages"}:
             body["agent_lifecycle"] = _agent_lifecycle_body(
                 auth,
                 hints,
