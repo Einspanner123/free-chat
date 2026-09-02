@@ -13,8 +13,8 @@ docker buildx build \
   --target vllm-openai \
   --build-arg CUDA_VERSION=13.0.3 \
   --build-arg PYTHON_VERSION=3.12 \
-  --label org.opencontainers.image.revision=b95da863d262242e33b8388889baca83a70508a1 \
-  --tag freechat-worker:b95da863d262 \
+  --label org.opencontainers.image.revision=e8c4240db4ec01ed5557c799cdfbce4db45b00e7 \
+  --tag freechat-worker:e8c4240db4ec \
   --load \
   .
 ```
