@@ -65,3 +65,6 @@ failure had occurred: the only observed failure was the project's exact-version
 gate. FreeChat now expects Transformers 5.16.1 for the candidate worker. The
 candidate still requires GPU, protocol, model, and immutable-digest acceptance;
 this resolution does not itself verify any capability or performance claim.
+
+- FreeChat resolution commit: `dfbd566`.
+- Candidate vLLM fork commit: `b95da863d262242e33b8388889baca83a70508a1`.
