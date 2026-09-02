@@ -15,8 +15,8 @@ EXPECTED = {
     "torch": "2.13.0+cu130",
     "torch_cuda": "13.0",
     "triton": "3.7.1",
-    "transformers": "5.14.1",
-    "fork_revision": "8681c8040632e0790c1880c90cddb92420189b07",
+    "transformers": "5.16.1",
+    "fork_revision": "a8a614457df28fda3a498a6823292a48030ad55f",
 }
 
 

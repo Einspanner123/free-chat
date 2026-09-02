@@ -1,8 +1,10 @@
 # Transformers worker lock conflict
 
-- Status: `CONFLICT`
+- Status: `RESOLVED`
 - Detected: 2026-09-02 Asia/Shanghai
-- Owner decision: `REQUIRED`
+- Resolved: 2026-09-02 Asia/Shanghai
+- Owner decision: Option B; accept the candidate's resolved Transformers
+  5.16.1, validate it, and freeze the accepted environment and image digest.
 - Scope blocked: worker image acceptance, immutable image digest, three-model
   serving baseline, Harness end-to-end metrics, and worker capability claims.
 
@@ -55,3 +57,11 @@ Until the owner selects an option:
 Only an explicit owner selection of option A or B closes this conflict. Record
 the decision and exact implementation commit here, change the status to
 `RESOLVED`, and complete the affected acceptance gates before issuing claims.
+
+## Resolution
+
+The owner selected option B after confirming that no Transformers runtime
+failure had occurred: the only observed failure was the project's exact-version
+gate. FreeChat now expects Transformers 5.16.1 for the candidate worker. The
+candidate still requires GPU, protocol, model, and immutable-digest acceptance;
+this resolution does not itself verify any capability or performance claim.

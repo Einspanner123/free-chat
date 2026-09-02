@@ -35,7 +35,7 @@ uv run python -m tools.validate_worker_image \
 Acceptance requires all of the following in one run:
 
 - Python 3.12, PyTorch 2.13.0+cu130, CUDA runtime and `nvcc` 13.0,
-  Triton 3.7.1 and Transformers 5.14.1.
+  Triton 3.7.1 and Transformers 5.16.1.
 - A CUDA-visible physical GPU and a real FlashInfer top-k/top-p sampling kernel
   invocation, including synchronization so JIT/compiler failures are observable.
 - The authoritative fork revision in the OCI image label.
