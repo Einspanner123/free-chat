@@ -139,12 +139,36 @@ def create_app(
             "x-freechat-route-class": "agent-aware" if hints.confidence > 0.25 else "compatible",
         }
         if stream:
+            upstream = await _send_stream_request(
+                http_client, upstream_url, upstream_headers, body
+            )
+            media_type = upstream.headers.get(
+                "content-type", "text/event-stream"
+            ).split(";", 1)[0]
+            if upstream.is_error:
+                content = await upstream.aread()
+                status_code = upstream.status_code
+                await upstream.aclose()
+                return Response(
+                    content=content,
+                    status_code=status_code,
+                    media_type=media_type,
+                    headers=response_headers,
+                )
             return StreamingResponse(
-                _stream_upstream(http_client, upstream_url, upstream_headers, body),
-                media_type="text/event-stream",
+                _relay_upstream(upstream),
+                status_code=upstream.status_code,
+                media_type=media_type,
                 headers=response_headers,
             )
-        upstream = await http_client.post(upstream_url, headers=upstream_headers, json=body)
+        try:
+            upstream = await http_client.post(
+                upstream_url, headers=upstream_headers, json=body
+            )
+        except httpx.TimeoutException as error:
+            raise HTTPException(status_code=504, detail="worker request timed out") from error
+        except httpx.RequestError as error:
+            raise HTTPException(status_code=502, detail="worker request failed") from error
         media_type = upstream.headers.get("content-type", "application/json").split(";", 1)[0]
         return Response(
             content=upstream.content,
@@ -237,15 +261,24 @@ def _upstream_headers(
     }
 
 
-async def _stream_upstream(
+async def _send_stream_request(
     client: httpx.AsyncClient,
     url: str,
     headers: dict[str, str],
     body: dict[str, Any],
-) -> AsyncIterator[bytes]:
-    async with client.stream("POST", url, headers=headers, json=body) as response:
-        if response.is_error:
-            yield await response.aread()
-            return
-        async for chunk in response.aiter_bytes():
+) -> httpx.Response:
+    request = client.build_request("POST", url, headers=headers, json=body)
+    try:
+        return await client.send(request, stream=True)
+    except httpx.TimeoutException as error:
+        raise HTTPException(status_code=504, detail="worker stream timed out") from error
+    except httpx.RequestError as error:
+        raise HTTPException(status_code=502, detail="worker stream failed") from error
+
+
+async def _relay_upstream(response: httpx.Response) -> AsyncIterator[bytes]:
+    try:
+        async for chunk in response.aiter_raw():
             yield chunk
+    finally:
+        await response.aclose()

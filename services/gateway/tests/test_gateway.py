@@ -1,8 +1,22 @@
 import json
+from collections.abc import AsyncIterator
 
 import httpx
 from fastapi.testclient import TestClient
 from freechat_gateway import GatewayConfig, create_app
+
+
+class StaticAsyncStream(httpx.AsyncByteStream):
+    def __init__(self, chunks: list[bytes]) -> None:
+        self._chunks = chunks
+        self.closed = False
+
+    async def __aiter__(self) -> AsyncIterator[bytes]:
+        for chunk in self._chunks:
+            yield chunk
+
+    async def aclose(self) -> None:
+        self.closed = True
 
 
 def upstream(request: httpx.Request) -> httpx.Response:
@@ -164,3 +178,93 @@ def test_console_is_authenticated_and_never_fabricates_evidence() -> None:
         "metrics": [],
         "records": [],
     }
+
+
+def test_streaming_relays_sse_without_buffering_status_loss() -> None:
+    stream = StaticAsyncStream([b"data: first\n\n", b"data: [DONE]\n\n"])
+
+    def stream_upstream(request: httpx.Request) -> httpx.Response:
+        assert json.loads(request.content)["stream"] is True
+        return httpx.Response(
+            201,
+            headers={"content-type": "text/event-stream; charset=utf-8"},
+            stream=stream,
+        )
+
+    app = create_app(
+        GatewayConfig(api_keys={"tenant-a": "secret-key"}, cache_salt_secret=b"s" * 32),
+        transport=httpx.MockTransport(stream_upstream),
+    )
+    with TestClient(app) as test_client, test_client.stream(
+        "POST",
+        "/v1/responses",
+        headers={"x-api-key": "secret-key"},
+        json={"model": "local", "input": "hello", "stream": True},
+    ) as response:
+        payload = b"".join(response.iter_bytes())
+
+    assert response.status_code == 201
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert payload == b"data: first\n\ndata: [DONE]\n\n"
+    assert stream.closed is True
+
+
+def test_streaming_worker_error_preserves_http_status() -> None:
+    def failed_upstream(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            429,
+            headers={"content-type": "application/json"},
+            json={"error": {"message": "worker overloaded"}},
+        )
+
+    app = create_app(
+        GatewayConfig(api_keys={"tenant-a": "secret-key"}, cache_salt_secret=b"s" * 32),
+        transport=httpx.MockTransport(failed_upstream),
+    )
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/v1/chat/completions",
+            headers={"x-api-key": "secret-key"},
+            json={"model": "local", "messages": [], "stream": True},
+        )
+
+    assert response.status_code == 429
+    assert response.json() == {"error": {"message": "worker overloaded"}}
+
+
+def test_worker_transport_failure_returns_bad_gateway() -> None:
+    def unavailable(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("unavailable", request=request)
+
+    app = create_app(
+        GatewayConfig(api_keys={"tenant-a": "secret-key"}, cache_salt_secret=b"s" * 32),
+        transport=httpx.MockTransport(unavailable),
+    )
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/v1/responses",
+            headers={"x-api-key": "secret-key"},
+            json={"model": "local", "input": "hello"},
+        )
+
+    assert response.status_code == 502
+    assert response.json() == {"detail": "worker request failed"}
+
+
+def test_streaming_transport_failure_returns_bad_gateway_before_headers() -> None:
+    def unavailable(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("unavailable", request=request)
+
+    app = create_app(
+        GatewayConfig(api_keys={"tenant-a": "secret-key"}, cache_salt_secret=b"s" * 32),
+        transport=httpx.MockTransport(unavailable),
+    )
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/v1/responses",
+            headers={"x-api-key": "secret-key"},
+            json={"model": "local", "input": "hello", "stream": True},
+        )
+
+    assert response.status_code == 502
+    assert response.json() == {"detail": "worker stream failed"}
