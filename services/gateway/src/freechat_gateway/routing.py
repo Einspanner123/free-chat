@@ -12,6 +12,8 @@ from freechat_contracts import CandidateCost, RequestProfile, RouteDecision
 class SchedulerClient(Protocol):
     async def route(self, request: RequestProfile) -> RouteDecision: ...
 
+    async def renew(self, request: RequestProfile, decision: RouteDecision) -> None: ...
+
     async def release(self, request: RequestProfile, decision: RouteDecision) -> None: ...
 
     async def aclose(self) -> None: ...
@@ -55,6 +57,9 @@ class StaticSchedulerClient:
         return None
 
     async def release(self, request: RequestProfile, decision: RouteDecision) -> None:
+        del request, decision
+
+    async def renew(self, request: RequestProfile, decision: RouteDecision) -> None:
         del request, decision
 
 
@@ -154,6 +159,23 @@ class GrpcSchedulerClient:
         )
         if response.status != "released":
             raise RuntimeError(f"scheduler lease release failed: {response.status}")
+
+    async def renew(self, request: RequestProfile, decision: RouteDecision) -> None:
+        response = await self._stub.RenewLease(
+            control_pb2.LeaseRequest(
+                context=control_pb2.RequestContext(
+                    request_id=f"{request.request_id}:renew",
+                    idempotency_key=f"{request.request_id}:renew:{decision.decision_id}",
+                    tenant_id=request.tenant_id,
+                    schema_version=request.hints.schema_version,
+                ),
+                decision_id=decision.decision_id,
+                worker_id=decision.worker_id,
+                worker_generation=decision.worker_generation,
+            )
+        )
+        if response.status != "renewed":
+            raise RuntimeError(f"scheduler lease renewal failed: {response.status}")
 
 
 def _parse_rejections(entries: Any) -> dict[str, tuple[str, ...]]:

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
@@ -303,14 +304,42 @@ async def _relay_upstream(
     profile: RequestProfile,
     decision: RouteDecision,
 ) -> AsyncIterator[bytes]:
+    keepalive = asyncio.create_task(_renew_lease_loop(scheduler, profile, decision))
     try:
         async for chunk in response.aiter_raw():
             yield chunk
     finally:
+        keepalive.cancel()
         try:
-            await response.aclose()
+            with suppress(asyncio.CancelledError):
+                await keepalive
         finally:
-            await _release_route(scheduler, profile, decision)
+            try:
+                await response.aclose()
+            finally:
+                await _release_route(scheduler, profile, decision)
+
+
+async def _renew_lease_loop(
+    scheduler: SchedulerClient,
+    profile: RequestProfile,
+    decision: RouteDecision,
+) -> None:
+    interval_seconds = max(0.25, decision.lease_ttl_ms / 3_000)
+    while True:
+        await asyncio.sleep(interval_seconds)
+        try:
+            await scheduler.renew(profile, decision)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            LOGGER.exception(
+                "scheduler lease renewal failed",
+                extra={
+                    "decision_id": decision.decision_id,
+                    "request_id": profile.request_id,
+                },
+            )
 
 
 async def _release_route(

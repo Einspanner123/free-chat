@@ -1,3 +1,4 @@
+import asyncio
 import json
 from collections.abc import AsyncIterator
 
@@ -9,12 +10,15 @@ from freechat_gateway.routing import StaticSchedulerClient
 
 
 class StaticAsyncStream(httpx.AsyncByteStream):
-    def __init__(self, chunks: list[bytes]) -> None:
+    def __init__(self, chunks: list[bytes], *, delay_seconds: float = 0) -> None:
         self._chunks = chunks
+        self._delay_seconds = delay_seconds
         self.closed = False
 
     async def __aiter__(self) -> AsyncIterator[bytes]:
         for chunk in self._chunks:
+            if self._delay_seconds:
+                await asyncio.sleep(self._delay_seconds)
             yield chunk
 
     async def aclose(self) -> None:
@@ -22,12 +26,18 @@ class StaticAsyncStream(httpx.AsyncByteStream):
 
 
 class RecordingScheduler:
-    def __init__(self) -> None:
+    def __init__(self, *, lease_ttl_ms: int = 30_000) -> None:
         self._delegate = StaticSchedulerClient("worker", "http://worker:8000")
+        self._lease_ttl_ms = lease_ttl_ms
+        self.renewals: list[tuple[RequestProfile, RouteDecision]] = []
         self.releases: list[tuple[RequestProfile, RouteDecision]] = []
 
     async def route(self, request: RequestProfile) -> RouteDecision:
-        return await self._delegate.route(request)
+        decision = await self._delegate.route(request)
+        return decision.model_copy(update={"lease_ttl_ms": self._lease_ttl_ms})
+
+    async def renew(self, request: RequestProfile, decision: RouteDecision) -> None:
+        self.renewals.append((request, decision))
 
     async def release(self, request: RequestProfile, decision: RouteDecision) -> None:
         self.releases.append((request, decision))
@@ -300,6 +310,37 @@ def test_streaming_transport_failure_returns_bad_gateway_before_headers() -> Non
     assert response.status_code == 502
     assert response.json() == {"detail": "worker stream failed"}
     assert len(scheduler.releases) == 1
+
+
+def test_long_stream_renews_lease_until_response_finishes() -> None:
+    stream = StaticAsyncStream(
+        [b"data: first\n\n", b"data: [DONE]\n\n"], delay_seconds=0.4
+    )
+    scheduler = RecordingScheduler(lease_ttl_ms=1_000)
+
+    def slow_upstream(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/event-stream"},
+            stream=stream,
+        )
+
+    app = create_app(
+        GatewayConfig(api_keys={"tenant-a": "secret-key"}, cache_salt_secret=b"s" * 32),
+        scheduler=scheduler,
+        transport=httpx.MockTransport(slow_upstream),
+    )
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/v1/responses",
+            headers={"x-api-key": "secret-key"},
+            json={"model": "local", "input": "hello", "stream": True},
+        )
+
+    assert response.status_code == 200
+    assert len(scheduler.renewals) >= 1
+    assert len(scheduler.releases) == 1
+    assert stream.closed is True
 
 
 def test_non_streaming_success_releases_route_once() -> None:
