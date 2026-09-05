@@ -19,7 +19,9 @@ lifecycle events use NATS JetStream; metrics and traces use OpenTelemetry.
 - Multi-tenant cache-salt derivation.
 - Gateway request normalization and streaming proxy primitives.
 - Synthetic control-plane validation up to 64 independent GPU workers.
-- Equivalent lifecycle adapters for OpenAI Agents SDK, LangGraph, OpenCode and OpenHands.
+- A shared lifecycle schema for four Harnesses, framework-native contract tests
+  for OpenAI Agents SDK and LangGraph, and replay-safe OpenCode/OpenHands event
+  bridges. Real-Harness performance remains unverified.
 - etcd-compatible compare-and-swap state, JetStream subject validation and Parquet trace artifacts.
 - Authenticated five-page infrastructure console with digest-pinned container builds.
 
