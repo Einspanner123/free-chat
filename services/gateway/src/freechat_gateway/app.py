@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -10,12 +11,14 @@ from uuid import uuid4
 import httpx
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
-from freechat_contracts import AgentHints, RequestProfile, derive_cache_salt
+from freechat_contracts import AgentHints, RequestProfile, RouteDecision, derive_cache_salt
 
 from freechat_gateway.auth import APIKeyAuthenticator, AuthContext
 from freechat_gateway.console import ConsoleReadModel, EmptyConsoleReadModel
 from freechat_gateway.hints import estimate_input_tokens, extract_agent_hints
 from freechat_gateway.routing import SchedulerClient, StaticSchedulerClient
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,9 +142,13 @@ def create_app(
             "x-freechat-route-class": "agent-aware" if hints.confidence > 0.25 else "compatible",
         }
         if stream:
-            upstream = await _send_stream_request(
-                http_client, upstream_url, upstream_headers, body
-            )
+            try:
+                upstream = await _send_stream_request(
+                    http_client, upstream_url, upstream_headers, body
+                )
+            except HTTPException:
+                await _release_route(scheduler_client, profile, decision)
+                raise
             media_type = upstream.headers.get(
                 "content-type", "text/event-stream"
             ).split(";", 1)[0]
@@ -149,6 +156,7 @@ def create_app(
                 content = await upstream.aread()
                 status_code = upstream.status_code
                 await upstream.aclose()
+                await _release_route(scheduler_client, profile, decision)
                 return Response(
                     content=content,
                     status_code=status_code,
@@ -156,26 +164,38 @@ def create_app(
                     headers=response_headers,
                 )
             return StreamingResponse(
-                _relay_upstream(upstream),
+                _relay_upstream(
+                    upstream,
+                    scheduler=scheduler_client,
+                    profile=profile,
+                    decision=decision,
+                ),
                 status_code=upstream.status_code,
                 media_type=media_type,
                 headers=response_headers,
             )
         try:
-            upstream = await http_client.post(
-                upstream_url, headers=upstream_headers, json=body
+            try:
+                upstream = await http_client.post(
+                    upstream_url, headers=upstream_headers, json=body
+                )
+            except httpx.TimeoutException as error:
+                raise HTTPException(
+                    status_code=504, detail="worker request timed out"
+                ) from error
+            except httpx.RequestError as error:
+                raise HTTPException(status_code=502, detail="worker request failed") from error
+            media_type = upstream.headers.get("content-type", "application/json").split(
+                ";", 1
+            )[0]
+            return Response(
+                content=upstream.content,
+                status_code=upstream.status_code,
+                media_type=media_type,
+                headers=response_headers,
             )
-        except httpx.TimeoutException as error:
-            raise HTTPException(status_code=504, detail="worker request timed out") from error
-        except httpx.RequestError as error:
-            raise HTTPException(status_code=502, detail="worker request failed") from error
-        media_type = upstream.headers.get("content-type", "application/json").split(";", 1)[0]
-        return Response(
-            content=upstream.content,
-            status_code=upstream.status_code,
-            media_type=media_type,
-            headers=response_headers,
-        )
+        finally:
+            await _release_route(scheduler_client, profile, decision)
 
     @app.post("/v1/chat/completions")
     async def chat_completions(
@@ -276,9 +296,35 @@ async def _send_stream_request(
         raise HTTPException(status_code=502, detail="worker stream failed") from error
 
 
-async def _relay_upstream(response: httpx.Response) -> AsyncIterator[bytes]:
+async def _relay_upstream(
+    response: httpx.Response,
+    *,
+    scheduler: SchedulerClient,
+    profile: RequestProfile,
+    decision: RouteDecision,
+) -> AsyncIterator[bytes]:
     try:
         async for chunk in response.aiter_raw():
             yield chunk
     finally:
-        await response.aclose()
+        try:
+            await response.aclose()
+        finally:
+            await _release_route(scheduler, profile, decision)
+
+
+async def _release_route(
+    scheduler: SchedulerClient,
+    profile: RequestProfile,
+    decision: RouteDecision,
+) -> None:
+    try:
+        await scheduler.release(profile, decision)
+    except Exception:
+        LOGGER.exception(
+            "scheduler lease release failed",
+            extra={
+                "decision_id": decision.decision_id,
+                "request_id": profile.request_id,
+            },
+        )

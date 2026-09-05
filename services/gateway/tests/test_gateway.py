@@ -3,7 +3,9 @@ from collections.abc import AsyncIterator
 
 import httpx
 from fastapi.testclient import TestClient
+from freechat_contracts import RequestProfile, RouteDecision
 from freechat_gateway import GatewayConfig, create_app
+from freechat_gateway.routing import StaticSchedulerClient
 
 
 class StaticAsyncStream(httpx.AsyncByteStream):
@@ -17,6 +19,21 @@ class StaticAsyncStream(httpx.AsyncByteStream):
 
     async def aclose(self) -> None:
         self.closed = True
+
+
+class RecordingScheduler:
+    def __init__(self) -> None:
+        self._delegate = StaticSchedulerClient("worker", "http://worker:8000")
+        self.releases: list[tuple[RequestProfile, RouteDecision]] = []
+
+    async def route(self, request: RequestProfile) -> RouteDecision:
+        return await self._delegate.route(request)
+
+    async def release(self, request: RequestProfile, decision: RouteDecision) -> None:
+        self.releases.append((request, decision))
+
+    async def aclose(self) -> None:
+        return None
 
 
 def upstream(request: httpx.Request) -> httpx.Response:
@@ -182,6 +199,7 @@ def test_console_is_authenticated_and_never_fabricates_evidence() -> None:
 
 def test_streaming_relays_sse_without_buffering_status_loss() -> None:
     stream = StaticAsyncStream([b"data: first\n\n", b"data: [DONE]\n\n"])
+    scheduler = RecordingScheduler()
 
     def stream_upstream(request: httpx.Request) -> httpx.Response:
         assert json.loads(request.content)["stream"] is True
@@ -193,6 +211,7 @@ def test_streaming_relays_sse_without_buffering_status_loss() -> None:
 
     app = create_app(
         GatewayConfig(api_keys={"tenant-a": "secret-key"}, cache_salt_secret=b"s" * 32),
+        scheduler=scheduler,
         transport=httpx.MockTransport(stream_upstream),
     )
     with TestClient(app) as test_client, test_client.stream(
@@ -207,9 +226,12 @@ def test_streaming_relays_sse_without_buffering_status_loss() -> None:
     assert response.headers["content-type"].startswith("text/event-stream")
     assert payload == b"data: first\n\ndata: [DONE]\n\n"
     assert stream.closed is True
+    assert len(scheduler.releases) == 1
 
 
 def test_streaming_worker_error_preserves_http_status() -> None:
+    scheduler = RecordingScheduler()
+
     def failed_upstream(_: httpx.Request) -> httpx.Response:
         return httpx.Response(
             429,
@@ -219,6 +241,7 @@ def test_streaming_worker_error_preserves_http_status() -> None:
 
     app = create_app(
         GatewayConfig(api_keys={"tenant-a": "secret-key"}, cache_salt_secret=b"s" * 32),
+        scheduler=scheduler,
         transport=httpx.MockTransport(failed_upstream),
     )
     with TestClient(app) as test_client:
@@ -230,14 +253,18 @@ def test_streaming_worker_error_preserves_http_status() -> None:
 
     assert response.status_code == 429
     assert response.json() == {"error": {"message": "worker overloaded"}}
+    assert len(scheduler.releases) == 1
 
 
 def test_worker_transport_failure_returns_bad_gateway() -> None:
+    scheduler = RecordingScheduler()
+
     def unavailable(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("unavailable", request=request)
 
     app = create_app(
         GatewayConfig(api_keys={"tenant-a": "secret-key"}, cache_salt_secret=b"s" * 32),
+        scheduler=scheduler,
         transport=httpx.MockTransport(unavailable),
     )
     with TestClient(app) as test_client:
@@ -249,14 +276,18 @@ def test_worker_transport_failure_returns_bad_gateway() -> None:
 
     assert response.status_code == 502
     assert response.json() == {"detail": "worker request failed"}
+    assert len(scheduler.releases) == 1
 
 
 def test_streaming_transport_failure_returns_bad_gateway_before_headers() -> None:
+    scheduler = RecordingScheduler()
+
     def unavailable(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("unavailable", request=request)
 
     app = create_app(
         GatewayConfig(api_keys={"tenant-a": "secret-key"}, cache_salt_secret=b"s" * 32),
+        scheduler=scheduler,
         transport=httpx.MockTransport(unavailable),
     )
     with TestClient(app) as test_client:
@@ -268,3 +299,25 @@ def test_streaming_transport_failure_returns_bad_gateway_before_headers() -> Non
 
     assert response.status_code == 502
     assert response.json() == {"detail": "worker stream failed"}
+    assert len(scheduler.releases) == 1
+
+
+def test_non_streaming_success_releases_route_once() -> None:
+    scheduler = RecordingScheduler()
+    app = create_app(
+        GatewayConfig(api_keys={"tenant-a": "secret-key"}, cache_salt_secret=b"s" * 32),
+        scheduler=scheduler,
+        transport=httpx.MockTransport(upstream),
+    )
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/v1/chat/completions",
+            headers={"x-api-key": "secret-key", "x-request-id": "request-1"},
+            json={"model": "local", "messages": []},
+        )
+
+    assert response.status_code == 200
+    assert len(scheduler.releases) == 1
+    profile, decision = scheduler.releases[0]
+    assert profile.request_id == "request-1"
+    assert decision.request_id == "request-1"

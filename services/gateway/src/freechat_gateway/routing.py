@@ -12,6 +12,8 @@ from freechat_contracts import CandidateCost, RequestProfile, RouteDecision
 class SchedulerClient(Protocol):
     async def route(self, request: RequestProfile) -> RouteDecision: ...
 
+    async def release(self, request: RequestProfile, decision: RouteDecision) -> None: ...
+
     async def aclose(self) -> None: ...
 
 
@@ -51,6 +53,9 @@ class StaticSchedulerClient:
 
     async def aclose(self) -> None:
         return None
+
+    async def release(self, request: RequestProfile, decision: RouteDecision) -> None:
+        del request, decision
 
 
 class GrpcSchedulerClient:
@@ -132,6 +137,23 @@ class GrpcSchedulerClient:
             strategy=response.strategy or "lifecycle-aware",
             lease_ttl_ms=response.lease_ttl_ms,
         )
+
+    async def release(self, request: RequestProfile, decision: RouteDecision) -> None:
+        response = await self._stub.Release(
+            control_pb2.LeaseRequest(
+                context=control_pb2.RequestContext(
+                    request_id=f"{request.request_id}:release",
+                    idempotency_key=f"{request.request_id}:release:{decision.decision_id}",
+                    tenant_id=request.tenant_id,
+                    schema_version=request.hints.schema_version,
+                ),
+                decision_id=decision.decision_id,
+                worker_id=decision.worker_id,
+                worker_generation=decision.worker_generation,
+            )
+        )
+        if response.status != "released":
+            raise RuntimeError(f"scheduler lease release failed: {response.status}")
 
 
 def _parse_rejections(entries: Any) -> dict[str, tuple[str, ...]]:
