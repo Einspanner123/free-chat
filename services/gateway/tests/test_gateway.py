@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 
 import httpx
 from fastapi.testclient import TestClient
-from freechat_contracts import RequestProfile, RouteDecision
+from freechat_contracts import PredictiveOffloadDirective, RequestProfile, RouteDecision
 from freechat_gateway import GatewayConfig, create_app
 from freechat_gateway.routing import StaticSchedulerClient
 
@@ -26,15 +26,24 @@ class StaticAsyncStream(httpx.AsyncByteStream):
 
 
 class RecordingScheduler:
-    def __init__(self, *, lease_ttl_ms: int = 30_000) -> None:
+    def __init__(
+        self,
+        *,
+        lease_ttl_ms: int = 30_000,
+        kv_transfer: PredictiveOffloadDirective | None = None,
+    ) -> None:
         self._delegate = StaticSchedulerClient("worker", "http://worker:8000")
         self._lease_ttl_ms = lease_ttl_ms
+        self._kv_transfer = kv_transfer
         self.renewals: list[tuple[RequestProfile, RouteDecision]] = []
         self.releases: list[tuple[RequestProfile, RouteDecision]] = []
 
     async def route(self, request: RequestProfile) -> RouteDecision:
         decision = await self._delegate.route(request)
-        return decision.model_copy(update={"lease_ttl_ms": self._lease_ttl_ms})
+        updates: dict[str, object] = {"lease_ttl_ms": self._lease_ttl_ms}
+        if self._kv_transfer is not None:
+            updates["kv_transfer"] = self._kv_transfer
+        return decision.model_copy(update=updates)
 
     async def renew(self, request: RequestProfile, decision: RouteDecision) -> None:
         self.renewals.append((request, decision))
@@ -53,6 +62,7 @@ def upstream(request: httpx.Request) -> httpx.Response:
     assert body["agent_lifecycle"]["tenant_id"] == "tenant-a"
     assert body["agent_lifecycle"]["worker_generation"] == 1
     assert body["agent_lifecycle"]["cache_generation"] == 1
+    assert "kv_transfer_params" not in body
     assert request.headers["x-freechat-internal-tenant"] == "tenant-a"
     return httpx.Response(200, json={"id": "completion", "model": body["model"]})
 
@@ -179,6 +189,57 @@ def test_client_cannot_forge_internal_agent_lifecycle() -> None:
         },
     )
     assert response.status_code == 200
+
+
+def test_client_cannot_forge_internal_kv_transfer_directive() -> None:
+    response = client().post(
+        "/v1/chat/completions",
+        headers={"x-api-key": "secret-key"},
+        json={
+            "model": "Qwen/Qwen2.5-7B-Instruct",
+            "messages": [{"role": "user", "content": "hello"}],
+            "kv_transfer_params": {"max_offload_tokens": 1_000_000},
+        },
+    )
+    assert response.status_code == 400
+    assert "trusted control plane" in response.json()["detail"]
+
+
+def test_scheduler_directive_is_forwarded_to_native_vllm_field() -> None:
+    scheduler = RecordingScheduler(
+        kv_transfer=PredictiveOffloadDirective(
+            applicable=True,
+            enabled=True,
+            max_offload_tokens=128,
+            estimated_kv_bytes=1024,
+            predicted_reuse_probability=1.0,
+            predicted_eviction_probability=1.0,
+            estimated_recompute_ms=10,
+            estimated_store_ms=1,
+            estimated_restore_ms=1,
+            expected_net_benefit_ms=8,
+            reason="expected_recompute_exceeds_transfer",
+        )
+    )
+
+    def assert_upstream(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        assert body["kv_transfer_params"] == {"max_offload_tokens": 128}
+        return httpx.Response(200, json={"id": "completion"})
+
+    app = create_app(
+        GatewayConfig(api_keys={"tenant-a": "secret-key"}, cache_salt_secret=b"k" * 32),
+        scheduler=scheduler,
+        transport=httpx.MockTransport(assert_upstream),
+    )
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/v1/chat/completions",
+            headers={"x-api-key": "secret-key"},
+            json={"model": "local", "messages": [{"role": "user", "content": "hi"}]},
+        )
+    assert response.status_code == 200
+    assert response.headers["x-freechat-kv-offload"] == "enabled"
 
 
 def test_missing_credentials_is_rejected() -> None:

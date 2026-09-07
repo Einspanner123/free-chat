@@ -105,6 +105,7 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
                 "worker_generation": decision.worker_generation,
                 "topology_generation": decision.topology_generation,
                 "strategy": decision.strategy,
+                "kv_transfer": decision.kv_transfer.model_dump(),
             },
         )
         return _decision_message(decision)
@@ -359,6 +360,23 @@ def _decision_message(decision: RouteDecision) -> control_pb2.RouteDecision:
         lease_ttl_ms=decision.lease_ttl_ms,
         topology_generation=decision.topology_generation,
         strategy=decision.strategy,
+        kv_transfer=control_pb2.PredictiveOffloadDirective(
+            applicable=decision.kv_transfer.applicable,
+            enabled=decision.kv_transfer.enabled,
+            max_offload_tokens=decision.kv_transfer.max_offload_tokens,
+            estimated_kv_bytes=decision.kv_transfer.estimated_kv_bytes,
+            predicted_reuse_probability=(
+                decision.kv_transfer.predicted_reuse_probability
+            ),
+            predicted_eviction_probability=(
+                decision.kv_transfer.predicted_eviction_probability
+            ),
+            estimated_recompute_ms=decision.kv_transfer.estimated_recompute_ms,
+            estimated_store_ms=decision.kv_transfer.estimated_store_ms,
+            estimated_restore_ms=decision.kv_transfer.estimated_restore_ms,
+            expected_net_benefit_ms=decision.kv_transfer.expected_net_benefit_ms,
+            reason=decision.kv_transfer.reason,
+        ),
     )
 
 

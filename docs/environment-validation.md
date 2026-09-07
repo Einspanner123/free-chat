@@ -160,6 +160,22 @@ end-to-end performance improvement. Raw request, Prometheus and container-log
 artifacts are under `evidence/native-offload/20260907/` with SHA-256 values in
 that directory's manifest.
 
+### Predictive offload control chain
+
+On 2026-09-08, the current Scheduler and Gateway were connected to the fork
+worker on the otherwise idle A5000. The Scheduler received explicit KV-pool
+capacity/free-byte telemetry rather than inferring pressure from whole-device
+VRAM. It enabled native offload for an Agent target request, forced zero
+offload tokens for eight unrelated pressure requests, and enabled it again for
+the target Resume request. vLLM counters increased by 27,918,336 bytes stored
+GPU-to-CPU and 28,114,944 bytes loaded CPU-to-GPU.
+
+The result under `evidence/predictive-offload/20260908/` validates the trusted
+control chain and real data movement only. It is not a paired Harness benchmark,
+does not validate the supplied throughput/bandwidth estimates, and does not
+justify an end-to-end performance claim. The exact post-Tool-Wait fork API
+remains deferred until predictive waste and missed-opportunity baselines exist.
+
 ## Control-plane recovery integration
 
 On workstation, the digest-pinned Compose services started a real etcd 3.6.5,

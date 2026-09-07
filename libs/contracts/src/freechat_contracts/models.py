@@ -143,6 +143,7 @@ class ModelCapability(BaseModel):
     pipeline_parallel_size: int = Field(default=1, ge=1)
     supports_prefix_cache: bool = True
     supports_kv_offload: bool = False
+    kv_bytes_per_token: int = Field(default=0, ge=0)
     supports_tool_calling: bool = True
 
 
@@ -174,12 +175,27 @@ class WorkerTelemetry(BaseModel):
     queue_depth: int = Field(default=0, ge=0)
     active_requests: int = Field(default=0, ge=0)
     free_vram_bytes: int = Field(ge=0)
+    kv_cache_capacity_bytes: int | None = Field(default=None, gt=0)
+    kv_cache_free_bytes: int | None = Field(default=None, ge=0)
     cached_prefixes: frozenset[str] = Field(default_factory=frozenset)
     estimated_prefill_tokens_per_second: float = Field(default=1.0, gt=0)
     estimated_decode_tokens_per_second: float = Field(default=1.0, gt=0)
     network_rtt_ms: float = Field(default=0.0, ge=0)
     network_bandwidth_bytes_per_second: float = Field(default=1.0, gt=0)
     cache_load_bytes_per_second: float = Field(default=1.0, gt=0)
+    cache_store_bytes_per_second: float | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def validate_kv_cache_capacity(self) -> WorkerTelemetry:
+        if (self.kv_cache_capacity_bytes is None) != (self.kv_cache_free_bytes is None):
+            raise ValueError("KV cache capacity and free bytes must be reported together")
+        if (
+            self.kv_cache_capacity_bytes is not None
+            and self.kv_cache_free_bytes is not None
+            and self.kv_cache_free_bytes > self.kv_cache_capacity_bytes
+        ):
+            raise ValueError("KV cache free bytes cannot exceed capacity")
+        return self
 
 
 class RequestProfile(BaseModel):
@@ -212,6 +228,34 @@ class CandidateCost(BaseModel):
     total_ms: float
 
 
+class PredictiveOffloadDirective(BaseModel):
+    """Scheduler-owned instruction consumed by the trusted Gateway/worker path."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    applicable: bool = False
+    enabled: bool = False
+    max_offload_tokens: int = Field(default=0, ge=0)
+    estimated_kv_bytes: int = Field(default=0, ge=0)
+    predicted_reuse_probability: Probability = 0.0
+    predicted_eviction_probability: Probability = 0.0
+    estimated_recompute_ms: float = Field(default=0.0, ge=0)
+    estimated_store_ms: float = Field(default=0.0, ge=0)
+    estimated_restore_ms: float = Field(default=0.0, ge=0)
+    expected_net_benefit_ms: float = 0.0
+    reason: str = Field(min_length=1, max_length=128)
+
+    @model_validator(mode="after")
+    def validate_enabled_directive(self) -> PredictiveOffloadDirective:
+        if self.enabled and not self.applicable:
+            raise ValueError("enabled offload must be applicable to the selected worker")
+        if self.enabled and (self.max_offload_tokens == 0 or self.estimated_kv_bytes == 0):
+            raise ValueError("enabled offload requires tokens and estimated KV bytes")
+        if not self.enabled and self.max_offload_tokens != 0:
+            raise ValueError("disabled offload must set max_offload_tokens to zero")
+        return self
+
+
 class RouteDecision(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -226,6 +270,9 @@ class RouteDecision(BaseModel):
     topology_generation: int
     strategy: str = "lifecycle-aware"
     lease_ttl_ms: int = Field(default=30_000, ge=1_000)
+    kv_transfer: PredictiveOffloadDirective = Field(
+        default_factory=lambda: PredictiveOffloadDirective(reason="not_evaluated")
+    )
 
 
 class CacheEvent(BaseModel):

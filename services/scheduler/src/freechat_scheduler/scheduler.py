@@ -6,6 +6,8 @@ from enum import StrEnum
 from freechat_contracts import (
     CandidateCost,
     HintSource,
+    Lifecycle,
+    PredictiveOffloadDirective,
     RequestProfile,
     RouteDecision,
 )
@@ -35,6 +37,8 @@ class CostWeights:
     deadline_risk_weight: float = 1_000.0
     explicit_affinity_credit_ms: float = 250.0
     inferred_affinity_credit_ms: float = 100.0
+    kv_eviction_high_watermark: float = 0.80
+    kv_eviction_wait_horizon_ms: int = 60_000
 
 
 class Scheduler:
@@ -80,6 +84,11 @@ class Scheduler:
             for item in eligible
             if item.capabilities.worker_id == selected.worker_id
         )
+        selected_worker = next(
+            item
+            for item in eligible
+            if item.capabilities.worker_id == selected.worker_id
+        )
         return RouteDecision(
             request_id=request.request_id,
             worker_id=worker_caps.worker_id,
@@ -90,6 +99,102 @@ class Scheduler:
             rejected=rejected,
             topology_generation=topology_generation,
             strategy=self._strategy,
+            kv_transfer=self._predictive_offload(request, selected_worker),
+        )
+
+    def _predictive_offload(
+        self,
+        request: RequestProfile,
+        worker: WorkerSnapshot,
+    ) -> PredictiveOffloadDirective:
+        model = next(
+            item for item in worker.capabilities.models if item.model_id == request.model_id
+        )
+        if not model.supports_kv_offload:
+            return PredictiveOffloadDirective(reason="worker_model_lacks_kv_offload")
+        if self._strategy is not RoutingStrategy.LIFECYCLE_AWARE:
+            return PredictiveOffloadDirective(
+                applicable=True,
+                reason="strategy_does_not_authorize_offload",
+            )
+        hints = request.hints
+        if not hints.allow_kv_offload:
+            return PredictiveOffloadDirective(
+                applicable=True,
+                reason="offload_forbidden_by_hints",
+            )
+        if hints.lifecycle in {Lifecycle.TERMINAL, Lifecycle.CANCELLED}:
+            return PredictiveOffloadDirective(
+                applicable=True,
+                reason="terminal_lifecycle",
+            )
+        estimated_kv_bytes = request.estimated_kv_bytes or (
+            request.input_tokens * model.kv_bytes_per_token
+        )
+        if request.input_tokens == 0 or estimated_kv_bytes == 0:
+            return PredictiveOffloadDirective(
+                applicable=True,
+                reason="missing_kv_size_estimate",
+            )
+
+        telemetry = worker.telemetry
+        if telemetry.cache_store_bytes_per_second is None:
+            return PredictiveOffloadDirective(
+                applicable=True,
+                estimated_kv_bytes=estimated_kv_bytes,
+                reason="missing_cache_store_bandwidth",
+            )
+        reuse_probability = hints.expected_reuse_probability
+        if hints.source is HintSource.INFERRED:
+            reuse_probability *= hints.confidence
+        pressure_risk = 0.0
+        if telemetry.kv_cache_capacity_bytes is not None:
+            assert telemetry.kv_cache_free_bytes is not None
+            cache_used_ratio = 1.0 - (
+                telemetry.kv_cache_free_bytes / telemetry.kv_cache_capacity_bytes
+            )
+            watermark = self._weights.kv_eviction_high_watermark
+            pressure_risk = max(
+                0.0,
+                min(1.0, (cache_used_ratio - watermark) / (1.0 - watermark)),
+            )
+        wait_risk = 0.0
+        if hints.expected_resume_ms is not None:
+            wait_risk = min(
+                hints.expected_resume_ms / self._weights.kv_eviction_wait_horizon_ms,
+                1.0,
+            )
+        eviction_probability = max(pressure_risk, wait_risk)
+        recompute_ms = (
+            request.input_tokens
+            / telemetry.estimated_prefill_tokens_per_second
+            * 1_000
+        )
+        store_ms = estimated_kv_bytes / telemetry.cache_store_bytes_per_second * 1_000
+        restore_ms = (
+            estimated_kv_bytes / telemetry.cache_load_bytes_per_second * 1_000
+        )
+        expected_avoided_recompute_ms = (
+            reuse_probability * eviction_probability * recompute_ms
+        )
+        expected_transfer_ms = store_ms + (
+            reuse_probability * eviction_probability * restore_ms
+        )
+        net_benefit_ms = expected_avoided_recompute_ms - expected_transfer_ms
+        enabled = reuse_probability > 0 and eviction_probability > 0 and net_benefit_ms > 0
+        reason = "expected_recompute_exceeds_transfer" if enabled else "transfer_cost_not_recovered"
+        return PredictiveOffloadDirective(
+            applicable=True,
+            enabled=enabled,
+            max_offload_tokens=request.input_tokens if enabled else 0,
+            estimated_kv_bytes=estimated_kv_bytes,
+            predicted_reuse_probability=reuse_probability,
+            predicted_eviction_probability=eviction_probability,
+            estimated_recompute_ms=recompute_ms,
+            estimated_store_ms=store_ms,
+            estimated_restore_ms=restore_ms,
+            expected_net_benefit_ms=net_benefit_ms,
+            reason=reason,
         )
 
     def _order_workers(
@@ -171,7 +276,9 @@ class Scheduler:
         cache_hit = request.cache_key is not None and request.cache_key in telemetry.cached_prefixes
         cache_ms = 0.0
         if request.estimated_kv_bytes and not cache_hit:
-            cache_ms = request.estimated_kv_bytes / telemetry.cache_load_bytes_per_second * 1_000
+            cache_ms = (
+                request.estimated_kv_bytes / telemetry.cache_load_bytes_per_second * 1_000
+            )
         remote = request.local_node_id is not None and caps.node_id != request.local_node_id
         network_ms = telemetry.network_rtt_ms if remote else 0.0
         cold_start_ms = 0.0 if model_loaded else self._weights.cold_model_ms

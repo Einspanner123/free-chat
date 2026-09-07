@@ -123,7 +123,7 @@ class CostBreakdown(_message.Message):
     def __init__(self, queue_ms: _Optional[float] = ..., prefill_ms: _Optional[float] = ..., decode_ms: _Optional[float] = ..., cache_ms: _Optional[float] = ..., network_ms: _Optional[float] = ..., cold_start_ms: _Optional[float] = ..., deadline_risk: _Optional[float] = ..., eviction_externality: _Optional[float] = ..., total: _Optional[float] = ..., affinity_credit_ms: _Optional[float] = ...) -> None: ...
 
 class RouteDecision(_message.Message):
-    __slots__ = ("decision_id", "worker_id", "endpoint", "worker_generation", "cost", "rejected_candidates", "lease_ttl_ms", "topology_generation", "strategy")
+    __slots__ = ("decision_id", "worker_id", "endpoint", "worker_generation", "cost", "rejected_candidates", "lease_ttl_ms", "topology_generation", "strategy", "kv_transfer")
     DECISION_ID_FIELD_NUMBER: _ClassVar[int]
     WORKER_ID_FIELD_NUMBER: _ClassVar[int]
     ENDPOINT_FIELD_NUMBER: _ClassVar[int]
@@ -133,6 +133,7 @@ class RouteDecision(_message.Message):
     LEASE_TTL_MS_FIELD_NUMBER: _ClassVar[int]
     TOPOLOGY_GENERATION_FIELD_NUMBER: _ClassVar[int]
     STRATEGY_FIELD_NUMBER: _ClassVar[int]
+    KV_TRANSFER_FIELD_NUMBER: _ClassVar[int]
     decision_id: str
     worker_id: str
     endpoint: str
@@ -142,7 +143,34 @@ class RouteDecision(_message.Message):
     lease_ttl_ms: int
     topology_generation: int
     strategy: str
-    def __init__(self, decision_id: _Optional[str] = ..., worker_id: _Optional[str] = ..., endpoint: _Optional[str] = ..., worker_generation: _Optional[int] = ..., cost: _Optional[_Union[CostBreakdown, _Mapping]] = ..., rejected_candidates: _Optional[_Iterable[str]] = ..., lease_ttl_ms: _Optional[int] = ..., topology_generation: _Optional[int] = ..., strategy: _Optional[str] = ...) -> None: ...
+    kv_transfer: PredictiveOffloadDirective
+    def __init__(self, decision_id: _Optional[str] = ..., worker_id: _Optional[str] = ..., endpoint: _Optional[str] = ..., worker_generation: _Optional[int] = ..., cost: _Optional[_Union[CostBreakdown, _Mapping]] = ..., rejected_candidates: _Optional[_Iterable[str]] = ..., lease_ttl_ms: _Optional[int] = ..., topology_generation: _Optional[int] = ..., strategy: _Optional[str] = ..., kv_transfer: _Optional[_Union[PredictiveOffloadDirective, _Mapping]] = ...) -> None: ...
+
+class PredictiveOffloadDirective(_message.Message):
+    __slots__ = ("enabled", "max_offload_tokens", "estimated_kv_bytes", "predicted_reuse_probability", "predicted_eviction_probability", "estimated_recompute_ms", "estimated_store_ms", "estimated_restore_ms", "expected_net_benefit_ms", "reason", "applicable")
+    ENABLED_FIELD_NUMBER: _ClassVar[int]
+    MAX_OFFLOAD_TOKENS_FIELD_NUMBER: _ClassVar[int]
+    ESTIMATED_KV_BYTES_FIELD_NUMBER: _ClassVar[int]
+    PREDICTED_REUSE_PROBABILITY_FIELD_NUMBER: _ClassVar[int]
+    PREDICTED_EVICTION_PROBABILITY_FIELD_NUMBER: _ClassVar[int]
+    ESTIMATED_RECOMPUTE_MS_FIELD_NUMBER: _ClassVar[int]
+    ESTIMATED_STORE_MS_FIELD_NUMBER: _ClassVar[int]
+    ESTIMATED_RESTORE_MS_FIELD_NUMBER: _ClassVar[int]
+    EXPECTED_NET_BENEFIT_MS_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    APPLICABLE_FIELD_NUMBER: _ClassVar[int]
+    enabled: bool
+    max_offload_tokens: int
+    estimated_kv_bytes: int
+    predicted_reuse_probability: float
+    predicted_eviction_probability: float
+    estimated_recompute_ms: float
+    estimated_store_ms: float
+    estimated_restore_ms: float
+    expected_net_benefit_ms: float
+    reason: str
+    applicable: bool
+    def __init__(self, enabled: _Optional[bool] = ..., max_offload_tokens: _Optional[int] = ..., estimated_kv_bytes: _Optional[int] = ..., predicted_reuse_probability: _Optional[float] = ..., predicted_eviction_probability: _Optional[float] = ..., estimated_recompute_ms: _Optional[float] = ..., estimated_store_ms: _Optional[float] = ..., estimated_restore_ms: _Optional[float] = ..., expected_net_benefit_ms: _Optional[float] = ..., reason: _Optional[str] = ..., applicable: _Optional[bool] = ...) -> None: ...
 
 class LeaseRequest(_message.Message):
     __slots__ = ("context", "decision_id", "worker_id", "worker_generation")

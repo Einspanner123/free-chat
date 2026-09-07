@@ -50,6 +50,8 @@ def test_worker_registration_and_route_over_grpc() -> None:
                         attention="gqa",
                         max_context_tokens=32_768,
                         dtype="bfloat16",
+                        supports_kv_offload=True,
+                        kv_bytes_per_token=16_384,
                     ),
                 ),
             )
@@ -86,6 +88,7 @@ def test_worker_registration_and_route_over_grpc() -> None:
                         allow_preemption=True,
                         allow_kv_offload=True,
                         allow_remote_worker=True,
+                        expected_reuse_probability=1.0,
                     ),
                     model="Qwen/Qwen2.5-0.5B-Instruct",
                     input_tokens=128,
@@ -95,6 +98,8 @@ def test_worker_registration_and_route_over_grpc() -> None:
             assert route.worker_id == "ross-a6000"
             assert route.worker_generation == 1
             assert route.cost.total > 0
+            assert route.HasField("kv_transfer")
+            assert route.kv_transfer.reason
         finally:
             await channel.close()
             await server.stop(grace=None)

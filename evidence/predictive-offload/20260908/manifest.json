@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "evidence_level": "MECHANISM_ONLY",
+  "performance_claim_admissible": false,
+  "host": "workstation",
+  "gpu": "NVIDIA RTX A5000",
+  "worker_image_id": "sha256:5527760b5854807b7c9d6c0544ea8f619a76c86b220a3f345b47823c6aa19288",
+  "worker_image_repository_digest": null,
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "model_weight_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+  "observed_counter_deltas": {
+    "gpu_to_cpu_bytes": 27918336,
+    "cpu_to_gpu_bytes": 28114944
+  },
+  "artifacts": [
+    {
+      "path": "a5000-control-chain.json",
+      "sha256": "b9c57ee872da9e858521aad42e5d4505aab981de0b06d9568b2812d313bf05bf"
+    }
+  ],
+  "limitations": [
+    "The worker image is identified by local image ID and has no repository digest.",
+    "The probe validates per-request policy authority and native KV movement only.",
+    "It does not measure prediction calibration or end-to-end performance gain.",
+    "It is forbidden in resume and README performance claims."
+  ]
+}

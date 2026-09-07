@@ -6,7 +6,12 @@ from uuid import uuid4
 
 import grpc
 from freechat.control.v1 import control_pb2, control_pb2_grpc
-from freechat_contracts import CandidateCost, RequestProfile, RouteDecision
+from freechat_contracts import (
+    CandidateCost,
+    PredictiveOffloadDirective,
+    RequestProfile,
+    RouteDecision,
+)
 
 
 class SchedulerClient(Protocol):
@@ -141,6 +146,23 @@ class GrpcSchedulerClient:
             topology_generation=response.topology_generation,
             strategy=response.strategy or "lifecycle-aware",
             lease_ttl_ms=response.lease_ttl_ms,
+            kv_transfer=PredictiveOffloadDirective(
+                applicable=response.kv_transfer.applicable,
+                enabled=response.kv_transfer.enabled,
+                max_offload_tokens=response.kv_transfer.max_offload_tokens,
+                estimated_kv_bytes=response.kv_transfer.estimated_kv_bytes,
+                predicted_reuse_probability=(
+                    response.kv_transfer.predicted_reuse_probability
+                ),
+                predicted_eviction_probability=(
+                    response.kv_transfer.predicted_eviction_probability
+                ),
+                estimated_recompute_ms=response.kv_transfer.estimated_recompute_ms,
+                estimated_store_ms=response.kv_transfer.estimated_store_ms,
+                estimated_restore_ms=response.kv_transfer.estimated_restore_ms,
+                expected_net_benefit_ms=response.kv_transfer.expected_net_benefit_ms,
+                reason=response.kv_transfer.reason or "not_evaluated",
+            ),
         )
 
     async def release(self, request: RequestProfile, decision: RouteDecision) -> None:

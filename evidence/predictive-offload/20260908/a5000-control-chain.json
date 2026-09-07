@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "evidence_level": "MECHANISM_ONLY",
+  "performance_claim_admissible": false,
+  "observed_at": "2026-09-07T17:06:32.858191+00:00",
+  "run_id": "final-20260908-02",
+  "control": {
+    "registration": "registered",
+    "heartbeat": "heartbeat_accepted",
+    "capabilities": {
+      "worker_id": "workstation-a5000-probe",
+      "generation": 3,
+      "endpoint": "http://100.99.131.26:18001",
+      "node_id": "workstation",
+      "gpu_id": "0",
+      "gpu_name": "NVIDIA RTX A5000",
+      "compute_capability": "8.6",
+      "total_vram_bytes": 25769803776,
+      "p2p_domain": "workstation",
+      "network_domain": "lan",
+      "models": [
+        {
+          "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+          "revision": "local-snapshot-fdf756fa7fcbe740",
+          "tokenizer_revision": "local-snapshot-fdf756fa7fcbe740",
+          "architecture": "dense",
+          "attention": "gqa",
+          "is_moe": false,
+          "max_context_tokens": 4096,
+          "dtype": "float16",
+          "quantization": null,
+          "tensor_parallel_size": 1,
+          "pipeline_parallel_size": 1,
+          "supports_prefix_cache": true,
+          "supports_kv_offload": true,
+          "kv_bytes_per_token": 12288,
+          "supports_tool_calling": true
+        }
+      ],
+      "allow_remote_requests": true
+    },
+    "telemetry": {
+      "worker_id": "workstation-a5000-probe",
+      "generation": 3,
+      "observed_at": "2026-09-07T17:06:31.769276Z",
+      "healthy": true,
+      "draining": false,
+      "queue_depth": 0,
+      "active_requests": 0,
+      "free_vram_bytes": 21474836480,
+      "kv_cache_capacity_bytes": 67108864,
+      "kv_cache_free_bytes": 2097152,
+      "cached_prefixes": [],
+      "estimated_prefill_tokens_per_second": 3000.0,
+      "estimated_decode_tokens_per_second": 100.0,
+      "network_rtt_ms": 0.0,
+      "network_bandwidth_bytes_per_second": 1.0,
+      "cache_load_bytes_per_second": 5000000000.0,
+      "cache_store_bytes_per_second": 5000000000.0
+    },
+    "preview_decision": {
+      "decision_id": "2e6be35b-83f6-4b9c-a711-8aa29d4ae9d5",
+      "worker_id": "workstation-a5000-probe",
+      "worker_generation": 3,
+      "applicable": true,
+      "enabled": true,
+      "max_offload_tokens": 3479,
+      "estimated_kv_bytes": 42749952,
+      "predicted_reuse_probability": 1.0,
+      "predicted_eviction_probability": 0.84375,
+      "estimated_recompute_ms": 1159.6666666666665,
+      "estimated_store_ms": 8.5499904,
+      "estimated_restore_ms": 8.5499904,
+      "expected_net_benefit_ms": 962.7047051999999,
+      "reason": "expected_recompute_exceeds_transfer",
+      "release_status": "released"
+    }
+  },
+  "requests": [
+    {
+      "task_id": "target",
+      "lifecycle": "active",
+      "started_at": "2026-09-07T17:06:32.058950+00:00",
+      "finished_at": "2026-09-07T17:06:32.175590+00:00",
+      "status_code": 200,
+      "decision_id": "a22a1de6-b825-4cca-aae0-bb379699551a",
+      "offload": "enabled",
+      "response_id": "chatcmpl-9e1735092c55d7f4"
+    },
+    {
+      "task_id": "pressure-0",
+      "lifecycle": "active",
+      "started_at": "2026-09-07T17:06:32.175722+00:00",
+      "finished_at": "2026-09-07T17:06:32.242866+00:00",
+      "status_code": 200,
+      "decision_id": "86ebc1f3-bfc5-4965-88e2-5d78873ad192",
+      "offload": "disabled",
+      "response_id": "chatcmpl-9888723840903c03"
+    },
+    {
+      "task_id": "pressure-1",
+      "lifecycle": "active",
+      "started_at": "2026-09-07T17:06:32.242978+00:00",
+      "finished_at": "2026-09-07T17:06:32.312145+00:00",
+      "status_code": 200,
+      "decision_id": "86b66b65-1128-4fa6-a520-7867e91289fc",
+      "offload": "disabled",
+      "response_id": "chatcmpl-b7086c4129588d04"
+    },
+    {
+      "task_id": "pressure-2",
+      "lifecycle": "active",
+      "started_at": "2026-09-07T17:06:32.312238+00:00",
+      "finished_at": "2026-09-07T17:06:32.381841+00:00",
+      "status_code": 200,
+      "decision_id": "9cfd4325-129b-4948-8e47-2ef4e8ddea37",
+      "offload": "disabled",
+      "response_id": "chatcmpl-8e670737f80d60ef"
+    },
+    {
+      "task_id": "pressure-3",
+      "lifecycle": "active",
+      "started_at": "2026-09-07T17:06:32.381932+00:00",
+      "finished_at": "2026-09-07T17:06:32.450217+00:00",
+      "status_code": 200,
+      "decision_id": "6deb9841-a4c7-4336-9631-a9189511c772",
+      "offload": "disabled",
+      "response_id": "chatcmpl-a85dd3c5e550a957"
+    },
+    {
+      "task_id": "pressure-4",
+      "lifecycle": "active",
+      "started_at": "2026-09-07T17:06:32.450308+00:00",
+      "finished_at": "2026-09-07T17:06:32.519321+00:00",
+      "status_code": 200,
+      "decision_id": "a4b59283-ec15-4e98-831e-5b67d0d93916",
+      "offload": "disabled",
+      "response_id": "chatcmpl-87d0f9b0b0594313"
+    },
+    {
+      "task_id": "pressure-5",
+      "lifecycle": "active",
+      "started_at": "2026-09-07T17:06:32.519410+00:00",
+      "finished_at": "2026-09-07T17:06:32.589197+00:00",
+      "status_code": 200,
+      "decision_id": "5e891731-bcc9-4292-a037-d982bd6c229b",
+      "offload": "disabled",
+      "response_id": "chatcmpl-966610949a9627e3"
+    },
+    {
+      "task_id": "pressure-6",
+      "lifecycle": "active",
+      "started_at": "2026-09-07T17:06:32.589289+00:00",
+      "finished_at": "2026-09-07T17:06:32.658876+00:00",
+      "status_code": 200,
+      "decision_id": "f85cf214-658b-4ad5-a8d3-434018b004cd",
+      "offload": "disabled",
+      "response_id": "chatcmpl-9afe5ad1d59375d9"
+    },
+    {
+      "task_id": "pressure-7",
+      "lifecycle": "active",
+      "started_at": "2026-09-07T17:06:32.658967+00:00",
+      "finished_at": "2026-09-07T17:06:32.725480+00:00",
+      "status_code": 200,
+      "decision_id": "e8b844da-5418-405a-a5ee-70c206cef18d",
+      "offload": "disabled",
+      "response_id": "chatcmpl-8ff417487671dc3b"
+    },
+    {
+      "task_id": "target",
+      "lifecycle": "resume",
+      "started_at": "2026-09-07T17:06:32.725561+00:00",
+      "finished_at": "2026-09-07T17:06:32.767757+00:00",
+      "status_code": 200,
+      "decision_id": "813abdf4-d211-425a-ad68-105cefc07bd1",
+      "offload": "enabled",
+      "response_id": "chatcmpl-a868e7d01b0839b9"
+    }
+  ],
+  "observed_counter_deltas": {
+    "gpu_to_cpu_bytes": 27918336.0,
+    "cpu_to_gpu_bytes": 28114944.0
+  },
+  "assertions": {
+    "directive_applicable": true,
+    "directive_enabled": true,
+    "target_offload_enabled": true,
+    "pressure_offload_disabled": true,
+    "resume_offload_enabled": true,
+    "gpu_to_cpu_observed": true,
+    "cpu_to_gpu_observed": true
+  },
+  "limitations": [
+    "This probe validates scheduler authority through Gateway to native vLLM transfer counters.",
+    "It is not a paired Harness benchmark and cannot support an end-to-end performance claim.",
+    "Predictive waste thresholds remain unfrozen until the real Harness baseline is collected."
+  ]
+}

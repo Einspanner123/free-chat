@@ -97,6 +97,11 @@ def create_app(
             raise HTTPException(status_code=400, detail="invalid JSON body") from error
         if not isinstance(body, dict):
             raise HTTPException(status_code=400, detail="request body must be an object")
+        if "kv_transfer_params" in body:
+            raise HTTPException(
+                status_code=400,
+                detail="kv_transfer_params is reserved for the trusted control plane",
+            )
 
         hints = extract_agent_hints(request, body)
         request_id = request.headers.get("x-request-id", str(uuid4()))
@@ -128,6 +133,10 @@ def create_app(
             worker_generation=decision.worker_generation,
         )
         body["cache_salt"] = cache_salt
+        if decision.kv_transfer.applicable:
+            body["kv_transfer_params"] = {
+                "max_offload_tokens": decision.kv_transfer.max_offload_tokens
+            }
         if path in {"/v1/chat/completions", "/v1/responses", "/v1/messages"}:
             body["agent_lifecycle"] = _agent_lifecycle_body(
                 auth,
@@ -141,6 +150,9 @@ def create_app(
             "x-freechat-task-id": hints.task_id,
             "x-freechat-decision-id": decision.decision_id,
             "x-freechat-route-class": "agent-aware" if hints.confidence > 0.25 else "compatible",
+            "x-freechat-kv-offload": (
+                "enabled" if decision.kv_transfer.enabled else "disabled"
+            ),
         }
         if stream:
             try:

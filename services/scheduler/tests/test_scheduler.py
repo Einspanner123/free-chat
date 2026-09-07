@@ -17,6 +17,8 @@ MODEL = ModelCapability(
     attention="gqa",
     max_context_tokens=32_768,
     dtype="float16",
+    supports_kv_offload=True,
+    kv_bytes_per_token=16_384,
 )
 
 
@@ -29,6 +31,9 @@ def add_worker(
     active: int = 0,
     cached: frozenset[str] = frozenset(),
     healthy: bool = True,
+    free_vram_bytes: int = 20 * 1024**3,
+    kv_cache_capacity_bytes: int | None = None,
+    kv_cache_free_bytes: int | None = None,
 ) -> None:
     registry.upsert(
         WorkerCapabilities(
@@ -49,13 +54,16 @@ def add_worker(
             generation=1,
             queue_depth=queue,
             active_requests=active,
-            free_vram_bytes=20 * 1024**3,
+            free_vram_bytes=free_vram_bytes,
+            kv_cache_capacity_bytes=kv_cache_capacity_bytes,
+            kv_cache_free_bytes=kv_cache_free_bytes,
             cached_prefixes=cached,
             estimated_prefill_tokens_per_second=10_000,
             estimated_decode_tokens_per_second=100,
             network_rtt_ms=30,
             network_bandwidth_bytes_per_second=100_000_000,
             cache_load_bytes_per_second=5_000_000_000,
+            cache_store_bytes_per_second=5_000_000_000,
             healthy=healthy,
         ),
     )
@@ -147,6 +155,76 @@ def test_lifecycle_credit_changes_selection_relative_to_cost_aware() -> None:
     lifecycle = Scheduler(registry, strategy=RoutingStrategy.LIFECYCLE_AWARE).route(request)
     assert cost.worker_id == "cold"
     assert lifecycle.worker_id == "warm"
+
+
+def test_predictive_offload_is_enabled_only_when_expected_savings_are_positive() -> None:
+    registry = InMemoryWorkerRegistry()
+    add_worker(
+        registry,
+        "pressured",
+        node="ross",
+        kv_cache_capacity_bytes=1024**3,
+        kv_cache_free_bytes=32 * 1024**2,
+    )
+    hints = AgentHints(
+        harness_id="agents",
+        task_id="task",
+        agent_id="agent",
+        expected_reuse_probability=0.9,
+    )
+    decision = Scheduler(registry).route(profile(hints=hints))
+    assert decision.kv_transfer.enabled is True
+    assert decision.kv_transfer.max_offload_tokens == 8_000
+    assert decision.kv_transfer.estimated_kv_bytes == 128 * 1024**2
+    assert decision.kv_transfer.expected_net_benefit_ms > 0
+
+
+def test_predictive_offload_fails_closed_for_non_lifecycle_baseline() -> None:
+    registry = InMemoryWorkerRegistry()
+    add_worker(registry, "worker", node="ross", free_vram_bytes=2 * 1024**3)
+    decision = Scheduler(registry, strategy=RoutingStrategy.LEAST_LOAD).route(profile())
+    assert decision.kv_transfer.enabled is False
+    assert decision.kv_transfer.max_offload_tokens == 0
+    assert decision.kv_transfer.reason == "strategy_does_not_authorize_offload"
+
+
+def test_predictive_offload_respects_explicit_forbid() -> None:
+    registry = InMemoryWorkerRegistry()
+    add_worker(registry, "worker", node="ross", free_vram_bytes=2 * 1024**3)
+    hints = AgentHints(
+        harness_id="agents",
+        task_id="task",
+        agent_id="agent",
+        expected_reuse_probability=1.0,
+        allow_kv_offload=False,
+    )
+    decision = Scheduler(registry).route(profile(hints=hints))
+    assert decision.kv_transfer.reason == "offload_forbidden_by_hints"
+
+
+def test_predictive_offload_requires_reported_store_bandwidth() -> None:
+    registry = InMemoryWorkerRegistry()
+    add_worker(
+        registry,
+        "worker",
+        node="ross",
+        kv_cache_capacity_bytes=1024**3,
+        kv_cache_free_bytes=32 * 1024**2,
+    )
+    snapshot = registry.snapshot()[1][0]
+    registry.upsert(
+        snapshot.capabilities,
+        snapshot.telemetry.model_copy(update={"cache_store_bytes_per_second": None}),
+    )
+    hints = AgentHints(
+        harness_id="agents",
+        task_id="task",
+        agent_id="agent",
+        expected_reuse_probability=1.0,
+    )
+    decision = Scheduler(registry).route(profile(hints=hints))
+    assert decision.kv_transfer.enabled is False
+    assert decision.kv_transfer.reason == "missing_cache_store_bandwidth"
 
 
 def test_remote_worker_is_hard_filtered() -> None:
