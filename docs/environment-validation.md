@@ -115,6 +115,17 @@ It records `accepted=false`: no GPU was requested, FlashInfer was not executed
 on a GPU, and a local tag has no immutable repository digest. These pending
 checks prevent the image from being promoted as an accepted worker.
 
+On 2026-09-07 the same local image was probed with Docker explicitly bound to
+the idle workstation A4000. The container reported Python 3.12.13, CUDA
+compiler/runtime 13.0, PyTorch 2.13.0+cu130, Triton 3.7.1, Transformers 5.16.1,
+FlashInfer 0.6.15.post1 and vLLM `0.1.dev19622+g8e78a3c61`; it also executed
+and synchronized a real FlashInfer top-k/top-p sampling kernel. Fork and
+upstream labels matched the locked revisions. The report remains
+`accepted=false` solely because the local tag has no immutable repository
+digest. It is archived at
+`evidence/worker-images/worker-8e78a3c61307-a4000-local-tag.json` with SHA-256
+`71e2671ecc7e3423bac124b99d2a4c90049e9605ef2e048503d960e5daa5383a`.
+
 Docker data is mounted at `/data/freechat/docker` on an ext4 volume. The
 `overlay2` driver, existing named volumes, digest-pinned images and the etcd,
 NATS and scheduler containers recovered after migration.

@@ -67,3 +67,9 @@ reconfiguring NVIDIA Container Toolkit and restarting Docker are host operations
 they must be scheduled so unrelated running containers are not interrupted. A
 CPU-only container probe or a successful image pull does not satisfy this gate.
 Omitting `--gpu` always produces a non-accepted inspection report.
+
+The local candidate passed every GPU and locked-runtime check on an A4000 on
+2026-09-07, including synchronized FlashInfer sampling. It remains unaccepted
+because no project registry is configured and the local tag has no repository
+digest. A registry push and a repeat of the same command against the resolved
+digest are still required; the local image ID is not a substitute.

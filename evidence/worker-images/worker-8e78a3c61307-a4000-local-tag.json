@@ -1,0 +1,89 @@
+{
+  "accepted": false,
+  "checks": {
+    "flashinfer_sampling": {
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    "fork_revision": {
+      "actual": "8e78a3c613072632aa822c9aed2f698e76046219",
+      "expected": "8e78a3c613072632aa822c9aed2f698e76046219",
+      "passed": true
+    },
+    "gpu_requested": {
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    "gpu_runtime": {
+      "actual": true,
+      "expected": true,
+      "passed": true
+    },
+    "immutable_repo_digest": {
+      "actual": false,
+      "expected": true,
+      "passed": false
+    },
+    "nvcc_cuda": {
+      "actual": "13.0",
+      "expected": "13.0",
+      "passed": true
+    },
+    "python": {
+      "actual": "3.12",
+      "expected": "3.12",
+      "passed": true
+    },
+    "torch": {
+      "actual": "2.13.0+cu130",
+      "expected": "2.13.0+cu130",
+      "passed": true
+    },
+    "torch_cuda": {
+      "actual": "13.0",
+      "expected": "13.0",
+      "passed": true
+    },
+    "transformers": {
+      "actual": "5.16.1",
+      "expected": "5.16.1",
+      "passed": true
+    },
+    "triton": {
+      "actual": "3.7.1",
+      "expected": "3.7.1",
+      "passed": true
+    },
+    "upstream_revision": {
+      "actual": "9c22668436a4d94aab87ea74a220e060415cf1d8",
+      "expected": "9c22668436a4d94aab87ea74a220e060415cf1d8",
+      "passed": true
+    }
+  },
+  "gpu_requested": true,
+  "image_id": "sha256:5527760b5854807b7c9d6c0544ea8f619a76c86b220a3f345b47823c6aa19288",
+  "image_reference": "freechat-worker:8e78a3c61307",
+  "observed_at": "2026-09-07T06:59:20.658130+00:00",
+  "probe": {
+    "cuda_available": true,
+    "device": {
+      "compute_capability": "8.6",
+      "index": 0,
+      "name": "NVIDIA RTX A4000",
+      "total_memory_bytes": 16750149632
+    },
+    "flashinfer": "0.6.15.post1",
+    "flashinfer_sampling": true,
+    "nvcc_cuda": "13.0",
+    "python": "3.12.13",
+    "torch": "2.13.0+cu130",
+    "torch_cuda": "13.0",
+    "transformers": "5.16.1",
+    "triton": "3.7.1",
+    "vllm": "0.1.dev19622+g8e78a3c61"
+  },
+  "repo_digests": [],
+  "schema": 1
+}

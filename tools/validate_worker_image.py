@@ -6,7 +6,7 @@ import subprocess
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -157,7 +157,8 @@ def build_report(
     }
     return {
         "schema": 1,
-        "observed_at": datetime.now(UTC).isoformat(),
+        # The validator runs on GPU hosts whose control Python may predate 3.11.
+        "observed_at": datetime.now(timezone.utc).isoformat(),  # noqa: UP017
         "image_reference": image,
         "image_id": inspected.get("Id"),
         "repo_digests": repo_digests,
