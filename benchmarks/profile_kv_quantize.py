@@ -6,7 +6,7 @@ from pathlib import Path
 
 import torch  # type: ignore[import-not-found]
 from freechat_worker.kernels import quantize_kv, quantize_kv_reference
-from kv_quantize import query_gpu_state, require_exclusive_gpu
+from kv_quantize import query_gpu_state, require_exclusive_gpu  # type: ignore[import-not-found]
 
 
 def main() -> None:

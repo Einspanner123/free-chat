@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from agents import Agent, Model, ModelSettings, Runner, function_tool
+from agents.items import ModelResponse
+from agents.models.interface import ModelTracing
 from agents.testing import ScriptedModel, assistant_message, function_call
+from agents.usage import Usage
 from freechat_contracts import Lifecycle
 from freechat_harness_adapters import HarnessCall
 from freechat_harness_adapters.openai_agents import OpenAIAgentsLifecycle
@@ -28,7 +31,7 @@ class RecordingModel(Model):
         previous_response_id: str | None,
         conversation_id: str | None,
         prompt: Any,
-    ) -> str:
+    ) -> ModelResponse:
         del (
             system_instructions,
             input,
@@ -41,7 +44,7 @@ class RecordingModel(Model):
             prompt,
         )
         self.settings.append(model_settings)
-        return "ok"
+        return ModelResponse(output=[], usage=Usage(), response_id=None)
 
     async def stream_response(
         self,
@@ -80,7 +83,7 @@ async def invoke(model: Model, settings: ModelSettings) -> Any:
         [],
         None,
         [],
-        None,
+        ModelTracing.DISABLED,
         previous_response_id=None,
         conversation_id=None,
         prompt=None,
@@ -113,8 +116,8 @@ async def test_hooks_carry_resume_into_next_sdk_model_request() -> None:
     await hooks.on_llm_start(None, agent, None, [])
     await invoke(model, ModelSettings())
 
-    first = delegate.settings[0].extra_body
-    second = delegate.settings[1].extra_body
+    first = cast(dict[str, Any] | None, delegate.settings[0].extra_body)
+    second = cast(dict[str, Any] | None, delegate.settings[1].extra_body)
     assert first is not None and first["existing"] == "preserved"
     assert first["freechat"]["agent_hints"]["lifecycle"] == "active"
     assert second is not None
@@ -141,7 +144,7 @@ async def test_streaming_uses_same_sdk_request_extension() -> None:
             [],
             None,
             [],
-            None,
+            ModelTracing.DISABLED,
             previous_response_id=None,
             conversation_id=None,
             prompt=None,
@@ -149,7 +152,7 @@ async def test_streaming_uses_same_sdk_request_extension() -> None:
     ]
 
     assert events == ["event"]
-    extra_body = delegate.settings[0].extra_body
+    extra_body = cast(dict[str, Any] | None, delegate.settings[0].extra_body)
     assert extra_body is not None
     assert extra_body["freechat"]["agent_hints"]["harness_id"] == "openai-agents"
 
@@ -181,8 +184,8 @@ async def test_real_sdk_runner_carries_tool_resume_to_second_model_call() -> Non
 
     assert result.final_output == "done"
     assert len(delegate.calls) == 2
-    first = delegate.calls[0].model_settings.extra_body
-    second = delegate.calls[1].model_settings.extra_body
+    first = cast(dict[str, Any] | None, delegate.calls[0].model_settings.extra_body)
+    second = cast(dict[str, Any] | None, delegate.calls[1].model_settings.extra_body)
     assert first is not None
     assert first["freechat"]["agent_hints"]["lifecycle"] == "active"
     assert second is not None

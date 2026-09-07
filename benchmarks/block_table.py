@@ -7,7 +7,7 @@ import statistics
 import time
 from datetime import UTC, datetime
 
-import torch
+import torch  # type: ignore[import-not-found]
 from freechat_worker.kernels import gather_block_rows, gather_block_rows_reference
 
 

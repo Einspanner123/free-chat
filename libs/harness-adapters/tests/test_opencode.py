@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from freechat_contracts import Lifecycle
 from freechat_harness_adapters import OpenCodeLifecycle
 
 
-def tool_event(*, call_id: str, status: str, session_id: str = "ses_1") -> dict:
+def tool_event(
+    *, call_id: str, status: str, session_id: str = "ses_1"
+) -> dict[str, Any]:
     return {
         "type": "message.part.updated",
         "properties": {

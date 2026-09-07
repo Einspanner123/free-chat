@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 import pytest
 from freechat_contracts import Lifecycle
@@ -39,21 +39,25 @@ def test_real_graph_interrupt_and_resume_keep_checkpoint_identity() -> None:
     builder.add_edge(START, "review")
     builder.add_edge("review", END)
     graph = builder.compile(checkpointer=InMemorySaver())
-    initial_config = {
+    initial_config: RunnableConfig = {
         "configurable": {"thread_id": "thread-1", "freechat_task_id": "task-1"}
     }
 
     interrupted = graph.invoke({"result": ""}, initial_config)
     assert "__interrupt__" in interrupted
     snapshot = graph.get_state(initial_config)
-    resume_config = bind_langgraph_task(snapshot.config, task_id="task-1")
+    resume_config = cast(
+        RunnableConfig,
+        bind_langgraph_task(snapshot.config, task_id="task-1"),
+    )
     wait_context = LangGraphRequestContext.from_config(resume_config, node="review")
     wait_body = wait_context.apply(
         {"model": "Qwen/Qwen2.5-0.5B-Instruct", "messages": []},
         lifecycle=Lifecycle.TOOL_WAIT,
         expected_resume_ms=500,
     )
-    completed = graph.invoke(Command(resume="approved"), resume_config)
+    resume_command: Command[Any] = Command(resume="approved")
+    completed = graph.invoke(resume_command, resume_config)
 
     assert completed["result"] == "approved"
     wait_hints = wait_body["freechat"]["agent_hints"]
