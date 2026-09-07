@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "task_id": "agents-e2e-20260907-b",
+  "session_id": "agents-session-20260907-b",
+  "gateway": "http://127.0.0.1:18080",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "elapsed_ms": 924.985929,
+  "final_output": "Inspect README.md.",
+  "expected_heading": "# FreeChat Agent-Aware Inference Infrastructure",
+  "answer_matches_expected": false,
+  "tool_paths": [
+    "README.md"
+  ],
+  "terminal_lifecycle": "terminal",
+  "model_calls": [
+    {
+      "extra_body": {
+        "freechat": {
+          "agent_hints": {
+            "schema_version": 1,
+            "harness_id": "openai-agents",
+            "harness_version": null,
+            "task_id": "agents-e2e-20260907-b",
+            "session_id": "agents-session-20260907-b",
+            "agent_id": "coder",
+            "parent_agent_id": null,
+            "branch_id": "main",
+            "parent_branch_id": null,
+            "turn_id": "1",
+            "call_id": "agents-e2e-20260907-b:coder:llm:1",
+            "lifecycle": "active",
+            "prefix_scope": "agent",
+            "reuse_class": "growing_history",
+            "expected_reuse_probability": 0.9,
+            "expected_resume_ms": null,
+            "ttl_ms": 300000,
+            "priority": 0,
+            "deadline_ms": null,
+            "expected_output_tokens": null,
+            "privacy_domain": "default",
+            "allow_preemption": true,
+            "allow_kv_offload": true,
+            "allow_remote_worker": true,
+            "source": "explicit",
+            "confidence": 1.0,
+            "metadata": {}
+          }
+        }
+      }
+    },
+    {
+      "extra_body": {
+        "freechat": {
+          "agent_hints": {
+            "schema_version": 1,
+            "harness_id": "openai-agents",
+            "harness_version": null,
+            "task_id": "agents-e2e-20260907-b",
+            "session_id": "agents-session-20260907-b",
+            "agent_id": "coder",
+            "parent_agent_id": null,
+            "branch_id": "main",
+            "parent_branch_id": null,
+            "turn_id": "2",
+            "call_id": "agents-e2e-20260907-b:coder:llm:2",
+            "lifecycle": "resume",
+            "prefix_scope": "agent",
+            "reuse_class": "growing_history",
+            "expected_reuse_probability": 0.9,
+            "expected_resume_ms": 500,
+            "ttl_ms": 300000,
+            "priority": 0,
+            "deadline_ms": null,
+            "expected_output_tokens": null,
+            "privacy_domain": "default",
+            "allow_preemption": true,
+            "allow_kv_offload": true,
+            "allow_remote_worker": true,
+            "source": "explicit",
+            "confidence": 1.0,
+            "metadata": {}
+          }
+        }
+      }
+    }
+  ]
+}

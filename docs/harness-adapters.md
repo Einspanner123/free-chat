@@ -9,7 +9,7 @@ and the Scheduler retains final resource authority.
 
 | Harness | Implemented boundary | Verified scope | Remaining acceptance |
 |---|---|---|---|
-| OpenAI Agents SDK | Run hooks plus model decorator | Real deterministic `Runner.run()` tool call and resume reaches the second model request | Gateway, real model, cancellation/failure replay and benchmark matrix |
+| OpenAI Agents SDK | Run hooks plus model decorator | Real `Runner.run()` tool call traversed the Gateway and Qwen2.5-0.5B Worker; the second model request carried Resume identity | Cancellation/failure replay, task-quality gate and benchmark matrix |
 | LangGraph | Runnable/checkpoint context bridge | Real interrupt and `Command(resume=...)` preserve task, thread and checkpoint identity | Gateway, real model, branching/failure replay and benchmark matrix |
 | OpenCode | Native session-event state machine | ToolPart pending/running/completed/error, parallel calls, replay regression and cross-session rejection | Live plugin/SSE run, model request interception, cancellation/failure replay and benchmark matrix |
 | OpenHands | SDK event state machine | Action/Observation/error pairing, parallel calls and late-event replay protection | Live SDK callback, model request interception, cancellation/failure replay and benchmark matrix |
@@ -63,3 +63,10 @@ Only a real Harness process, real Gateway/worker request, archived trace and
 protocol-matched failure matrix may satisfy `harness-integrations` in the
 Claims Ledger. No event-contract result is a latency, cache-hit or throughput
 claim.
+
+The 2026-09-07 OpenAI Agents run executed `read_file("README.md")` and recorded
+paired Active and Resume model requests followed by Terminal. The 0.5B model's
+final answer did not match the expected README heading, so this run validates
+the lifecycle path but explicitly fails the task-quality gate. The archived
+record is `evidence/harnesses/openai-agents-qwen05b-20260907.json`; it must not
+be used as performance or model-routing acceptance.
