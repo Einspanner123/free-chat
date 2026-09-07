@@ -1,0 +1,95 @@
+{
+  "evidence_level": "MECHANISM_ONLY",
+  "performance_claim_admissible": false,
+  "reason": "probe does not constitute a real-model paired Harness benchmark",
+  "requests": [
+    {
+      "call_id": "target:wait",
+      "completion_tokens": 1,
+      "elapsed_ms": 302.33103,
+      "phase": "tool_wait",
+      "prompt_tokens": 1110,
+      "response_id": "chatcmpl-948d47feed01df4b"
+    },
+    {
+      "call_id": "pressure:0:active",
+      "completion_tokens": 1,
+      "elapsed_ms": 60.594514,
+      "phase": "active",
+      "prompt_tokens": 1230,
+      "response_id": "chatcmpl-a8b4af19f42a588c"
+    },
+    {
+      "call_id": "pressure:1:active",
+      "completion_tokens": 1,
+      "elapsed_ms": 64.842434,
+      "phase": "active",
+      "prompt_tokens": 1230,
+      "response_id": "chatcmpl-977049c97ad6804d"
+    },
+    {
+      "call_id": "pressure:2:active",
+      "completion_tokens": 1,
+      "elapsed_ms": 57.210592,
+      "phase": "active",
+      "prompt_tokens": 1230,
+      "response_id": "chatcmpl-971fe3072b5c2e91"
+    },
+    {
+      "call_id": "pressure:3:active",
+      "completion_tokens": 1,
+      "elapsed_ms": 52.198507,
+      "phase": "active",
+      "prompt_tokens": 1230,
+      "response_id": "chatcmpl-b1216fb484b56cce"
+    },
+    {
+      "call_id": "pressure:4:active",
+      "completion_tokens": 1,
+      "elapsed_ms": 56.285107,
+      "phase": "active",
+      "prompt_tokens": 1230,
+      "response_id": "chatcmpl-80cfca1ef59646f2"
+    },
+    {
+      "call_id": "pressure:5:active",
+      "completion_tokens": 1,
+      "elapsed_ms": 50.027126,
+      "phase": "active",
+      "prompt_tokens": 1230,
+      "response_id": "chatcmpl-bef251a11c9808a9"
+    },
+    {
+      "call_id": "pressure:6:active",
+      "completion_tokens": 1,
+      "elapsed_ms": 48.65408,
+      "phase": "active",
+      "prompt_tokens": 1230,
+      "response_id": "chatcmpl-a152c1393d63a93d"
+    },
+    {
+      "call_id": "pressure:7:active",
+      "completion_tokens": 1,
+      "elapsed_ms": 49.326079,
+      "phase": "active",
+      "prompt_tokens": 1230,
+      "response_id": "chatcmpl-93d00665b54c6622"
+    },
+    {
+      "call_id": "target:resume",
+      "completion_tokens": 1,
+      "elapsed_ms": 94.410499,
+      "phase": "resume",
+      "prompt_tokens": 1110,
+      "response_id": "chatcmpl-95961926aacfc043"
+    }
+  ],
+  "resolved_config": {
+    "block_tokens": 16,
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "prefix_repetitions": 120,
+    "pressure_requests": 8
+  },
+  "resume_events": [],
+  "resume_hit_tokens": 0
+}

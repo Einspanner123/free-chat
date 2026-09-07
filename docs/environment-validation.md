@@ -144,6 +144,22 @@ resume hit; lifecycle-aware ordering retained 928 tokens. The artifact itself
 sets `performance_claim_admissible=false`; these values must not populate the
 resume placeholders.
 
+### Native pinned-CPU KV data path
+
+On 2026-09-07 the fork image ran vLLM's native `OffloadingConnector` on the
+A4000 with a 1 GiB pinned CPU tier. A first unconstrained real-model request
+recorded 23,789,568 bytes transferred from GPU to CPU. A separate 64 MiB HBM
+KV-cache probe issued one 1,110-token Tool Wait prefix, eight distinct pressure
+prefixes of approximately 1,230 tokens, and then replayed the target prefix as
+Resume. The engine counters recorded 131,530,752 bytes stored GPU-to-CPU and
+13,369,344 bytes loaded CPU-to-GPU.
+
+This validates real vLLM block movement through its asynchronous pinned-memory
+backend. It does not validate a FreeChat lifecycle-aware offload policy or an
+end-to-end performance improvement. Raw request, Prometheus and container-log
+artifacts are under `evidence/native-offload/20260907/` with SHA-256 values in
+that directory's manifest.
+
 ## Control-plane recovery integration
 
 On workstation, the digest-pinned Compose services started a real etcd 3.6.5,

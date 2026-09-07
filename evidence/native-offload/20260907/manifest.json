@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "evidence_level": "MECHANISM_ONLY",
+  "performance_claim_admissible": false,
+  "host": "workstation",
+  "gpu": "NVIDIA RTX A4000",
+  "image_id": "sha256:5527760b5854807b7c9d6c0544ea8f619a76c86b220a3f345b47823c6aa19288",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "model_weight_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+  "configuration": {
+    "hbm_kv_cache_bytes": 67108864,
+    "pinned_cpu_cache_bytes": 1073741824,
+    "block_tokens": 16,
+    "max_model_len": 4096,
+    "offload_prompt_only": true
+  },
+  "observed_counters": {
+    "gpu_to_cpu_bytes": 131530752,
+    "cpu_to_gpu_bytes": 13369344,
+    "prefix_cache_queries_tokens": 12060,
+    "prefix_cache_hit_tokens": 144
+  },
+  "artifacts": [
+    {
+      "path": "pressure-probe.json",
+      "sha256": "9efcafe2f7b7ce3c0aa21779a1ef0ffcd9ca542ea00a6a650f5b5da60a232096"
+    },
+    {
+      "path": "metrics.prom",
+      "sha256": "708a7191bd7cd88a056e64a18633b414827dee550256c7637cb4b3952a68f155"
+    },
+    {
+      "path": "container.log",
+      "sha256": "080cfdcdd2ae13332f31e28531d9adc7d6e13367ef701a3ce9837fd0c9493df2"
+    }
+  ],
+  "limitations": [
+    "No paired native-versus-lifecycle-aware performance comparison was run.",
+    "The probe validates vLLM native data movement, not FreeChat policy authority.",
+    "The result is forbidden in end-to-end performance claims."
+  ]
+}
