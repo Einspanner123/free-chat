@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import StrEnum
 
 from freechat_contracts import (
@@ -39,6 +40,7 @@ class CostWeights:
     inferred_affinity_credit_ms: float = 100.0
     kv_eviction_high_watermark: float = 0.80
     kv_eviction_wait_horizon_ms: int = 60_000
+    telemetry_max_age_seconds: float = 30.0
 
 
 class Scheduler:
@@ -138,6 +140,12 @@ class Scheduler:
             )
 
         telemetry = worker.telemetry
+        if telemetry.telemetry_source == "vllm-prometheus-window":
+            return PredictiveOffloadDirective(
+                applicable=True,
+                estimated_kv_bytes=estimated_kv_bytes,
+                reason="prefill_calibration_required",
+            )
         if telemetry.cache_store_bytes_per_second is None:
             return PredictiveOffloadDirective(
                 applicable=True,
@@ -235,11 +243,19 @@ class Scheduler:
             key=lambda item: _sort_key(costs[item.capabilities.worker_id]),
         )
 
-    @staticmethod
-    def _hard_filter(request: RequestProfile, worker: WorkerSnapshot) -> list[str]:
+    def _hard_filter(self, request: RequestProfile, worker: WorkerSnapshot) -> list[str]:
         caps = worker.capabilities
         telemetry = worker.telemetry
         reasons: list[str] = []
+        observed = telemetry.observed_at
+        if observed.tzinfo is None:
+            reasons.append("telemetry_timestamp_without_timezone")
+        else:
+            age = (datetime.now(UTC) - observed).total_seconds()
+            if age > self._weights.telemetry_max_age_seconds:
+                reasons.append("telemetry_stale")
+            if age < -5:
+                reasons.append("telemetry_from_future")
         if not telemetry.healthy:
             reasons.append("worker_unhealthy")
         if telemetry.draining:

@@ -59,6 +59,7 @@ class InMemoryWorkerRegistry:
         current = self._workers.get(telemetry.worker_id)
         if current is None:
             raise ValueError("worker_not_registered")
+        _validate_heartbeat(current, telemetry)
         self.upsert(current.capabilities, telemetry)
 
 
@@ -96,6 +97,7 @@ class PersistentWorkerRegistry(InMemoryWorkerRegistry):
         current = self._workers.get(telemetry.worker_id)
         if current is None:
             raise ValueError("worker_not_registered")
+        _validate_heartbeat(current, telemetry)
         if current.capabilities.generation != telemetry.generation:
             raise ValueError("worker_generation_mismatch")
         await self._store.put(
@@ -131,6 +133,18 @@ def _encode_snapshot(
         + telemetry.model_dump_json().encode()
         + b"}"
     )
+
+
+def _validate_heartbeat(current: WorkerSnapshot, telemetry: WorkerTelemetry) -> None:
+    if current.capabilities.generation != telemetry.generation:
+        raise ValueError("worker_generation_mismatch")
+    if telemetry.observed_at.tzinfo is None:
+        raise ValueError("telemetry_timestamp_without_timezone")
+    if telemetry.observed_at < current.telemetry.observed_at:
+        raise ValueError("out_of_order_telemetry")
+    instance = current.telemetry.engine_instance_id
+    if instance is not None and telemetry.engine_instance_id != instance:
+        raise ValueError("engine_instance_changed_requires_registration")
 
 
 def _decode_snapshot(value: bytes) -> tuple[WorkerCapabilities, WorkerTelemetry]:

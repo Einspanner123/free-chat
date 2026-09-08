@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from freechat_contracts import (
     AgentHints,
@@ -247,6 +249,37 @@ def test_unhealthy_worker_is_explained() -> None:
     with pytest.raises(NoEligibleWorker) as error:
         Scheduler(registry).route(profile())
     assert "worker_unhealthy" in error.value.rejected["bad"]
+
+
+def test_stale_worker_is_excluded_even_when_marked_healthy() -> None:
+    registry = InMemoryWorkerRegistry()
+    add_worker(registry, "stale", node="ross")
+    snapshot = registry.snapshot()[1][0]
+    registry.upsert(
+        snapshot.capabilities,
+        snapshot.telemetry.model_copy(update={
+            "observed_at": datetime.now(UTC) - timedelta(seconds=31),
+        }),
+    )
+    with pytest.raises(NoEligibleWorker) as error:
+        Scheduler(registry).route(profile())
+    assert "telemetry_stale" in error.value.rejected["stale"]
+
+
+@pytest.mark.asyncio
+async def test_heartbeat_cannot_replace_newer_or_different_engine_sample() -> None:
+    registry = InMemoryWorkerRegistry()
+    add_worker(registry, "worker", node="ross")
+    snapshot = registry.snapshot()[1][0]
+    telemetry = snapshot.telemetry.model_copy(update={"engine_instance_id": "first"})
+    await registry.heartbeat(telemetry)
+    with pytest.raises(ValueError, match="out_of_order"):
+        await registry.heartbeat(telemetry.model_copy(update={
+            "observed_at": telemetry.observed_at - timedelta(seconds=1),
+        }))
+    with pytest.raises(ValueError, match="engine_instance_changed"):
+        await registry.heartbeat(telemetry.model_copy(update={"engine_instance_id": "second"}))
+    assert registry.snapshot()[1][0].telemetry == telemetry
 
 
 @pytest.mark.scale

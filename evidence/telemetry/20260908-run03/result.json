@@ -1,0 +1,127 @@
+{
+  "evidence_level": "MECHANISM_ONLY",
+  "performance_claim_admissible": false,
+  "records": [
+    {
+      "phase": "before",
+      "status": "heartbeat_accepted",
+      "telemetry": {
+        "worker_id": "workstation-a5000-telemetry",
+        "generation": 4,
+        "observed_at": "2026-09-08T01:56:32.698277Z",
+        "healthy": true,
+        "draining": false,
+        "queue_depth": 0,
+        "active_requests": 0,
+        "free_vram_bytes": 22667067392,
+        "kv_cache_capacity_bytes": null,
+        "kv_cache_free_bytes": null,
+        "cached_prefixes": [],
+        "estimated_prefill_tokens_per_second": 1.0,
+        "estimated_decode_tokens_per_second": 1.0,
+        "network_rtt_ms": 0.0,
+        "network_bandwidth_bytes_per_second": 1.0,
+        "cache_load_bytes_per_second": 1.0,
+        "cache_store_bytes_per_second": null,
+        "telemetry_source": "vllm-prometheus-window",
+        "engine_instance_id": "c85cfda7-20260908T015641Z",
+        "kv_cache_usage_ratio": 0.0,
+        "transfer_observed_at": null
+      }
+    },
+    {
+      "phase": "after",
+      "status": "heartbeat_accepted",
+      "telemetry": {
+        "worker_id": "workstation-a5000-telemetry",
+        "generation": 4,
+        "observed_at": "2026-09-08T01:56:35.373770Z",
+        "healthy": true,
+        "draining": false,
+        "queue_depth": 0,
+        "active_requests": 0,
+        "free_vram_bytes": 22667067392,
+        "kv_cache_capacity_bytes": null,
+        "kv_cache_free_bytes": null,
+        "cached_prefixes": [],
+        "estimated_prefill_tokens_per_second": 1.0,
+        "estimated_decode_tokens_per_second": 1.0,
+        "network_rtt_ms": 0.0,
+        "network_bandwidth_bytes_per_second": 1.0,
+        "cache_load_bytes_per_second": 1.0,
+        "cache_store_bytes_per_second": 11112054547.444977,
+        "telemetry_source": "vllm-prometheus-window",
+        "engine_instance_id": "c85cfda7-20260908T015641Z",
+        "kv_cache_usage_ratio": 0.0,
+        "transfer_observed_at": "2026-09-08T01:56:35.373770Z"
+      }
+    }
+  ],
+  "decision": {
+    "decision_id": "4d75946a-b21c-4c43-b3b4-f7f059ef509b",
+    "request_id": "da89f601-6749-48ea-8a26-8340e4b4061a",
+    "worker_id": "workstation-a5000-telemetry",
+    "worker_generation": 4,
+    "endpoint": "http://100.99.131.26:18001",
+    "selected": {
+      "worker_id": "workstation-a5000-telemetry",
+      "queue_ms": 0.0,
+      "prefill_ms": 100000.0,
+      "decode_ms": 1000.0,
+      "cache_ms": 0.0,
+      "network_ms": 0.0,
+      "cold_start_ms": 0.0,
+      "deadline_risk": 0.0,
+      "eviction_externality": 0.0,
+      "affinity_credit_ms": 0.0,
+      "total_ms": 101000.0
+    },
+    "candidates": [
+      {
+        "worker_id": "workstation-a5000-telemetry",
+        "queue_ms": 0.0,
+        "prefill_ms": 100000.0,
+        "decode_ms": 1000.0,
+        "cache_ms": 0.0,
+        "network_ms": 0.0,
+        "cold_start_ms": 0.0,
+        "deadline_risk": 0.0,
+        "eviction_externality": 0.0,
+        "affinity_credit_ms": 0.0,
+        "total_ms": 101000.0
+      }
+    ],
+    "rejected": {},
+    "topology_generation": 2,
+    "strategy": "lifecycle-aware",
+    "lease_ttl_ms": 30000,
+    "kv_transfer": {
+      "applicable": true,
+      "enabled": false,
+      "max_offload_tokens": 0,
+      "estimated_kv_bytes": 1228800,
+      "predicted_reuse_probability": 0.0,
+      "predicted_eviction_probability": 0.0,
+      "estimated_recompute_ms": 0.0,
+      "estimated_store_ms": 0.0,
+      "estimated_restore_ms": 0.0,
+      "expected_net_benefit_ms": 0.0,
+      "reason": "prefill_calibration_required"
+    }
+  },
+  "artifacts": [
+    {
+      "path": "before.prom",
+      "sha256": "f9e72a39a8d42b8e9a3292b29c9779e3f98c396848cf0bd3d878405bd92f424f"
+    },
+    {
+      "path": "after.prom",
+      "sha256": "02e5c476ee73acd5349e9af04e98130801d3c3a9c41ff0981a2ab42ee36059ac"
+    }
+  ],
+  "limitations": [
+    "Isolated in-memory scheduler, real GPU worker.",
+    "Direct request explicitly enables offload for measurement.",
+    "No prefill calibration or Harness performance acceptance."
+  ]
+}

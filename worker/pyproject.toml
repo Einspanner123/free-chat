@@ -9,6 +9,7 @@ dependencies = [
   "httpx>=0.28,<1",
   "nvidia-ml-py>=13.580,<14",
   "pydantic>=2.11,<3",
+  "prometheus-client>=0.22,<1",
 ]
 
 [project.optional-dependencies]

@@ -1,0 +1,23 @@
+{
+  "worker_id": "workstation-a5000-telemetry",
+  "generation": 4,
+  "endpoint": "http://100.99.131.26:18001",
+  "node_id": "workstation",
+  "gpu_id": "0",
+  "gpu_name": "NVIDIA RTX A5000",
+  "compute_capability": "8.6",
+  "total_vram_bytes": 25769803776,
+  "p2p_domain": "workstation",
+  "network_domain": "tailscale",
+  "models": [{
+    "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+    "revision": "local-snapshot-fdf756fa7fcbe740",
+    "tokenizer_revision": "local-snapshot-fdf756fa7fcbe740",
+    "architecture": "dense",
+    "attention": "gqa",
+    "max_context_tokens": 4096,
+    "dtype": "float16",
+    "supports_kv_offload": true,
+    "kv_bytes_per_token": 12288
+  }]
+}

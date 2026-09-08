@@ -279,7 +279,10 @@ class WorkerGrpcService(control_pb2_grpc.WorkerControlServiceServicer):
         async for request in request_iterator:
             try:
                 telemetry = WorkerTelemetry.model_validate_json(request.telemetry_json)
-                if telemetry.worker_id != request.worker_id:
+                if (
+                    telemetry.worker_id != request.worker_id
+                    or telemetry.generation != request.generation
+                ):
                     raise ValueError("heartbeat envelope does not match telemetry")
                 await self._registry.heartbeat(telemetry)
             except ValueError as error:
