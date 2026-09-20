@@ -1,0 +1,180 @@
+{
+  "harness": "langgraph",
+  "scenario": "no-pressure",
+  "preoffload": true,
+  "calls": [
+    {
+      "request_ms": 94.24292435869575,
+      "deltas": {
+        "vllm:request_prompt_tokens_sum": 1067.0,
+        "vllm:request_prompt_tokens_count": 1.0,
+        "vllm:request_prefill_kv_computed_tokens_sum": 1067.0,
+        "vllm:num_preemptions_total": 0.0,
+        "vllm:time_to_first_token_seconds_sum": 0.02070760726928711,
+        "vllm:kv_offload_store_size_sum": 12976128.0,
+        "vllm:kv_offload_load_size_sum": 0.0,
+        "vllm:prefix_cache_hits_total": 0.0,
+        "vllm:external_prefix_cache_hits_total": 0.0
+      },
+      "usage": {
+        "prompt_tokens": 1067,
+        "total_tokens": 1083,
+        "completion_tokens": 16,
+        "prompt_tokens_details": null
+      },
+      "response": {
+        "id": "chatcmpl-bd800cc87727fb3e",
+        "object": "chat.completion",
+        "created": 1788841496,
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "tool_calls": [
+                {
+                  "id": "chatcmpl-tool-9c74d4bc6ebc2337",
+                  "type": "function",
+                  "function": {
+                    "name": "read_heading",
+                    "arguments": "{}"
+                  }
+                }
+              ],
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "stop",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev19622+g8e78a3c61-80e80029",
+        "usage": {
+          "prompt_tokens": 1067,
+          "total_tokens": 1083,
+          "completion_tokens": 16,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    },
+    {
+      "request_ms": 64.16126014664769,
+      "deltas": {
+        "vllm:request_prompt_tokens_sum": 1110.0,
+        "vllm:request_prompt_tokens_count": 1.0,
+        "vllm:request_prefill_kv_computed_tokens_sum": 38.0,
+        "vllm:num_preemptions_total": 0.0,
+        "vllm:time_to_first_token_seconds_sum": 0.00855565071105957,
+        "vllm:kv_offload_store_size_sum": 589824.0,
+        "vllm:kv_offload_load_size_sum": 0.0,
+        "vllm:prefix_cache_hits_total": 1072.0,
+        "vllm:external_prefix_cache_hits_total": 0.0
+      },
+      "usage": {
+        "prompt_tokens": 1110,
+        "total_tokens": 1125,
+        "completion_tokens": 15,
+        "prompt_tokens_details": null
+      },
+      "response": {
+        "id": "chatcmpl-bbfe65530410764d",
+        "object": "chat.completion",
+        "created": 1788841497,
+        "model": "Qwen/Qwen2.5-0.5B-Instruct",
+        "choices": [
+          {
+            "index": 0,
+            "message": {
+              "role": "assistant",
+              "content": "The repository heading is # FreeChat Agent-Aware Inference Infrastructure.",
+              "refusal": null,
+              "annotations": null,
+              "audio": null,
+              "function_call": null,
+              "reasoning": null
+            },
+            "logprobs": null,
+            "finish_reason": "stop",
+            "stop_reason": null,
+            "token_ids": null,
+            "routed_experts": null
+          }
+        ],
+        "service_tier": null,
+        "system_fingerprint": "vllm-0.1.dev19622+g8e78a3c61-80e80029",
+        "usage": {
+          "prompt_tokens": 1110,
+          "total_tokens": 1125,
+          "completion_tokens": 15,
+          "prompt_tokens_details": null
+        },
+        "prompt_logprobs": null,
+        "prompt_token_ids": null,
+        "prompt_text": null,
+        "kv_transfer_params": null,
+        "ec_transfer_params": null,
+        "metrics": null
+      }
+    }
+  ],
+  "tool_calls": [
+    "read_heading"
+  ],
+  "answer": "The repository heading is # FreeChat Agent-Aware Inference Infrastructure.",
+  "expected": "# FreeChat Agent-Aware Inference Infrastructure",
+  "correct": false,
+  "semantic_heading_present": true,
+  "raw_task_ms": 852.1228502504528,
+  "adjusted_task_ms": 370.8906266838312,
+  "instrumentation_ms": 481.23222356662154,
+  "artifacts": [
+    {
+      "path": "call0-before.prom",
+      "sha256": "cf6a26c712428a8cd1bd4a86c631253dd9c11311045b4b9eae781ed345d7bb72"
+    },
+    {
+      "path": "call0-after.prom",
+      "sha256": "eb60c76d2c7ffb075ea39ce2cbd897ff816952578fe697e9a595da19b8bff451"
+    },
+    {
+      "path": "call0-request.json",
+      "sha256": "e741949404f333e0c3ce46c08c0348e1d25320c035c330988149e41658011042"
+    },
+    {
+      "path": "call0-response.json",
+      "sha256": "8deabdd4bb8ce9ee15b78df4afe81ca841526b268339633878cf650824173ec8"
+    },
+    {
+      "path": "call1-before.prom",
+      "sha256": "726cf0ef5a989f9c091cc895fa2a2f18e3ab69276ad983ec98fadf5b8f466bfa"
+    },
+    {
+      "path": "call1-after.prom",
+      "sha256": "85c633e0be61fc917b07d39850354acda166e7c04c0961138382bd352a4e5271"
+    },
+    {
+      "path": "call1-request.json",
+      "sha256": "3cf59742d8247a92d26f6a82f0a86c7e0e59ce9e2537414b7db7e7cebdb03354"
+    },
+    {
+      "path": "call1-response.json",
+      "sha256": "0c3592bb8c9ae4971b2a745d99500d438f5b88e5b2f47c3b7fe4d42aa2ca3b6c"
+    }
+  ],
+  "scope": "Forced one-tool workflow; routing bypassed; not calibrated A or B."
+}

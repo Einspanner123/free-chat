@@ -164,6 +164,54 @@ class WorkerCapabilities(BaseModel):
     allow_remote_requests: bool = True
 
 
+class CostCalibration(BaseModel):
+    """Measured service rates, restricted to their observed execution scope."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+
+    calibration_id: str = Field(min_length=1)
+    worker_id: str
+    worker_generation: int = Field(ge=1)
+    engine_instance_id: str = Field(min_length=1)
+    model: ModelCapability
+    image_identity: str = Field(min_length=1)
+    observed_at: datetime
+    expires_at: datetime
+    artifact_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    sample_count: int = Field(ge=3)
+    input_tokens_min: int = Field(ge=1)
+    input_tokens_max: int = Field(ge=1)
+    output_tokens_min: int = Field(ge=2)
+    output_tokens_max: int = Field(ge=2)
+    max_concurrent_requests: int = Field(default=1, ge=1)
+    prefill_tokens_per_second: float = Field(gt=0)
+    decode_tokens_per_second: float = Field(gt=0)
+    store_bytes_per_second: float | None = Field(default=None, gt=0)
+    load_bytes_per_second: float | None = Field(default=None, gt=0)
+    transfer_bytes_min: int | None = Field(default=None, ge=1)
+    transfer_bytes_max: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def validate_scope(self) -> CostCalibration:
+        if self.observed_at.tzinfo is None or self.expires_at.tzinfo is None:
+            raise ValueError("calibration timestamps require a timezone")
+        if self.expires_at <= self.observed_at:
+            raise ValueError("calibration expiry must follow observation")
+        if self.input_tokens_min > self.input_tokens_max:
+            raise ValueError("invalid input-token range")
+        if self.output_tokens_min > self.output_tokens_max:
+            raise ValueError("invalid output-token range")
+        transfers = (self.store_bytes_per_second, self.load_bytes_per_second,
+                     self.transfer_bytes_min, self.transfer_bytes_max)
+        if any(value is not None for value in transfers):
+            if any(value is None for value in transfers):
+                raise ValueError("transfer calibration requires both directions and byte range")
+            assert self.transfer_bytes_min is not None and self.transfer_bytes_max is not None
+            if self.transfer_bytes_min > self.transfer_bytes_max:
+                raise ValueError("invalid transfer-byte range")
+        return self
+
+
 class WorkerTelemetry(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -188,6 +236,7 @@ class WorkerTelemetry(BaseModel):
     engine_instance_id: str | None = None
     kv_cache_usage_ratio: float | None = Field(default=None, ge=0, le=1)
     transfer_observed_at: datetime | None = None
+    calibrations: tuple[CostCalibration, ...] = ()
 
     @model_validator(mode="after")
     def validate_kv_cache_capacity(self) -> WorkerTelemetry:
@@ -230,6 +279,9 @@ class CandidateCost(BaseModel):
     eviction_externality: float = Field(ge=0)
     affinity_credit_ms: float = Field(ge=0)
     total_ms: float
+    estimate_available: bool = False
+    calibration_id: str | None = None
+    unavailable_reason: str | None = None
 
 
 class PredictiveOffloadDirective(BaseModel):
@@ -273,6 +325,8 @@ class RouteDecision(BaseModel):
     rejected: dict[str, tuple[str, ...]]
     topology_generation: int
     strategy: str = "lifecycle-aware"
+    requested_strategy: str | None = None
+    fallback_reason: str | None = None
     lease_ttl_ms: int = Field(default=30_000, ge=1_000)
     kv_transfer: PredictiveOffloadDirective = Field(
         default_factory=lambda: PredictiveOffloadDirective(reason="not_evaluated")

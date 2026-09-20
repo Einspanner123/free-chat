@@ -1,0 +1,179 @@
+{
+  "observed_at": "2026-09-08T03:39:16.197083+00:00",
+  "engine_instance_id": "c85cfda7-20260908T021513Z",
+  "image_identity": "sha256:5527760b5854807b7c9d6c0544ea8f619a76c86b220a3f345b47823c6aa19288",
+  "capabilities": {
+    "worker_id": "workstation-a5000-telemetry",
+    "generation": 4,
+    "endpoint": "http://100.99.131.26:18001",
+    "node_id": "workstation",
+    "gpu_id": "0",
+    "gpu_name": "NVIDIA RTX A5000",
+    "compute_capability": "8.6",
+    "total_vram_bytes": 25769803776,
+    "p2p_domain": "workstation",
+    "network_domain": "tailscale",
+    "models": [
+      {
+        "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+        "revision": "local-snapshot-fdf756fa7fcbe740",
+        "tokenizer_revision": "local-snapshot-fdf756fa7fcbe740",
+        "architecture": "dense",
+        "attention": "gqa",
+        "is_moe": false,
+        "max_context_tokens": 4096,
+        "dtype": "float16",
+        "quantization": null,
+        "tensor_parallel_size": 1,
+        "pipeline_parallel_size": 1,
+        "supports_prefix_cache": true,
+        "supports_kv_offload": true,
+        "kv_bytes_per_token": 12288,
+        "supports_tool_calling": true
+      }
+    ],
+    "allow_remote_requests": true
+  },
+  "artifacts": [
+    {
+      "path": "r32-trial-1-before.prom",
+      "sha256": "bb69398dcdc75856b87341f243559845fb2e5f41dc6ff5fb955368b246cddf96"
+    },
+    {
+      "path": "r32-trial-1-stored.prom",
+      "sha256": "1eb166123c40a2246f8e3e0153fdd4b098bcd654a2dc08abb7604508f7532630"
+    },
+    {
+      "path": "r32-trial-1-pressure.prom",
+      "sha256": "5458ff27f5ce944647ea94da621b221b3f3c989354d2b43e90eb68179b132591"
+    },
+    {
+      "path": "r32-trial-1-resumed.prom",
+      "sha256": "42fcda53a5c87adc6b8eea31b9cb19cb7e2788e6c11014f2e72949bcbc74ab48"
+    },
+    {
+      "path": "r32-trial0-before.prom",
+      "sha256": "42fcda53a5c87adc6b8eea31b9cb19cb7e2788e6c11014f2e72949bcbc74ab48"
+    },
+    {
+      "path": "r32-trial0-stored.prom",
+      "sha256": "95687f0b707f08762b3206a013f94a3012a4d445640dced596792d41dd36fe14"
+    },
+    {
+      "path": "r32-trial0-pressure.prom",
+      "sha256": "b2c8e1a592b450b5fa50b54f9a1d915c6eb6a530bdf532a13a7dc7c83e207988"
+    },
+    {
+      "path": "r32-trial0-resumed.prom",
+      "sha256": "037db5329e93f184ec0df624efb945e0a8241751dcce30ad1f8143d2b97b36e0"
+    },
+    {
+      "path": "r32-trial1-before.prom",
+      "sha256": "75b517a260fd72ce613e3b5d18550a62c988c63c51b6e12dca11fa087d35413d"
+    },
+    {
+      "path": "r32-trial1-stored.prom",
+      "sha256": "7aea9b8b229d9ba207f353856f0baeb877e6aa66e4347e525a1d1e62067eca90"
+    },
+    {
+      "path": "r32-trial1-pressure.prom",
+      "sha256": "0eef71a9b2bc1501a73a6841ca1e78ecae80cde547a0e0c2150aacfcc7849ee4"
+    },
+    {
+      "path": "r32-trial1-resumed.prom",
+      "sha256": "f9e827a6ad7293a1fb647bd1a1ed1c580bda652f2f48d0e893d3bda9c31f6718"
+    },
+    {
+      "path": "r32-trial2-before.prom",
+      "sha256": "1b3c403bf353ce081f68b4ac50770fda44c2f3a3e88a9cd6bb98981aa5bb08d2"
+    },
+    {
+      "path": "r32-trial2-stored.prom",
+      "sha256": "87b1af72d7741eb01c2f8542fc31a4731a8390773b6520ecdfb376e1c5b97186"
+    },
+    {
+      "path": "r32-trial2-pressure.prom",
+      "sha256": "0482ce0b4d675f5fdde4f8f6662701c0b06d3d4c336ed2d8d6331ec1fb7b4d45"
+    },
+    {
+      "path": "r32-trial2-resumed.prom",
+      "sha256": "75de364c7d5824b7a33e33acba9e9362e4f83accd91311fc8929f5ee8db74952"
+    },
+    {
+      "path": "r128-trial-1-before.prom",
+      "sha256": "a86a6108a8f6b18ba70d7f0ecfc18a9beeba63009a45b12dba3bf3b7fdffaa1e"
+    },
+    {
+      "path": "r128-trial-1-stored.prom",
+      "sha256": "1ba3c09f81448cd1f7c7e8c2364c88b5aa2ce2580d496ff7cd8923a76eafa04a"
+    },
+    {
+      "path": "r128-trial-1-pressure.prom",
+      "sha256": "8a0712dfab56c4e9768b846ea70174d07583519081f27f5a48dd9227b73eb464"
+    },
+    {
+      "path": "r128-trial-1-resumed.prom",
+      "sha256": "049c969a7c63de58d9329b5908635436b090548d7a88435a86c1875068163799"
+    },
+    {
+      "path": "r128-trial0-before.prom",
+      "sha256": "049c969a7c63de58d9329b5908635436b090548d7a88435a86c1875068163799"
+    },
+    {
+      "path": "r128-trial0-stored.prom",
+      "sha256": "da6146497a52c003fdf37b925b2da707fddc02e15a2073d38b8e23521feaad5c"
+    },
+    {
+      "path": "r128-trial0-pressure.prom",
+      "sha256": "36cbc5827d1d72142aad31211b82743a1f1845fc7b59a94aee89018efdf4b27c"
+    },
+    {
+      "path": "r128-trial0-resumed.prom",
+      "sha256": "3f658415905143ac3fe43cf9965118154da195fbe92d3490f73559b43687fcc4"
+    },
+    {
+      "path": "r128-trial1-before.prom",
+      "sha256": "3f658415905143ac3fe43cf9965118154da195fbe92d3490f73559b43687fcc4"
+    },
+    {
+      "path": "r128-trial1-stored.prom",
+      "sha256": "0f7495ca0f306fe7716666c24d5ccd8d5bdf1d9d3e0e58b6668062e4da7c835c"
+    },
+    {
+      "path": "r128-trial1-pressure.prom",
+      "sha256": "9751469668b9956d5f2ced4a15932917a2cd63c02d39236f8abea1259ab035e7"
+    },
+    {
+      "path": "r128-trial1-resumed.prom",
+      "sha256": "eaeec88289d169db65afb1cdc34585883cb0b8807a96382d56c01827ec3be0da"
+    },
+    {
+      "path": "r128-trial2-before.prom",
+      "sha256": "eaeec88289d169db65afb1cdc34585883cb0b8807a96382d56c01827ec3be0da"
+    },
+    {
+      "path": "r128-trial2-stored.prom",
+      "sha256": "b52cb0c64dfd886c8348ca906d350c48f2d2fda219742bc00e9655ae4b5b017f"
+    },
+    {
+      "path": "r128-trial2-pressure.prom",
+      "sha256": "f19b05f3ee1c6e825dec51ffc03e5408f961e1183b93f46590fb0b9cd6f1c521"
+    },
+    {
+      "path": "r128-trial2-resumed.prom",
+      "sha256": "5148e16e023a9f0663b3cd2cb12651828616439e679a0b3a95e98d8d998ec207"
+    },
+    {
+      "path": "observations.json",
+      "sha256": "5a65016fe3d206979fa5121ed9c49a3f77201876f9400970bf49a9c90ac4e82d"
+    }
+  ],
+  "evidence_level": "MECHANISM_ONLY",
+  "performance_claim_admissible": false,
+  "limitations": [
+    "Single isolated worker, synthetic pressure, not a Harness trial.",
+    "Transfer service durations are not request latency or PCIe saturation.",
+    "External hit correlation is not a live per-block residency catalog.",
+    "Not automatically installed into scheduler profiles."
+  ]
+}

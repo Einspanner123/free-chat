@@ -13,6 +13,8 @@ from freechat_contracts import (
     RouteDecision,
 )
 
+from freechat_scheduler.calibration import matching_calibration
+from freechat_scheduler.forecasts import forecast_rejection
 from freechat_scheduler.registry import InMemoryWorkerRegistry, WorkerSnapshot
 
 
@@ -87,10 +89,12 @@ class Scheduler:
             if item.capabilities.worker_id == selected.worker_id
         )
         selected_worker = next(
-            item
-            for item in eligible
-            if item.capabilities.worker_id == selected.worker_id
+            item for item in eligible if item.capabilities.worker_id == selected.worker_id
         )
+        fallback = self._strategy in {
+            RoutingStrategy.COST_AWARE,
+            RoutingStrategy.LIFECYCLE_AWARE,
+        } and any(not item.estimate_available for item in costs)
         return RouteDecision(
             request_id=request.request_id,
             worker_id=worker_caps.worker_id,
@@ -100,7 +104,9 @@ class Scheduler:
             candidates=costs,
             rejected=rejected,
             topology_generation=topology_generation,
-            strategy=self._strategy,
+            strategy=RoutingStrategy.LEAST_LOAD if fallback else self._strategy,
+            requested_strategy=self._strategy,
+            fallback_reason="candidate_cost_unavailable" if fallback else None,
             kv_transfer=self._predictive_offload(request, selected_worker),
         )
 
@@ -130,6 +136,9 @@ class Scheduler:
                 applicable=True,
                 reason="terminal_lifecycle",
             )
+        forecast_error = forecast_rejection(hints, datetime.now(UTC))
+        if forecast_error is not None:
+            return PredictiveOffloadDirective(applicable=True, reason=forecast_error)
         estimated_kv_bytes = request.estimated_kv_bytes or (
             request.input_tokens * model.kv_bytes_per_token
         )
@@ -140,18 +149,27 @@ class Scheduler:
             )
 
         telemetry = worker.telemetry
-        if telemetry.telemetry_source == "vllm-prometheus-window":
+        calibration, reason = matching_calibration(request, worker)
+        if calibration is None:
             return PredictiveOffloadDirective(
                 applicable=True,
                 estimated_kv_bytes=estimated_kv_bytes,
-                reason="prefill_calibration_required",
+                reason=reason,
             )
-        if telemetry.cache_store_bytes_per_second is None:
+        if calibration.store_bytes_per_second is None or calibration.load_bytes_per_second is None:
             return PredictiveOffloadDirective(
                 applicable=True,
                 estimated_kv_bytes=estimated_kv_bytes,
-                reason="missing_cache_store_bandwidth",
+                reason="transfer_calibration_required",
             )
+        assert calibration.transfer_bytes_min is not None
+        assert calibration.transfer_bytes_max is not None
+        if (
+            not calibration.transfer_bytes_min
+            <= estimated_kv_bytes
+            <= calibration.transfer_bytes_max
+        ):
+            return PredictiveOffloadDirective(applicable=True, reason="transfer_size_out_of_scope")
         reuse_probability = hints.expected_reuse_probability
         if hints.source is HintSource.INFERRED:
             reuse_probability *= hints.confidence
@@ -173,21 +191,11 @@ class Scheduler:
                 1.0,
             )
         eviction_probability = max(pressure_risk, wait_risk)
-        recompute_ms = (
-            request.input_tokens
-            / telemetry.estimated_prefill_tokens_per_second
-            * 1_000
-        )
-        store_ms = estimated_kv_bytes / telemetry.cache_store_bytes_per_second * 1_000
-        restore_ms = (
-            estimated_kv_bytes / telemetry.cache_load_bytes_per_second * 1_000
-        )
-        expected_avoided_recompute_ms = (
-            reuse_probability * eviction_probability * recompute_ms
-        )
-        expected_transfer_ms = store_ms + (
-            reuse_probability * eviction_probability * restore_ms
-        )
+        recompute_ms = request.input_tokens / calibration.prefill_tokens_per_second * 1_000
+        store_ms = estimated_kv_bytes / calibration.store_bytes_per_second * 1_000
+        restore_ms = estimated_kv_bytes / calibration.load_bytes_per_second * 1_000
+        expected_avoided_recompute_ms = reuse_probability * eviction_probability * recompute_ms
+        expected_transfer_ms = store_ms + (reuse_probability * eviction_probability * restore_ms)
         net_benefit_ms = expected_avoided_recompute_ms - expected_transfer_ms
         enabled = reuse_probability > 0 and eviction_probability > 0 and net_benefit_ms > 0
         reason = "expected_recompute_exceeds_transfer" if enabled else "transfer_cost_not_recovered"
@@ -216,7 +224,11 @@ class Scheduler:
             selected_index = self._round_robin_index % len(ordered)
             self._round_robin_index += 1
             return ordered[selected_index:] + ordered[:selected_index]
-        if self._strategy is RoutingStrategy.LEAST_LOAD:
+        missing_cost = self._strategy in {
+            RoutingStrategy.COST_AWARE,
+            RoutingStrategy.LIFECYCLE_AWARE,
+        } and any(not item.estimate_available for item in costs.values())
+        if self._strategy is RoutingStrategy.LEAST_LOAD or missing_cost:
             return sorted(
                 workers,
                 key=lambda item: (
@@ -285,16 +297,31 @@ class Scheduler:
     ) -> CandidateCost:
         caps = worker.capabilities
         telemetry = worker.telemetry
+        calibration, reason = matching_calibration(request, worker)
+        if calibration is None:
+            return CandidateCost(
+                worker_id=caps.worker_id,
+                queue_ms=0,
+                prefill_ms=0,
+                decode_ms=0,
+                cache_ms=0,
+                network_ms=0,
+                cold_start_ms=0,
+                deadline_risk=0,
+                eviction_externality=0,
+                affinity_credit_ms=0,
+                total_ms=0,
+                estimate_available=False,
+                unavailable_reason=reason,
+            )
         model_loaded = any(item.model_id == request.model_id for item in caps.models)
         queue_ms = telemetry.queue_depth * self._weights.queue_request_ms
-        prefill_ms = request.input_tokens / telemetry.estimated_prefill_tokens_per_second * 1_000
-        decode_ms = request.output_tokens / telemetry.estimated_decode_tokens_per_second * 1_000
+        prefill_ms = request.input_tokens / calibration.prefill_tokens_per_second * 1_000
+        decode_ms = max(0, request.output_tokens - 1) / calibration.decode_tokens_per_second * 1_000
         cache_hit = request.cache_key is not None and request.cache_key in telemetry.cached_prefixes
         cache_ms = 0.0
-        if request.estimated_kv_bytes and not cache_hit:
-            cache_ms = (
-                request.estimated_kv_bytes / telemetry.cache_load_bytes_per_second * 1_000
-            )
+        # Absence of a local prefix does not imply an external KV load will occur.
+        # Until the residency catalog proves a load, estimate a cold prefill only.
         remote = request.local_node_id is not None and caps.node_id != request.local_node_id
         network_ms = telemetry.network_rtt_ms if remote else 0.0
         cold_start_ms = 0.0 if model_loaded else self._weights.cold_model_ms
@@ -325,6 +352,8 @@ class Scheduler:
         )
         return CandidateCost(
             worker_id=caps.worker_id,
+            estimate_available=True,
+            calibration_id=calibration.calibration_id,
             queue_ms=queue_ms,
             prefill_ms=prefill_ms,
             decode_ms=decode_ms,

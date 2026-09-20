@@ -1,0 +1,212 @@
+{
+  "observed_at": "2026-09-08T03:42:23.161326+00:00",
+  "engine_instance_id": "c85cfda7-20260908T021513Z",
+  "image_identity": "sha256:5527760b5854807b7c9d6c0544ea8f619a76c86b220a3f345b47823c6aa19288",
+  "capabilities": {
+    "worker_id": "workstation-a5000-telemetry",
+    "generation": 4,
+    "endpoint": "http://100.99.131.26:18001",
+    "node_id": "workstation",
+    "gpu_id": "0",
+    "gpu_name": "NVIDIA RTX A5000",
+    "compute_capability": "8.6",
+    "total_vram_bytes": 25769803776,
+    "p2p_domain": "workstation",
+    "network_domain": "tailscale",
+    "models": [
+      {
+        "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+        "revision": "local-snapshot-fdf756fa7fcbe740",
+        "tokenizer_revision": "local-snapshot-fdf756fa7fcbe740",
+        "architecture": "dense",
+        "attention": "gqa",
+        "is_moe": false,
+        "max_context_tokens": 4096,
+        "dtype": "float16",
+        "quantization": null,
+        "tensor_parallel_size": 1,
+        "pipeline_parallel_size": 1,
+        "supports_prefix_cache": true,
+        "supports_kv_offload": true,
+        "kv_bytes_per_token": 12288,
+        "supports_tool_calling": true
+      }
+    ],
+    "allow_remote_requests": true
+  },
+  "artifacts": [
+    {
+      "path": "r32-trial-1-responses.json",
+      "sha256": "6fb72488ae85f1875c8ba58ddff603919f2269cf5b7f617bdb9bede1f3b55da3"
+    },
+    {
+      "path": "r32-trial-1-before.prom",
+      "sha256": "4abf2c1b046bf2260e83dc83d969866c7822e47c1e5eb5d872e1a06ad4e548bd"
+    },
+    {
+      "path": "r32-trial-1-stored.prom",
+      "sha256": "8c50cc38965b0ec39a97c267ee15cb42555c149a651f500ab55449c4f9977fef"
+    },
+    {
+      "path": "r32-trial-1-pressure.prom",
+      "sha256": "ea114d25e0afce079fcc232d15b153252ed96f065bba7ea8ee3f02dc68d283c3"
+    },
+    {
+      "path": "r32-trial-1-resumed.prom",
+      "sha256": "1c8cd85817706a0e264e684657336316a8d26eddbaf701c465e2a8cc76d35739"
+    },
+    {
+      "path": "r32-trial0-responses.json",
+      "sha256": "6902ddc785df147f05c05e5d18665257b953f1ad383b7b5e3d105bd14406ab0a"
+    },
+    {
+      "path": "r32-trial0-before.prom",
+      "sha256": "1c8cd85817706a0e264e684657336316a8d26eddbaf701c465e2a8cc76d35739"
+    },
+    {
+      "path": "r32-trial0-stored.prom",
+      "sha256": "8a0ae92e5b69d2b603c836a79d16abe5198a68a54d5601ad3f160e810c80a35a"
+    },
+    {
+      "path": "r32-trial0-pressure.prom",
+      "sha256": "0c5bad276fe1e010238bdaf782711781dea11d13d2b6c1b076f913ff1ac77958"
+    },
+    {
+      "path": "r32-trial0-resumed.prom",
+      "sha256": "eb61dbf31481db44a056afe52c19231d250f2e22bef9458333cc043cbc8139a3"
+    },
+    {
+      "path": "r32-trial1-responses.json",
+      "sha256": "1881db1931067b087d0a0cce1bc58cb5ca803b331e2a8861d573e582030d2a1d"
+    },
+    {
+      "path": "r32-trial1-before.prom",
+      "sha256": "eb61dbf31481db44a056afe52c19231d250f2e22bef9458333cc043cbc8139a3"
+    },
+    {
+      "path": "r32-trial1-stored.prom",
+      "sha256": "001ffb57a622f746fec50d433bc400614ac7202e4477206434036e8db169c0d1"
+    },
+    {
+      "path": "r32-trial1-pressure.prom",
+      "sha256": "3bee6144a765e9cfbf4cc831968d32b12fd6d98600a20e3b8f65062a851f5622"
+    },
+    {
+      "path": "r32-trial1-resumed.prom",
+      "sha256": "69bd3ca9626d6b87c4d9ff45380a4af942041eac91e9f65d244d54f2c2a981f8"
+    },
+    {
+      "path": "r32-trial2-responses.json",
+      "sha256": "44fd7dc053e8d9bd4346ae15d9238caa5fd77098ec7e0c7a5b8100cc146305fb"
+    },
+    {
+      "path": "r32-trial2-before.prom",
+      "sha256": "69bd3ca9626d6b87c4d9ff45380a4af942041eac91e9f65d244d54f2c2a981f8"
+    },
+    {
+      "path": "r32-trial2-stored.prom",
+      "sha256": "46819f660e5476f66362af027023c5a07875b4ca863c5befba5268afc1217f2c"
+    },
+    {
+      "path": "r32-trial2-pressure.prom",
+      "sha256": "0762ea6cd16548b562d0f4a06a02aa82faf0de8688da7b0f0c2301115e0f2eeb"
+    },
+    {
+      "path": "r32-trial2-resumed.prom",
+      "sha256": "571a8b54051d50533916f6a09a458e3c18d878bcc9e673bc6cd59ff37210aa42"
+    },
+    {
+      "path": "r128-trial-1-responses.json",
+      "sha256": "55ae910688074cb656d109f473f3e008c773b929cb9b4ab2fe10bc0c39a297ec"
+    },
+    {
+      "path": "r128-trial-1-before.prom",
+      "sha256": "571a8b54051d50533916f6a09a458e3c18d878bcc9e673bc6cd59ff37210aa42"
+    },
+    {
+      "path": "r128-trial-1-stored.prom",
+      "sha256": "8d7aad8fa6477655861251403bc1410ce8bc97eeffb57fe394a3fa1c0e2dde02"
+    },
+    {
+      "path": "r128-trial-1-pressure.prom",
+      "sha256": "4ae9835a08871de2ad121797711a329d67abe3c10edc4c7bd0c39dfa555b5f71"
+    },
+    {
+      "path": "r128-trial-1-resumed.prom",
+      "sha256": "2d8c17496e1ca26e7a64cd84eccb39505365e219e7029e628e7d65c1622c362c"
+    },
+    {
+      "path": "r128-trial0-responses.json",
+      "sha256": "2496962744b5e70ff090f64bf210dfe4c0ae671fbc5f74b5cdf90381b6331f1d"
+    },
+    {
+      "path": "r128-trial0-before.prom",
+      "sha256": "71b23a28863e7faa4a6d9fc4974528388f9d86f1e8f85658d7e90e8ea70819f9"
+    },
+    {
+      "path": "r128-trial0-stored.prom",
+      "sha256": "23083b3b81ecf3f120d92cd0ae68213268bc1a1c889a696227915a020faf45a6"
+    },
+    {
+      "path": "r128-trial0-pressure.prom",
+      "sha256": "0a5ac7972a4089368f7376847ed82efd3625330ad85b0ac92ec7f9c7b2f8393e"
+    },
+    {
+      "path": "r128-trial0-resumed.prom",
+      "sha256": "ff5ee743647d86faa6fc979fd5022a9486e6c4ff88766c6e18036b3931e69371"
+    },
+    {
+      "path": "r128-trial1-responses.json",
+      "sha256": "0bf9ad7ca9d24098ea24593e45ab935575e346d05d979f8554baa0cf41a965c1"
+    },
+    {
+      "path": "r128-trial1-before.prom",
+      "sha256": "ff5ee743647d86faa6fc979fd5022a9486e6c4ff88766c6e18036b3931e69371"
+    },
+    {
+      "path": "r128-trial1-stored.prom",
+      "sha256": "c36c72a97b42534126383bc312090fb9e2f3906e5b4e13f3b672226f5f010ec3"
+    },
+    {
+      "path": "r128-trial1-pressure.prom",
+      "sha256": "aa4ee21fcbbbb82535f7fb5e9b3143896f1eb431191d1dd069435101fb0e863d"
+    },
+    {
+      "path": "r128-trial1-resumed.prom",
+      "sha256": "2db2a184aaca351be04be3e725ed4d5a72f8f759e3d1d7a45560ee1a58b5c118"
+    },
+    {
+      "path": "r128-trial2-responses.json",
+      "sha256": "f059a812ec017343e481a7d3bd2435a57fab7eb6740ed159972002ca53f5a796"
+    },
+    {
+      "path": "r128-trial2-before.prom",
+      "sha256": "4cb764630d8d09799823fc3b2fe9fd7113906a7f7c305f32064e2ae6e8d54a2a"
+    },
+    {
+      "path": "r128-trial2-stored.prom",
+      "sha256": "25dca425b48707f4bdfec5b9f7f67f81825d26bf2f9049b8f9db60d9c342dfff"
+    },
+    {
+      "path": "r128-trial2-pressure.prom",
+      "sha256": "92dab1ac1bb45e6e168769acd68d7c88b32e273bf0cc37ae8aef4598aa652348"
+    },
+    {
+      "path": "r128-trial2-resumed.prom",
+      "sha256": "21b0c9efd0313b497e06400e14ab1c1207069b9e3859491da605a9bdb03e49e8"
+    },
+    {
+      "path": "observations.json",
+      "sha256": "e2bc398802401dc4be0e8d54a4533732c39bf61f1b8448bfbd5a208f8ace98f5"
+    }
+  ],
+  "probe_sha256": "2aa6f0825cda83296a494da95c45dc8c0cd36dadce8fc0dec31e4cc8c1118496",
+  "evidence_level": "MECHANISM_ONLY",
+  "performance_claim_admissible": false,
+  "limitations": [
+    "Single isolated worker, synthetic pressure, not a Harness trial.",
+    "Transfer service durations are not request latency or PCIe saturation.",
+    "External hit correlation is not a live per-block residency catalog.",
+    "Not automatically installed into scheduler profiles."
+  ]
+}

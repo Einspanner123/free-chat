@@ -63,6 +63,9 @@ message CostBreakdown {
   double eviction_externality = 8;
   double total = 9;
   double affinity_credit_ms = 10;
+  bool estimate_available = 11;
+  string calibration_id = 12;
+  string unavailable_reason = 13;
 }
 
 message RouteDecision {
@@ -76,6 +79,8 @@ message RouteDecision {
   uint64 topology_generation = 8;
   string strategy = 9;
   PredictiveOffloadDirective kv_transfer = 10;
+  string requested_strategy = 11;
+  string fallback_reason = 12;
 }
 
 message PredictiveOffloadDirective {

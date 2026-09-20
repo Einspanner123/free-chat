@@ -1,0 +1,115 @@
+{
+  "evidence_level": "MECHANISM_ONLY",
+  "performance_claim_admissible": false,
+  "observed_at": "2026-09-08T02:22:29.680691+00:00",
+  "capabilities": {
+    "worker_id": "workstation-a5000-telemetry",
+    "generation": 4,
+    "endpoint": "http://100.99.131.26:18001",
+    "node_id": "workstation",
+    "gpu_id": "0",
+    "gpu_name": "NVIDIA RTX A5000",
+    "compute_capability": "8.6",
+    "total_vram_bytes": 25769803776,
+    "p2p_domain": "workstation",
+    "network_domain": "tailscale",
+    "models": [
+      {
+        "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+        "revision": "local-snapshot-fdf756fa7fcbe740",
+        "tokenizer_revision": "local-snapshot-fdf756fa7fcbe740",
+        "architecture": "dense",
+        "attention": "gqa",
+        "is_moe": false,
+        "max_context_tokens": 4096,
+        "dtype": "float16",
+        "quantization": null,
+        "tensor_parallel_size": 1,
+        "pipeline_parallel_size": 1,
+        "supports_prefix_cache": true,
+        "supports_kv_offload": true,
+        "kv_bytes_per_token": 12288,
+        "supports_tool_calling": true
+      }
+    ],
+    "allow_remote_requests": true
+  },
+  "engine_instance_id": "c85cfda7-20260908T021513Z",
+  "image_identity": "sha256:5527760b5854807b7c9d6c0544ea8f619a76c86b220a3f345b47823c6aa19288",
+  "artifacts": [
+    {
+      "path": "r32-trial0-before.prom",
+      "sha256": "94688be4787eea7315d70f119eaaeeb04011707a87489ecd4072ed51eb636144"
+    },
+    {
+      "path": "r32-trial0-after.prom",
+      "sha256": "cd45486c644fdbdf56e730df8f28dc7c45fa8197801195c94f1a22e93a643d0d"
+    },
+    {
+      "path": "r32-trial1-before.prom",
+      "sha256": "cd45486c644fdbdf56e730df8f28dc7c45fa8197801195c94f1a22e93a643d0d"
+    },
+    {
+      "path": "r32-trial1-after.prom",
+      "sha256": "10d6cb807b7d23184efa854336594534e641ef19dcecdb81343858c6a05238d0"
+    },
+    {
+      "path": "r32-trial2-before.prom",
+      "sha256": "10d6cb807b7d23184efa854336594534e641ef19dcecdb81343858c6a05238d0"
+    },
+    {
+      "path": "r32-trial2-after.prom",
+      "sha256": "5b08c7ac78d2c1ea51730d329571e1a30f7b3d1b41c8bd294bdbafc46eee0f61"
+    },
+    {
+      "path": "r32-observations.json",
+      "sha256": "a0ad62788a01c71d29e1375455168d381268227269af1fb930b0f0f569be0d68"
+    },
+    {
+      "path": "r32-profile.json",
+      "sha256": "24e2023ba6b2b5e1868dd35308cafd259b78d1d86a8d6aaee50826a8253994aa"
+    },
+    {
+      "path": "r128-trial0-before.prom",
+      "sha256": "c25dbac0106579c3f26b66e94fb1a4dc338f8f2008d3c62255ff246c7ccb6686"
+    },
+    {
+      "path": "r128-trial0-after.prom",
+      "sha256": "b00708fb3a0a2e4d4d06ae32f33fa7d02f0260787763b5fc1075c00af52a3b6b"
+    },
+    {
+      "path": "r128-trial1-before.prom",
+      "sha256": "07c9dbea0aa4d4c03727c9f4e6e9b1a79dc754bf5d6eaa805cad36c66e282c67"
+    },
+    {
+      "path": "r128-trial1-after.prom",
+      "sha256": "023446b1c11d33babab3eb62f873d80fdd874a080d75d3bc5e323f8ee3fb332e"
+    },
+    {
+      "path": "r128-trial2-before.prom",
+      "sha256": "7483f3fe481c5097cc23093ba71e74c6fa863c7f3ab3e2206faeb2a133c23235"
+    },
+    {
+      "path": "r128-trial2-after.prom",
+      "sha256": "d0dc5c850d89d4b99e26ac177b2a92755d8a0bfceb12bfba0c344143f956c41f"
+    },
+    {
+      "path": "r128-observations.json",
+      "sha256": "09151c7c68d5bad269f5be48cee27d3fca292e9bf8203411e8879edcfd9fff95"
+    },
+    {
+      "path": "r128-profile.json",
+      "sha256": "f4c3121130aa8ea61af1dbbf4f32a6c7413be3d87cc41fdf0604cf91690e8264"
+    },
+    {
+      "path": "routes.json",
+      "sha256": "3b70fae4765e74ded9a1f417f7380258b172d2c7d22c02ee5703f42f78986715"
+    }
+  ],
+  "limitations": [
+    "Single worker, isolated requests, uncached prompts, warm engine.",
+    "No concurrent or Harness performance acceptance.",
+    "Transfer calibration absent; predictive offload remains disabled.",
+    "Image identity is a local image ID, not a registry digest."
+  ]
+}

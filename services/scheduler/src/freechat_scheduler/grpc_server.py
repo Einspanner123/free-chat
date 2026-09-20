@@ -105,6 +105,9 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
                 "worker_generation": decision.worker_generation,
                 "topology_generation": decision.topology_generation,
                 "strategy": decision.strategy,
+                "requested_strategy": decision.requested_strategy,
+                "fallback_reason": decision.fallback_reason,
+                "cost": decision.selected.model_dump(),
                 "kv_transfer": decision.kv_transfer.model_dump(),
             },
         )
@@ -355,6 +358,9 @@ def _decision_message(decision: RouteDecision) -> control_pb2.RouteDecision:
             eviction_externality=cost.eviction_externality,
             affinity_credit_ms=cost.affinity_credit_ms,
             total=cost.total_ms,
+            estimate_available=cost.estimate_available,
+            calibration_id=cost.calibration_id or "",
+            unavailable_reason=cost.unavailable_reason or "",
         ),
         rejected_candidates=[
             f"{worker_id}:{','.join(reasons)}"
@@ -363,6 +369,8 @@ def _decision_message(decision: RouteDecision) -> control_pb2.RouteDecision:
         lease_ttl_ms=decision.lease_ttl_ms,
         topology_generation=decision.topology_generation,
         strategy=decision.strategy,
+        requested_strategy=decision.requested_strategy or "",
+        fallback_reason=decision.fallback_reason or "",
         kv_transfer=control_pb2.PredictiveOffloadDirective(
             applicable=decision.kv_transfer.applicable,
             enabled=decision.kv_transfer.enabled,

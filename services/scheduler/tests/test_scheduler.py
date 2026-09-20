@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from freechat_contracts import (
     AgentHints,
+    CostCalibration,
     ModelCapability,
     RequestProfile,
     WorkerCapabilities,
@@ -67,6 +68,32 @@ def add_worker(
             cache_load_bytes_per_second=5_000_000_000,
             cache_store_bytes_per_second=5_000_000_000,
             healthy=healthy,
+            engine_instance_id="fixture-engine",
+            calibrations=(
+                CostCalibration(
+                    calibration_id="fixture-profile",
+                    worker_id=worker_id,
+                    worker_generation=1,
+                    engine_instance_id="fixture-engine",
+                    model=MODEL,
+                    image_identity="fixture-image",
+                    observed_at=datetime.now(UTC),
+                    expires_at=datetime.now(UTC) + timedelta(hours=1),
+                    artifact_sha256="a" * 64,
+                    sample_count=3,
+                    input_tokens_min=1,
+                    input_tokens_max=32_000,
+                    output_tokens_min=2,
+                    output_tokens_max=1000,
+                    max_concurrent_requests=100,
+                    prefill_tokens_per_second=10_000,
+                    decode_tokens_per_second=100,
+                    store_bytes_per_second=5e9,
+                    load_bytes_per_second=5e9,
+                    transfer_bytes_min=1,
+                    transfer_bytes_max=1024**3,
+                ),
+            ),
         ),
     )
 
@@ -142,7 +169,7 @@ def test_lifecycle_credit_changes_selection_relative_to_cost_aware() -> None:
         registry,
         "warm",
         node="ross",
-        queue=18,
+        queue=16,
         cached=frozenset({"shared-prefix"}),
     )
     add_worker(registry, "cold", node="ross")
@@ -216,7 +243,20 @@ def test_predictive_offload_requires_reported_store_bandwidth() -> None:
     snapshot = registry.snapshot()[1][0]
     registry.upsert(
         snapshot.capabilities,
-        snapshot.telemetry.model_copy(update={"cache_store_bytes_per_second": None}),
+        snapshot.telemetry.model_copy(
+            update={
+                "calibrations": (
+                    snapshot.telemetry.calibrations[0].model_copy(
+                        update={
+                            "store_bytes_per_second": None,
+                            "load_bytes_per_second": None,
+                            "transfer_bytes_min": None,
+                            "transfer_bytes_max": None,
+                        }
+                    ),
+                )
+            }
+        ),
     )
     hints = AgentHints(
         harness_id="agents",
@@ -226,7 +266,7 @@ def test_predictive_offload_requires_reported_store_bandwidth() -> None:
     )
     decision = Scheduler(registry).route(profile(hints=hints))
     assert decision.kv_transfer.enabled is False
-    assert decision.kv_transfer.reason == "missing_cache_store_bandwidth"
+    assert decision.kv_transfer.reason == "transfer_calibration_required"
 
 
 def test_remote_worker_is_hard_filtered() -> None:
@@ -257,9 +297,11 @@ def test_stale_worker_is_excluded_even_when_marked_healthy() -> None:
     snapshot = registry.snapshot()[1][0]
     registry.upsert(
         snapshot.capabilities,
-        snapshot.telemetry.model_copy(update={
-            "observed_at": datetime.now(UTC) - timedelta(seconds=31),
-        }),
+        snapshot.telemetry.model_copy(
+            update={
+                "observed_at": datetime.now(UTC) - timedelta(seconds=31),
+            }
+        ),
     )
     with pytest.raises(NoEligibleWorker) as error:
         Scheduler(registry).route(profile())
@@ -271,15 +313,51 @@ async def test_heartbeat_cannot_replace_newer_or_different_engine_sample() -> No
     registry = InMemoryWorkerRegistry()
     add_worker(registry, "worker", node="ross")
     snapshot = registry.snapshot()[1][0]
-    telemetry = snapshot.telemetry.model_copy(update={"engine_instance_id": "first"})
+    telemetry = snapshot.telemetry
     await registry.heartbeat(telemetry)
     with pytest.raises(ValueError, match="out_of_order"):
-        await registry.heartbeat(telemetry.model_copy(update={
-            "observed_at": telemetry.observed_at - timedelta(seconds=1),
-        }))
+        await registry.heartbeat(
+            telemetry.model_copy(
+                update={
+                    "observed_at": telemetry.observed_at - timedelta(seconds=1),
+                }
+            )
+        )
     with pytest.raises(ValueError, match="engine_instance_changed"):
         await registry.heartbeat(telemetry.model_copy(update={"engine_instance_id": "second"}))
     assert registry.snapshot()[1][0].telemetry == telemetry
+
+
+@pytest.mark.parametrize("invalid", ["missing", "expired", "generation", "engine", "scope", "busy"])
+def test_unusable_calibration_explicitly_falls_back(invalid: str) -> None:
+    registry = InMemoryWorkerRegistry()
+    add_worker(registry, "worker", node="ross")
+    snapshot = registry.snapshot()[1][0]
+    calibration = snapshot.telemetry.calibrations[0]
+    updates: dict[str, object] = {}
+    if invalid == "expired":
+        calibration = calibration.model_copy(
+            update={
+                "expires_at": datetime.now(UTC) - timedelta(seconds=1),
+            }
+        )
+    elif invalid == "generation":
+        calibration = calibration.model_copy(update={"worker_generation": 2})
+    elif invalid == "engine":
+        calibration = calibration.model_copy(update={"engine_instance_id": "different"})
+    elif invalid == "scope":
+        calibration = calibration.model_copy(update={"input_tokens_max": 100})
+    elif invalid == "busy":
+        calibration = calibration.model_copy(update={"max_concurrent_requests": 1})
+        updates["active_requests"] = 1
+    updates["calibrations"] = () if invalid == "missing" else (calibration,)
+    registry.upsert(snapshot.capabilities, snapshot.telemetry.model_copy(update=updates))
+    decision = Scheduler(registry).route(profile())
+    assert decision.strategy == RoutingStrategy.LEAST_LOAD
+    assert decision.requested_strategy == RoutingStrategy.LIFECYCLE_AWARE
+    assert decision.fallback_reason == "candidate_cost_unavailable"
+    assert not decision.selected.estimate_available
+    assert not decision.kv_transfer.enabled
 
 
 @pytest.mark.scale

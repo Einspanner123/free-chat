@@ -1,0 +1,143 @@
+[
+  {
+    "sample": {
+      "input_tokens": 926,
+      "output_tokens": 16,
+      "prefill_seconds": 0.014508257037959993,
+      "decode_seconds": 0.03604618494864553
+    },
+    "response": {
+      "id": "chatcmpl-a2b09af7124ec201",
+      "object": "chat.completion",
+      "created": 1788834399,
+      "model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "I'm sorry, but I cannot provide an answer to that question as there is",
+            "refusal": null,
+            "annotations": null,
+            "audio": null,
+            "function_call": null,
+            "reasoning": null
+          },
+          "logprobs": null,
+          "finish_reason": "length",
+          "stop_reason": null,
+          "token_ids": null,
+          "routed_experts": null
+        }
+      ],
+      "service_tier": null,
+      "system_fingerprint": "vllm-0.1.dev19622+g8e78a3c61-80e80029",
+      "usage": {
+        "prompt_tokens": 926,
+        "total_tokens": 942,
+        "completion_tokens": 16,
+        "prompt_tokens_details": null
+      },
+      "prompt_logprobs": null,
+      "prompt_token_ids": null,
+      "prompt_text": null,
+      "kv_transfer_params": null,
+      "ec_transfer_params": null,
+      "metrics": null
+    }
+  },
+  {
+    "sample": {
+      "input_tokens": 926,
+      "output_tokens": 16,
+      "prefill_seconds": 0.01612707693129778,
+      "decode_seconds": 0.03573702706489712
+    },
+    "response": {
+      "id": "chatcmpl-923d208b670c2bfe",
+      "object": "chat.completion",
+      "created": 1788834400,
+      "model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "I'm sorry, but I cannot provide an answer to that question as there is",
+            "refusal": null,
+            "annotations": null,
+            "audio": null,
+            "function_call": null,
+            "reasoning": null
+          },
+          "logprobs": null,
+          "finish_reason": "length",
+          "stop_reason": null,
+          "token_ids": null,
+          "routed_experts": null
+        }
+      ],
+      "service_tier": null,
+      "system_fingerprint": "vllm-0.1.dev19622+g8e78a3c61-80e80029",
+      "usage": {
+        "prompt_tokens": 926,
+        "total_tokens": 942,
+        "completion_tokens": 16,
+        "prompt_tokens_details": null
+      },
+      "prompt_logprobs": null,
+      "prompt_token_ids": null,
+      "prompt_text": null,
+      "kv_transfer_params": null,
+      "ec_transfer_params": null,
+      "metrics": null
+    }
+  },
+  {
+    "sample": {
+      "input_tokens": 926,
+      "output_tokens": 16,
+      "prefill_seconds": 0.01994400506373495,
+      "decode_seconds": 0.03697422693949193
+    },
+    "response": {
+      "id": "chatcmpl-b18d977ea9060dc2",
+      "object": "chat.completion",
+      "created": 1788834401,
+      "model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "I'm sorry, but I cannot provide an answer to that question as there is",
+            "refusal": null,
+            "annotations": null,
+            "audio": null,
+            "function_call": null,
+            "reasoning": null
+          },
+          "logprobs": null,
+          "finish_reason": "length",
+          "stop_reason": null,
+          "token_ids": null,
+          "routed_experts": null
+        }
+      ],
+      "service_tier": null,
+      "system_fingerprint": "vllm-0.1.dev19622+g8e78a3c61-80e80029",
+      "usage": {
+        "prompt_tokens": 926,
+        "total_tokens": 942,
+        "completion_tokens": 16,
+        "prompt_tokens_details": null
+      },
+      "prompt_logprobs": null,
+      "prompt_token_ids": null,
+      "prompt_text": null,
+      "kv_transfer_params": null,
+      "ec_transfer_params": null,
+      "metrics": null
+    }
+  }
+]

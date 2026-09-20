@@ -1,0 +1,132 @@
+[
+  {
+    "repetitions": 32,
+    "store": [
+      {
+        "direction": "store",
+        "transferred_bytes": 2949120,
+        "service_seconds": 0.0002676799893379213,
+        "operations": 1,
+        "external_hit_tokens": 0
+      },
+      {
+        "direction": "store",
+        "transferred_bytes": 2949120,
+        "service_seconds": 0.00026857599616050745,
+        "operations": 1,
+        "external_hit_tokens": 0
+      },
+      {
+        "direction": "store",
+        "transferred_bytes": 2949120,
+        "service_seconds": 0.00033759999275207505,
+        "operations": 1,
+        "external_hit_tokens": 0
+      }
+    ],
+    "load": [
+      {
+        "direction": "load",
+        "transferred_bytes": 2949120,
+        "service_seconds": 0.0002969599962234504,
+        "operations": 1,
+        "external_hit_tokens": 240
+      },
+      {
+        "direction": "load",
+        "transferred_bytes": 2949120,
+        "service_seconds": 0.0002908160090446532,
+        "operations": 1,
+        "external_hit_tokens": 240
+      },
+      {
+        "direction": "load",
+        "transferred_bytes": 2949120,
+        "service_seconds": 0.00033382400870322904,
+        "operations": 1,
+        "external_hit_tokens": 240
+      }
+    ],
+    "summaries": [
+      {
+        "direction": "store",
+        "sample_count": 3,
+        "bytes_min": 2949120,
+        "bytes_max": 2949120,
+        "bytes_per_service_second": 10124505891.362995
+      },
+      {
+        "direction": "load",
+        "sample_count": 3,
+        "bytes_min": 2949120,
+        "bytes_max": 2949120,
+        "bytes_per_service_second": 9599999854.465288
+      }
+    ]
+  },
+  {
+    "repetitions": 128,
+    "store": [
+      {
+        "direction": "store",
+        "transferred_bytes": 11206656,
+        "service_seconds": 0.0010306240320205684,
+        "operations": 1,
+        "external_hit_tokens": 0
+      },
+      {
+        "direction": "store",
+        "transferred_bytes": 11206656,
+        "service_seconds": 0.0010418239831924431,
+        "operations": 1,
+        "external_hit_tokens": 0
+      },
+      {
+        "direction": "store",
+        "transferred_bytes": 11206656,
+        "service_seconds": 0.0012228800058364866,
+        "operations": 1,
+        "external_hit_tokens": 0
+      }
+    ],
+    "load": [
+      {
+        "direction": "load",
+        "transferred_bytes": 11206656,
+        "service_seconds": 0.0007147520184516976,
+        "operations": 1,
+        "external_hit_tokens": 912
+      },
+      {
+        "direction": "load",
+        "transferred_bytes": 11206656,
+        "service_seconds": 0.0007167999744415315,
+        "operations": 1,
+        "external_hit_tokens": 912
+      },
+      {
+        "direction": "load",
+        "transferred_bytes": 11206656,
+        "service_seconds": 0.0007639039754867571,
+        "operations": 1,
+        "external_hit_tokens": 912
+      }
+    ],
+    "summaries": [
+      {
+        "direction": "store",
+        "sample_count": 3,
+        "bytes_min": 11206656,
+        "bytes_max": 11206656,
+        "bytes_per_service_second": 10202313027.791597
+      },
+      {
+        "direction": "load",
+        "sample_count": 3,
+        "bytes_min": 11206656,
+        "bytes_max": 11206656,
+        "bytes_per_service_second": 15313433056.372328
+      }
+    ]
+  }
+]

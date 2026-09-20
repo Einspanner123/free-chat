@@ -2,6 +2,7 @@ from freechat_harness_adapters.adapters import (
     ADAPTERS,
     HarnessAdapter,
     HarnessCall,
+    ReuseForecast,
     adapter_for,
 )
 from freechat_harness_adapters.opencode import OpenCodeLifecycle
@@ -13,5 +14,6 @@ __all__ = [
     "HarnessCall",
     "OpenCodeLifecycle",
     "OpenHandsLifecycle",
+    "ReuseForecast",
     "adapter_for",
 ]

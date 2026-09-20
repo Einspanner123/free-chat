@@ -97,7 +97,10 @@ def test_worker_registration_and_route_over_grpc() -> None:
             )
             assert route.worker_id == "ross-a6000"
             assert route.worker_generation == 1
-            assert route.cost.total > 0
+            assert route.cost.estimate_available is False
+            assert route.strategy == "least-load"
+            assert route.requested_strategy == "lifecycle-aware"
+            assert route.fallback_reason == "candidate_cost_unavailable"
             assert route.HasField("kv_transfer")
             assert route.kv_transfer.reason
         finally:

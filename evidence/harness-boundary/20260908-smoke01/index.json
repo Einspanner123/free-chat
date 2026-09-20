@@ -1,0 +1,82 @@
+[
+  {
+    "name": "agents-pressure--1-1",
+    "warmup": true,
+    "correct": false
+  },
+  {
+    "name": "agents-pressure--1-0",
+    "warmup": true,
+    "correct": false
+  },
+  {
+    "name": "agents-pressure-0-0",
+    "warmup": false,
+    "correct": false
+  },
+  {
+    "name": "agents-pressure-0-1",
+    "warmup": false,
+    "correct": false
+  },
+  {
+    "name": "agents-no-pressure--1-1",
+    "warmup": true,
+    "correct": false
+  },
+  {
+    "name": "agents-no-pressure--1-0",
+    "warmup": true,
+    "correct": false
+  },
+  {
+    "name": "agents-no-pressure-0-0",
+    "warmup": false,
+    "correct": false
+  },
+  {
+    "name": "agents-no-pressure-0-1",
+    "warmup": false,
+    "correct": false
+  },
+  {
+    "name": "langgraph-pressure--1-1",
+    "warmup": true,
+    "correct": false
+  },
+  {
+    "name": "langgraph-pressure--1-0",
+    "warmup": true,
+    "correct": false
+  },
+  {
+    "name": "langgraph-pressure-0-0",
+    "warmup": false,
+    "correct": false
+  },
+  {
+    "name": "langgraph-pressure-0-1",
+    "warmup": false,
+    "correct": false
+  },
+  {
+    "name": "langgraph-no-pressure--1-1",
+    "warmup": true,
+    "correct": false
+  },
+  {
+    "name": "langgraph-no-pressure--1-0",
+    "warmup": true,
+    "correct": false
+  },
+  {
+    "name": "langgraph-no-pressure-0-0",
+    "warmup": false,
+    "correct": false
+  },
+  {
+    "name": "langgraph-no-pressure-0-1",
+    "warmup": false,
+    "correct": false
+  }
+]

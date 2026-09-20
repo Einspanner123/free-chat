@@ -99,7 +99,7 @@ class RouteRequest(_message.Message):
     def __init__(self, context: _Optional[_Union[RequestContext, _Mapping]] = ..., hints: _Optional[_Union[AgentHints, _Mapping]] = ..., model: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_key: _Optional[str] = ..., streaming: _Optional[bool] = ...) -> None: ...
 
 class CostBreakdown(_message.Message):
-    __slots__ = ("queue_ms", "prefill_ms", "decode_ms", "cache_ms", "network_ms", "cold_start_ms", "deadline_risk", "eviction_externality", "total", "affinity_credit_ms")
+    __slots__ = ("queue_ms", "prefill_ms", "decode_ms", "cache_ms", "network_ms", "cold_start_ms", "deadline_risk", "eviction_externality", "total", "affinity_credit_ms", "estimate_available", "calibration_id", "unavailable_reason")
     QUEUE_MS_FIELD_NUMBER: _ClassVar[int]
     PREFILL_MS_FIELD_NUMBER: _ClassVar[int]
     DECODE_MS_FIELD_NUMBER: _ClassVar[int]
@@ -110,6 +110,9 @@ class CostBreakdown(_message.Message):
     EVICTION_EXTERNALITY_FIELD_NUMBER: _ClassVar[int]
     TOTAL_FIELD_NUMBER: _ClassVar[int]
     AFFINITY_CREDIT_MS_FIELD_NUMBER: _ClassVar[int]
+    ESTIMATE_AVAILABLE_FIELD_NUMBER: _ClassVar[int]
+    CALIBRATION_ID_FIELD_NUMBER: _ClassVar[int]
+    UNAVAILABLE_REASON_FIELD_NUMBER: _ClassVar[int]
     queue_ms: float
     prefill_ms: float
     decode_ms: float
@@ -120,10 +123,13 @@ class CostBreakdown(_message.Message):
     eviction_externality: float
     total: float
     affinity_credit_ms: float
-    def __init__(self, queue_ms: _Optional[float] = ..., prefill_ms: _Optional[float] = ..., decode_ms: _Optional[float] = ..., cache_ms: _Optional[float] = ..., network_ms: _Optional[float] = ..., cold_start_ms: _Optional[float] = ..., deadline_risk: _Optional[float] = ..., eviction_externality: _Optional[float] = ..., total: _Optional[float] = ..., affinity_credit_ms: _Optional[float] = ...) -> None: ...
+    estimate_available: bool
+    calibration_id: str
+    unavailable_reason: str
+    def __init__(self, queue_ms: _Optional[float] = ..., prefill_ms: _Optional[float] = ..., decode_ms: _Optional[float] = ..., cache_ms: _Optional[float] = ..., network_ms: _Optional[float] = ..., cold_start_ms: _Optional[float] = ..., deadline_risk: _Optional[float] = ..., eviction_externality: _Optional[float] = ..., total: _Optional[float] = ..., affinity_credit_ms: _Optional[float] = ..., estimate_available: _Optional[bool] = ..., calibration_id: _Optional[str] = ..., unavailable_reason: _Optional[str] = ...) -> None: ...
 
 class RouteDecision(_message.Message):
-    __slots__ = ("decision_id", "worker_id", "endpoint", "worker_generation", "cost", "rejected_candidates", "lease_ttl_ms", "topology_generation", "strategy", "kv_transfer")
+    __slots__ = ("decision_id", "worker_id", "endpoint", "worker_generation", "cost", "rejected_candidates", "lease_ttl_ms", "topology_generation", "strategy", "kv_transfer", "requested_strategy", "fallback_reason")
     DECISION_ID_FIELD_NUMBER: _ClassVar[int]
     WORKER_ID_FIELD_NUMBER: _ClassVar[int]
     ENDPOINT_FIELD_NUMBER: _ClassVar[int]
@@ -134,6 +140,8 @@ class RouteDecision(_message.Message):
     TOPOLOGY_GENERATION_FIELD_NUMBER: _ClassVar[int]
     STRATEGY_FIELD_NUMBER: _ClassVar[int]
     KV_TRANSFER_FIELD_NUMBER: _ClassVar[int]
+    REQUESTED_STRATEGY_FIELD_NUMBER: _ClassVar[int]
+    FALLBACK_REASON_FIELD_NUMBER: _ClassVar[int]
     decision_id: str
     worker_id: str
     endpoint: str
@@ -144,7 +152,9 @@ class RouteDecision(_message.Message):
     topology_generation: int
     strategy: str
     kv_transfer: PredictiveOffloadDirective
-    def __init__(self, decision_id: _Optional[str] = ..., worker_id: _Optional[str] = ..., endpoint: _Optional[str] = ..., worker_generation: _Optional[int] = ..., cost: _Optional[_Union[CostBreakdown, _Mapping]] = ..., rejected_candidates: _Optional[_Iterable[str]] = ..., lease_ttl_ms: _Optional[int] = ..., topology_generation: _Optional[int] = ..., strategy: _Optional[str] = ..., kv_transfer: _Optional[_Union[PredictiveOffloadDirective, _Mapping]] = ...) -> None: ...
+    requested_strategy: str
+    fallback_reason: str
+    def __init__(self, decision_id: _Optional[str] = ..., worker_id: _Optional[str] = ..., endpoint: _Optional[str] = ..., worker_generation: _Optional[int] = ..., cost: _Optional[_Union[CostBreakdown, _Mapping]] = ..., rejected_candidates: _Optional[_Iterable[str]] = ..., lease_ttl_ms: _Optional[int] = ..., topology_generation: _Optional[int] = ..., strategy: _Optional[str] = ..., kv_transfer: _Optional[_Union[PredictiveOffloadDirective, _Mapping]] = ..., requested_strategy: _Optional[str] = ..., fallback_reason: _Optional[str] = ...) -> None: ...
 
 class PredictiveOffloadDirective(_message.Message):
     __slots__ = ("enabled", "max_offload_tokens", "estimated_kv_bytes", "predicted_reuse_probability", "predicted_eviction_probability", "estimated_recompute_ms", "estimated_store_ms", "estimated_restore_ms", "expected_net_benefit_ms", "reason", "applicable")

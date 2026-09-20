@@ -1,0 +1,143 @@
+[
+  {
+    "sample": {
+      "input_tokens": 254,
+      "output_tokens": 16,
+      "prefill_seconds": 0.006734476890414953,
+      "decode_seconds": 0.03584912000223994
+    },
+    "response": {
+      "id": "chatcmpl-85bc723fe84108d9",
+      "object": "chat.completion",
+      "created": 1788834394,
+      "model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "I'm sorry, but I cannot provide an answer without knowing what the tool result",
+            "refusal": null,
+            "annotations": null,
+            "audio": null,
+            "function_call": null,
+            "reasoning": null
+          },
+          "logprobs": null,
+          "finish_reason": "length",
+          "stop_reason": null,
+          "token_ids": null,
+          "routed_experts": null
+        }
+      ],
+      "service_tier": null,
+      "system_fingerprint": "vllm-0.1.dev19622+g8e78a3c61-80e80029",
+      "usage": {
+        "prompt_tokens": 254,
+        "total_tokens": 270,
+        "completion_tokens": 16,
+        "prompt_tokens_details": null
+      },
+      "prompt_logprobs": null,
+      "prompt_token_ids": null,
+      "prompt_text": null,
+      "kv_transfer_params": null,
+      "ec_transfer_params": null,
+      "metrics": null
+    }
+  },
+  {
+    "sample": {
+      "input_tokens": 254,
+      "output_tokens": 16,
+      "prefill_seconds": 0.01088921504560858,
+      "decode_seconds": 0.03532865596935153
+    },
+    "response": {
+      "id": "chatcmpl-9bf3f60079f681d6",
+      "object": "chat.completion",
+      "created": 1788834395,
+      "model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "I'm sorry, but I cannot provide an answer without knowing what the tool result",
+            "refusal": null,
+            "annotations": null,
+            "audio": null,
+            "function_call": null,
+            "reasoning": null
+          },
+          "logprobs": null,
+          "finish_reason": "length",
+          "stop_reason": null,
+          "token_ids": null,
+          "routed_experts": null
+        }
+      ],
+      "service_tier": null,
+      "system_fingerprint": "vllm-0.1.dev19622+g8e78a3c61-80e80029",
+      "usage": {
+        "prompt_tokens": 254,
+        "total_tokens": 270,
+        "completion_tokens": 16,
+        "prompt_tokens_details": null
+      },
+      "prompt_logprobs": null,
+      "prompt_token_ids": null,
+      "prompt_text": null,
+      "kv_transfer_params": null,
+      "ec_transfer_params": null,
+      "metrics": null
+    }
+  },
+  {
+    "sample": {
+      "input_tokens": 254,
+      "output_tokens": 16,
+      "prefill_seconds": 0.006562882917933166,
+      "decode_seconds": 0.03582178708165884
+    },
+    "response": {
+      "id": "chatcmpl-9cfa237bd4aa77dc",
+      "object": "chat.completion",
+      "created": 1788834396,
+      "model": "Qwen/Qwen2.5-0.5B-Instruct",
+      "choices": [
+        {
+          "index": 0,
+          "message": {
+            "role": "assistant",
+            "content": "I'm sorry, but I cannot provide an answer without knowing what the tool result",
+            "refusal": null,
+            "annotations": null,
+            "audio": null,
+            "function_call": null,
+            "reasoning": null
+          },
+          "logprobs": null,
+          "finish_reason": "length",
+          "stop_reason": null,
+          "token_ids": null,
+          "routed_experts": null
+        }
+      ],
+      "service_tier": null,
+      "system_fingerprint": "vllm-0.1.dev19622+g8e78a3c61-80e80029",
+      "usage": {
+        "prompt_tokens": 254,
+        "total_tokens": 270,
+        "completion_tokens": 16,
+        "prompt_tokens_details": null
+      },
+      "prompt_logprobs": null,
+      "prompt_token_ids": null,
+      "prompt_text": null,
+      "kv_transfer_params": null,
+      "ec_transfer_params": null,
+      "metrics": null
+    }
+  }
+]

@@ -133,6 +133,9 @@ class GrpcSchedulerClient:
             eviction_externality=response.cost.eviction_externality,
             affinity_credit_ms=response.cost.affinity_credit_ms,
             total_ms=response.cost.total,
+            estimate_available=response.cost.estimate_available,
+            calibration_id=response.cost.calibration_id or None,
+            unavailable_reason=response.cost.unavailable_reason or None,
         )
         return RouteDecision(
             decision_id=response.decision_id,
@@ -145,6 +148,8 @@ class GrpcSchedulerClient:
             rejected=_parse_rejections(response.rejected_candidates),
             topology_generation=response.topology_generation,
             strategy=response.strategy or "lifecycle-aware",
+            requested_strategy=response.requested_strategy or None,
+            fallback_reason=response.fallback_reason or None,
             lease_ttl_ms=response.lease_ttl_ms,
             kv_transfer=PredictiveOffloadDirective(
                 applicable=response.kv_transfer.applicable,

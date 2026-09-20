@@ -21,3 +21,11 @@ Thresholds for changing this decision will be frozen after that baseline is coll
 ## Traceability
 
 This record resolves the explicit architecture conflict by owner direction: implement predictive pre-offload first, inspect evidence, and decide separately whether the exact post-tool-wait fork interface is justified.
+
+## Evidence follow-up
+
+The real Harness boundary experiment and subsequent implementation-scope decision
+are recorded in `20260908-offload-route-evidence.md`. A remains the selected
+implementation path; B is not added to the current implementation scope. This is
+not project-wide performance acceptance or measured A/B superiority. The actual
+predictor and four-Harness acceptance remain pending, with unknown-cost offload disabled.

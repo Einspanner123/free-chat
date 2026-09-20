@@ -1,0 +1,191 @@
+[
+  {
+    "case": "in-scope",
+    "decision": {
+      "decision_id": "cd1f95f4-767d-490e-87d0-7eeaf37726f4",
+      "request_id": "5fad6a4d-3d71-4854-bfa2-3755e2bf59f6",
+      "worker_id": "workstation-a5000-telemetry",
+      "worker_generation": 4,
+      "endpoint": "http://100.99.131.26:18001",
+      "selected": {
+        "worker_id": "workstation-a5000-telemetry",
+        "queue_ms": 0.0,
+        "prefill_ms": 8.062191617985565,
+        "decode_ms": 35.66652101775011,
+        "cache_ms": 0.0,
+        "network_ms": 0.0,
+        "cold_start_ms": 0.0,
+        "deadline_risk": 0.0,
+        "eviction_externality": 0.0,
+        "affinity_credit_ms": 0.0,
+        "total_ms": 43.728712635735675,
+        "estimate_available": true,
+        "calibration_id": "a0ad62788a01c71d29e1375455168d381268227269af1fb930b0f0f569be0d68",
+        "unavailable_reason": null
+      },
+      "candidates": [
+        {
+          "worker_id": "workstation-a5000-telemetry",
+          "queue_ms": 0.0,
+          "prefill_ms": 8.062191617985565,
+          "decode_ms": 35.66652101775011,
+          "cache_ms": 0.0,
+          "network_ms": 0.0,
+          "cold_start_ms": 0.0,
+          "deadline_risk": 0.0,
+          "eviction_externality": 0.0,
+          "affinity_credit_ms": 0.0,
+          "total_ms": 43.728712635735675,
+          "estimate_available": true,
+          "calibration_id": "a0ad62788a01c71d29e1375455168d381268227269af1fb930b0f0f569be0d68",
+          "unavailable_reason": null
+        }
+      ],
+      "rejected": {},
+      "topology_generation": 2,
+      "strategy": "lifecycle-aware",
+      "requested_strategy": "lifecycle-aware",
+      "fallback_reason": null,
+      "lease_ttl_ms": 30000,
+      "kv_transfer": {
+        "applicable": true,
+        "enabled": false,
+        "max_offload_tokens": 0,
+        "estimated_kv_bytes": 3121152,
+        "predicted_reuse_probability": 0.0,
+        "predicted_eviction_probability": 0.0,
+        "estimated_recompute_ms": 0.0,
+        "estimated_store_ms": 0.0,
+        "estimated_restore_ms": 0.0,
+        "expected_net_benefit_ms": 0.0,
+        "reason": "transfer_calibration_required"
+      }
+    }
+  },
+  {
+    "case": "in-scope",
+    "decision": {
+      "decision_id": "a97fe001-98c5-4485-9715-c962ee7d4788",
+      "request_id": "ee54fcab-ccd0-43c4-aed3-510228db3977",
+      "worker_id": "workstation-a5000-telemetry",
+      "worker_generation": 4,
+      "endpoint": "http://100.99.131.26:18001",
+      "selected": {
+        "worker_id": "workstation-a5000-telemetry",
+        "queue_ms": 0.0,
+        "prefill_ms": 16.85977967766424,
+        "decode_ms": 36.25247965101153,
+        "cache_ms": 0.0,
+        "network_ms": 0.0,
+        "cold_start_ms": 0.0,
+        "deadline_risk": 0.0,
+        "eviction_externality": 0.0,
+        "affinity_credit_ms": 0.0,
+        "total_ms": 53.11225932867576,
+        "estimate_available": true,
+        "calibration_id": "09151c7c68d5bad269f5be48cee27d3fca292e9bf8203411e8879edcfd9fff95",
+        "unavailable_reason": null
+      },
+      "candidates": [
+        {
+          "worker_id": "workstation-a5000-telemetry",
+          "queue_ms": 0.0,
+          "prefill_ms": 16.85977967766424,
+          "decode_ms": 36.25247965101153,
+          "cache_ms": 0.0,
+          "network_ms": 0.0,
+          "cold_start_ms": 0.0,
+          "deadline_risk": 0.0,
+          "eviction_externality": 0.0,
+          "affinity_credit_ms": 0.0,
+          "total_ms": 53.11225932867576,
+          "estimate_available": true,
+          "calibration_id": "09151c7c68d5bad269f5be48cee27d3fca292e9bf8203411e8879edcfd9fff95",
+          "unavailable_reason": null
+        }
+      ],
+      "rejected": {},
+      "topology_generation": 2,
+      "strategy": "lifecycle-aware",
+      "requested_strategy": "lifecycle-aware",
+      "fallback_reason": null,
+      "lease_ttl_ms": 30000,
+      "kv_transfer": {
+        "applicable": true,
+        "enabled": false,
+        "max_offload_tokens": 0,
+        "estimated_kv_bytes": 11378688,
+        "predicted_reuse_probability": 0.0,
+        "predicted_eviction_probability": 0.0,
+        "estimated_recompute_ms": 0.0,
+        "estimated_store_ms": 0.0,
+        "estimated_restore_ms": 0.0,
+        "expected_net_benefit_ms": 0.0,
+        "reason": "transfer_calibration_required"
+      }
+    }
+  },
+  {
+    "case": "out-of-scope",
+    "decision": {
+      "decision_id": "62706742-d85d-4f2f-a408-fce17d995b6e",
+      "request_id": "ee54fcab-ccd0-43c4-aed3-510228db3977",
+      "worker_id": "workstation-a5000-telemetry",
+      "worker_generation": 4,
+      "endpoint": "http://100.99.131.26:18001",
+      "selected": {
+        "worker_id": "workstation-a5000-telemetry",
+        "queue_ms": 0.0,
+        "prefill_ms": 0.0,
+        "decode_ms": 0.0,
+        "cache_ms": 0.0,
+        "network_ms": 0.0,
+        "cold_start_ms": 0.0,
+        "deadline_risk": 0.0,
+        "eviction_externality": 0.0,
+        "affinity_credit_ms": 0.0,
+        "total_ms": 0.0,
+        "estimate_available": false,
+        "calibration_id": null,
+        "unavailable_reason": "no_fresh_calibration_for_request_scope"
+      },
+      "candidates": [
+        {
+          "worker_id": "workstation-a5000-telemetry",
+          "queue_ms": 0.0,
+          "prefill_ms": 0.0,
+          "decode_ms": 0.0,
+          "cache_ms": 0.0,
+          "network_ms": 0.0,
+          "cold_start_ms": 0.0,
+          "deadline_risk": 0.0,
+          "eviction_externality": 0.0,
+          "affinity_credit_ms": 0.0,
+          "total_ms": 0.0,
+          "estimate_available": false,
+          "calibration_id": null,
+          "unavailable_reason": "no_fresh_calibration_for_request_scope"
+        }
+      ],
+      "rejected": {},
+      "topology_generation": 2,
+      "strategy": "least-load",
+      "requested_strategy": "lifecycle-aware",
+      "fallback_reason": "candidate_cost_unavailable",
+      "lease_ttl_ms": 30000,
+      "kv_transfer": {
+        "applicable": true,
+        "enabled": false,
+        "max_offload_tokens": 0,
+        "estimated_kv_bytes": 12607488,
+        "predicted_reuse_probability": 0.0,
+        "predicted_eviction_probability": 0.0,
+        "estimated_recompute_ms": 0.0,
+        "estimated_store_ms": 0.0,
+        "estimated_restore_ms": 0.0,
+        "expected_net_benefit_ms": 0.0,
+        "reason": "no_fresh_calibration_for_request_scope"
+      }
+    }
+  }
+]

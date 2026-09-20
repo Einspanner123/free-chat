@@ -1,0 +1,81 @@
+{
+  "cache_salt": "c567f455-8d4c-466e-a660-1fd735a486dc",
+  "target": {
+    "id": "chatcmpl-8ff39dfcc144847f",
+    "object": "chat.completion",
+    "created": 1788839140,
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "I'm sorry, but I cannot provide an answer without knowing what the tool result",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "length",
+        "stop_reason": null,
+        "token_ids": null,
+        "routed_experts": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": "vllm-0.1.dev19622+g8e78a3c61-80e80029",
+    "usage": {
+      "prompt_tokens": 254,
+      "total_tokens": 270,
+      "completion_tokens": 16,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "prompt_text": null,
+    "kv_transfer_params": null,
+    "ec_transfer_params": null,
+    "metrics": null
+  },
+  "resume": {
+    "id": "chatcmpl-8d581a2edc35425b",
+    "object": "chat.completion",
+    "created": 1788839150,
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "I'm sorry, but I cannot provide an answer without knowing what the tool result",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "length",
+        "stop_reason": null,
+        "token_ids": null,
+        "routed_experts": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": "vllm-0.1.dev19622+g8e78a3c61-80e80029",
+    "usage": {
+      "prompt_tokens": 254,
+      "total_tokens": 270,
+      "completion_tokens": 16,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "prompt_text": null,
+    "kv_transfer_params": null,
+    "ec_transfer_params": null,
+    "metrics": null
+  }
+}

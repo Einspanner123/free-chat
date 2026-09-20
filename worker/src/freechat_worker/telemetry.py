@@ -18,7 +18,7 @@ from typing import Any
 import grpc
 import httpx
 from freechat.control.v1 import control_pb2, control_pb2_grpc
-from freechat_contracts import WorkerCapabilities, WorkerTelemetry
+from freechat_contracts import CostCalibration, WorkerCapabilities, WorkerTelemetry
 from prometheus_client.parser import text_string_to_metric_families
 
 METRICS = {
@@ -32,11 +32,14 @@ METRICS = {
 }
 
 
-def samples(payload: str, model: str, engine: str) -> dict[str, float]:
+def samples(
+    payload: str, model: str, engine: str, *, names: set[str] | None = None,
+) -> dict[str, float]:
+    selected_names = METRICS if names is None else names
     result: dict[str, float] = {}
     for family in text_string_to_metric_families(payload):
         for sample in family.samples:
-            if sample.name not in METRICS:
+            if sample.name not in selected_names:
                 continue
             if sample.labels.get("model_name") != model or sample.labels.get("engine") != engine:
                 continue
@@ -51,12 +54,16 @@ def samples(payload: str, model: str, engine: str) -> dict[str, float]:
 
 
 class TelemetryCollector:
-    def __init__(self, capabilities: WorkerCapabilities, engine_instance_id: str) -> None:
+    def __init__(
+        self, capabilities: WorkerCapabilities, engine_instance_id: str,
+        calibrations: tuple[CostCalibration, ...] = (),
+    ) -> None:
         if len(capabilities.models) != 1:
             raise ValueError("collector requires one served model per worker")
         self.capabilities = capabilities
         self.engine_instance_id = engine_instance_id
         self.previous: dict[str, float] | None = None
+        self.calibrations = calibrations
 
     def collect(
         self, payload: str, *, free_vram_bytes: int, observed_at: datetime
@@ -104,6 +111,7 @@ class TelemetryCollector:
             telemetry_source="vllm-prometheus-window",
             engine_instance_id=self.engine_instance_id,
             transfer_observed_at=observed_at if rates else None,
+            calibrations=self.calibrations,
         )
 
 
@@ -126,7 +134,10 @@ async def heartbeat(stub: Any, telemetry: WorkerTelemetry) -> str:
 
 async def run(args: argparse.Namespace) -> None:
     caps = WorkerCapabilities.model_validate_json(args.capabilities.read_text())
-    collector = TelemetryCollector(caps, args.engine_instance_id)
+    calibrations = tuple(
+        CostCalibration.model_validate_json(path.read_text()) for path in args.calibration
+    )
+    collector = TelemetryCollector(caps, args.engine_instance_id, calibrations)
     channel = grpc.aio.insecure_channel(args.scheduler)
     worker = control_pb2_grpc.WorkerControlServiceStub(channel)  # type: ignore[no-untyped-call]
     try:
@@ -165,6 +176,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--capabilities", type=Path, required=True)
     parser.add_argument("--engine-instance-id", required=True)
+    parser.add_argument("--calibration", type=Path, action="append", default=[])
     parser.add_argument("--scheduler", required=True)
     parser.add_argument("--samples", type=int, default=12)
     parser.add_argument("--interval", type=float, default=5)

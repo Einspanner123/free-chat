@@ -1,0 +1,81 @@
+{
+  "cache_salt": "4cc1475f-0601-44a1-a242-cea546c714a7",
+  "target": {
+    "id": "chatcmpl-9a51efb408709dc0",
+    "object": "chat.completion",
+    "created": 1788839151,
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "I'm sorry, but I cannot provide an answer to that question as there is",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "length",
+        "stop_reason": null,
+        "token_ids": null,
+        "routed_experts": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": "vllm-0.1.dev19622+g8e78a3c61-80e80029",
+    "usage": {
+      "prompt_tokens": 926,
+      "total_tokens": 942,
+      "completion_tokens": 16,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "prompt_text": null,
+    "kv_transfer_params": null,
+    "ec_transfer_params": null,
+    "metrics": null
+  },
+  "resume": {
+    "id": "chatcmpl-b81d8c2548dd3a2c",
+    "object": "chat.completion",
+    "created": 1788839161,
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "choices": [
+      {
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "I'm sorry, but I cannot provide an answer to that question as there is",
+          "refusal": null,
+          "annotations": null,
+          "audio": null,
+          "function_call": null,
+          "reasoning": null
+        },
+        "logprobs": null,
+        "finish_reason": "length",
+        "stop_reason": null,
+        "token_ids": null,
+        "routed_experts": null
+      }
+    ],
+    "service_tier": null,
+    "system_fingerprint": "vllm-0.1.dev19622+g8e78a3c61-80e80029",
+    "usage": {
+      "prompt_tokens": 926,
+      "total_tokens": 942,
+      "completion_tokens": 16,
+      "prompt_tokens_details": null
+    },
+    "prompt_logprobs": null,
+    "prompt_token_ids": null,
+    "prompt_text": null,
+    "kv_transfer_params": null,
+    "ec_transfer_params": null,
+    "metrics": null
+  }
+}
