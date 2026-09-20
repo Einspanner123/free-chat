@@ -13,6 +13,7 @@ import grpc
 import httpx
 from freechat.control.v1 import control_pb2, control_pb2_grpc
 from freechat_contracts.execution import ExecutionAction, ExecutionCommand, ExecutionReceipt
+from freechat_worker.capacity import EngineCapacity
 
 
 def has_token(event: dict[str, Any]) -> bool:
@@ -32,6 +33,9 @@ async def validate(url: str, control: str, model: str, token: str) -> None:
         identity_response = await client.get("/freechat/runtime", headers=auth)
         identity_response.raise_for_status()
         identity = identity_response.json()
+        capacity = EngineCapacity.model_validate(identity["capacity"])
+        assert capacity.usable_bytes > 0 and capacity.bytes_per_token > 0
+        print(json.dumps({"scope": "ENGINE_KV_CAPACITY", **identity}), flush=True)
         async with grpc.aio.insecure_channel(control) as channel:
             stub = control_pb2_grpc.RequestExecutionServiceStub(channel)  # type: ignore[no-untyped-call]
 

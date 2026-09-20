@@ -31,8 +31,9 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
    见既有 `evidence/execution-gpu/20260921/`。原生 HTTP 三协议、认证边界与 Worker launcher 已接通，
    A5000/A4000 已通过普通响应、SSE、生成中取消和重复准入验证；A6000 待完成。
    当前仍不代表 Gateway→Scheduler→Worker 全链路或重启恢复已经完成。
-2. [ ] **真实预算。** 从模型、tokenizer/template、cache allocator 和逐 rank 报告获得
-   token 数、KV layout 与可准入预算；明确 reservation 是否已扣除，避免双扣。
+2. [~] **真实预算。** Worker 已通过上游具名 extension RPC 读取分配后的 KV layout，
+   A5000/A4000 实测通过；报告 gross pool 并扣除 null block，不伪装成实时空闲预算。
+   仍需接通准确 tokenizer/template token 数、Scheduler reservation 扣减与 Worker 验证，避免双扣或低估。
 3. [ ] **统一启动路径。** Worker 启动→注册→持续 heartbeat→执行确认轮询；
    Gateway 启动现已要求显式 Scheduler 地址，缺失配置直接报错；static/fake 仅用于测试。
    不把 loopback fixture RPC 直接用于跨容器连接。

@@ -19,6 +19,7 @@ from freechat.control.execution import LocalRequestExecutionService
 from freechat.control.v1 import control_pb2_grpc
 from pydantic import SecretStr
 
+from freechat_worker.capacity import measure_capacity
 from freechat_worker.execution import DurableExecutionDriver
 from freechat_worker.native_serving import (
     AdmissionMiddleware,
@@ -43,6 +44,7 @@ async def serve(args: Any) -> None:
         api = importlib.import_module("vllm.entrypoints.openai.api_server")
         async with api.build_async_engine_client(args) as engine:
             backend = NativeExecutionBackend(engine)
+            capacity = await measure_capacity(engine)
             proxy = NativeEngineClient(engine, backend)
             instance = str(uuid4())
             driver = DurableExecutionDriver(
@@ -71,7 +73,9 @@ async def serve(args: Any) -> None:
                 tasks = await proxy.get_supported_tasks()
                 app = api.build_app(args, tasks, engine.model_config)
                 await api.init_app_state(proxy, app.state, args, tasks)
-                wrapped = AdmissionMiddleware(app, driver=driver, backend=backend, token=token)
+                wrapped = AdmissionMiddleware(
+                    app, driver=driver, backend=backend, token=token, capacity=capacity
+                )
                 await control.start()
                 LOGGER.info(
                     "worker ready worker=%s generation=%s engine=%s http=%s:%s control=%s",
@@ -104,7 +108,10 @@ def main() -> None:
     parser.add_argument("--worker-generation", type=int, default=time.time_ns())
     parser.add_argument("--state-dir", default="/var/lib/freechat")
     parser.add_argument("--control-port", type=int, default=50052)
-    parser.set_defaults(async_scheduling=False, host="127.0.0.1")
+    parser.set_defaults(
+        async_scheduling=False, host="127.0.0.1",
+        worker_extension_cls="freechat_worker.capacity.CapacityExtension",
+    )
     args = parser.parse_args()
     if args.worker_generation < 1:
         parser.error("worker generation must be positive")

@@ -12,6 +12,7 @@ from typing import Any
 
 from freechat_contracts.execution import ExecutionAction, ExecutionCommand, ExecutionStatus
 
+from freechat_worker.capacity import EngineCapacity
 from freechat_worker.execution import DurableExecutionDriver, EngineObservation
 from freechat_worker.vllm_execution import VllmExecutionBackend
 
@@ -139,10 +140,12 @@ class AdmissionMiddleware:
         driver: DurableExecutionDriver,
         backend: NativeExecutionBackend,
         token: str,
+        capacity: EngineCapacity | None = None,
     ) -> None:
         if len(token) < 32:
             raise ValueError("worker_token_requires_32_characters")
         self.app, self.driver, self.backend, self.token = app, driver, backend, token
+        self.capacity = capacity
 
     async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
         if scope["type"] != "http":
@@ -165,6 +168,7 @@ class AdmissionMiddleware:
                     "worker_id": worker,
                     "generation": generation,
                     "engine_instance_id": engine,
+                    "capacity": None if self.capacity is None else self.capacity.model_dump(),
                 },
             )
             return

@@ -96,6 +96,15 @@ because no project registry is configured and the local tag has no repository
 digest. A registry push and a repeat of the same command against the resolved
 digest are still required; the local image ID is not a substitute.
 
+## KV 容量报告
+
+Managed Worker 在分配 KV 后调用 vLLM 原生 Worker extension 的具名 RPC，
+读取逐 rank 的 block 数、page bytes 和 tensor 配置；不启用不安全函数序列化。
+`/freechat/runtime` 的认证响应包含 `capacity`。当前支持单 rank、单 full-attention/MLA
+缓存组；混合、不明或不一致布局拒绝启动。`basis` 明确为 gross engine pool，
+其中一个 null block 不可分配。它既不是 CUDA 空闲显存，也不是扣过请求预占的余额；
+不得直接与已扣预占的实时空闲计数混用。目前还未接入 Scheduler 的真实准入闭环。
+
 ## Telemetry、校准与 Harness 测试
 
 - `python -m freechat_worker.telemetry --help`：采集原生 Prometheus 队列、KV 使用率与传输计数，发送带 generation/engine identity 的 heartbeat。先注册同一 capability/generation。采集器目前不提供可信的 KV 空闲字节预算或完整 prefix inventory。
