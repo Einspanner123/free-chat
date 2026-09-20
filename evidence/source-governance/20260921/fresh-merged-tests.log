@@ -1,0 +1,14 @@
+........................................................................ [ 13%]
+........................................................................ [ 26%]
+....................................................I0921 00:27:10.508755  648291 chttp2_transport.cc:1402] ipv4:127.0.0.1:46137: Got goaway [2] err=UNAVAILABLE:GOAWAY received; Error code: 2; Debug Text: Cancelling all calls {http2_error:2}
+.................... [ 39%]
+.......................................................................I0921 00:27:11.159957  648296 chttp2_transport.cc:1402] ipv4:127.0.0.1:36021: Got goaway [2] err=UNAVAILABLE:GOAWAY received; Error code: 2; Debug Text: Cancelling all calls {http2_error:2}
+. [ 52%]
+........................................................................ [ 65%]
+........................................................................ [ 78%]
+.........................................s.............................. [ 91%]
+..................................s..............                        [100%]
+=========================== short test summary info ============================
+SKIPPED [1] worker/tests/test_block_table.py:8: GPU dependency group is not installed
+SKIPPED [1] worker/tests/test_kv_quantize.py:35: GPU dependency group is not installed
+551 passed, 2 skipped, 10 deselected in 16.41s

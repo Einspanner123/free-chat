@@ -1,0 +1,26 @@
+{
+  "scope": "SOURCE_RELEASE_PREREQUISITE",
+  "accepted": false,
+  "dirty_override": false,
+  "remote_checked": false,
+  "checks": {
+    "root_is_repository": true,
+    "submodule_initialized": true,
+    "committed_gitlink": true,
+    "index_gitlink": true,
+    "repository_uri": true,
+    "submodule_is_repository": true,
+    "fork_commit": true,
+    "fork_tree": true,
+    "upstream_ancestor": true,
+    "clean_source": true,
+    "immutable_worker_image": false
+  },
+  "source": {
+    "parent_commit": "53a73da09a976c7df7b1d74fae4826c234216580",
+    "fork_commit": "8e78a3c613072632aa822c9aed2f698e76046219",
+    "fork_tree": "45110e50047f52bef7628f2d616945fdb5244468"
+  },
+  "worker_image_digest": "UNRESOLVED",
+  "runtime_or_gpu_verified": false
+}
