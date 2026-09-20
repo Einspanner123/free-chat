@@ -17,6 +17,7 @@ dependencies and the independent vLLM submodule are pinned in `uv.lock` and
 | KV geometry | Allocator-reported block counts and per-block bytes verified on A5000/A4000; excludes the null block and reports gross capacity separately from Scheduler reservations |
 | Execution boundary | Durable route identity aggregates native engine calls; only EngineCore removal plus CUDA synchronization permits a terminal receipt |
 | Gateway/Scheduler | Real same-host Qwen2.5-0.5B inference on A5000/A4000 through automatic registration, authenticated heartbeat, native preparation, reservations and Worker execution reconciliation |
+| Concurrent admission | Three 8-request contention rounds per GPU against an actual 128-block pool on A5000/A4000; capacity backpressure, re-admission and complete fenced release verified, with no pool oversubscription |
 | Complete deployment | Same-host API path is exercised on two GPUs separately; shared multi-worker routing, WebUI integration, persistent control-state recovery and cross-node deployment remain incomplete |
 | Hardware expansion | A6000 validation is pending; 3×4 H100 is a future hardware target, not a verified deployment |
 
@@ -113,6 +114,14 @@ multi-node, real-Harness or performance tests. Validators print results to stdou
 services emit operational logs. Benchmark raw records are hash-linked JSON log
 records, not generated result directories. Profiler output can be streamed with
 `--chrome-trace`. Existing historical evidence is retained, not regenerated.
+
+For concurrent admission correctness, launch an isolated Worker with
+`--num-gpu-blocks-override 128 --max-model-len 1024`, then use
+`tools.validate_inference_loop --mode concurrent`. This changes the actual vLLM
+allocation, not the reported budget. The probe must observe successful requests,
+capacity rejection and subsequent admission; its stdout supplies counts for the
+normal-log audit in `docs/operations.md`. A bounded retry accommodates asynchronous
+release confirmation. This is not a throughput benchmark.
 
 The default local Scheduler uses in-memory state and normal lifecycle logs unless
 etcd/NATS are configured; this is not restart recovery or HA evidence. Compose

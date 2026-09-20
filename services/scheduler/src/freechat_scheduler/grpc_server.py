@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import logging
 import os
 from collections.abc import AsyncIterable, AsyncIterator
@@ -81,7 +82,14 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
                     profile, reserved=reserved, prepared=prepared
                 ),
             )
-        except (ValueError, NoEligibleWorker) as error:
+        except NoEligibleWorker as error:
+            LOGGER.info(
+                "admission_rejected %s",
+                json.dumps({"request_id": profile.request_id, "rejected": error.rejected}),
+            )
+            await context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
+            raise AssertionError("context.abort must terminate the RPC") from error
+        except ValueError as error:
             await context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
             raise AssertionError("context.abort must terminate the RPC") from error
         return _decision_message(decision)

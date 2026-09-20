@@ -158,6 +158,36 @@ SSE 断连、非流式中断、建连失败使用有界、屏蔽外层 ASGI 取�
 cancel/completion intent 和唯一 release，release 的 execution receipt 必须 terminal、quiescent、
 admission_closed。HTTP 200 或顺序请求成功本身不是全部释放证据。
 
+## 并发准入验证
+
+使用 README 的独立同机启动路径，把 Worker 参数设置为
+`--num-gpu-blocks-override 128 --max-model-len 1024`，不要与正常请求或其他 probe 混跑。
+这是上游实际 KV 分配配置，不是修改注册预算来制造压力。
+
+```bash
+docker exec freechat-worker /opt/freechat/.venv/bin/python \
+  -m tools.validate_inference_loop --mode concurrent --concurrent-requests 8 --rounds 3
+```
+
+每轮并发请求要求同时出现成功准入和 503 背压，成功请求必须真实生成指定 token 数；
+确认释放期间允许有界重试，并统计全部拒绝。HTTP 返回不等于预占已释放，不要求零确认延迟。
+随后按 stdout 的 `AUDIT_REQUIRED` 值设置下列参数，等待请求释放后核对正常 Scheduler 日志：
+
+```bash
+docker logs freechat-scheduler 2>&1 | \
+  docker exec -i freechat-worker /opt/freechat/.venv/bin/python \
+  -m tools.validate_inference_loop --mode audit-log \
+  --worker gpu-worker --pool-bytes "$POOL_BYTES" \
+  --expected-routes "$ROUTES" --expected-rejections "$REJECTIONS"
+```
+
+审计要求每个 route 恰好一次有效释放、回执身份一致、terminal/quiescent/admission_closed，
+并重建峰值预占不超过实测 usable KV pool。503 只有在服务日志记录该 Worker 的
+`vram_capacity` 拒绝时才计为容量背压；健康失败或网络故障不能冒充该结果。
+日志不完整、事件冲突或未释放直接失败。同一事件的相同重投不重复记账。
+`--expected-cancels` 用于带生成中断连的完整协议测试；这时必须匹配真实 ABORT 回执。
+这些计数不是吞吐、RTO 或分布式 exactly-once 指标。所有输出仍只到 stdout 和服务日志。
+
 ## Telemetry、校准与 Harness 测试
 
 - `python -m freechat_worker.telemetry --help`：采集原生 Prometheus 队列、KV 使用率与传输计数，发送带 generation/engine identity 的 heartbeat。先注册同一 capability/generation。采集器目前不提供可信的 KV 空闲字节预算或完整 prefix inventory。
