@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import os
 from collections.abc import AsyncIterable, AsyncIterator
-from dataclasses import dataclass, field
+from contextlib import suppress
+from pathlib import Path
 from typing import Any
 
 import grpc
@@ -24,50 +26,18 @@ from freechat_control_store import EtcdHttpStore, InMemoryStore, KeyValueStore
 from freechat_trace_replay import EventEnvelope
 from freechat_trace_replay.bus import DurableLifecycleEmitter, connect_lifecycle_stream
 
+from freechat_scheduler.group_reconciler import GroupRuntimeConfig, configured_reconciler
 from freechat_scheduler.registry import InMemoryWorkerRegistry, PersistentWorkerRegistry
+from freechat_scheduler.request_execution import (
+    LocalGrpcExecutionDriver,
+    RequestExecutionConfig,
+    RequestExecutionReconciler,
+)
+from freechat_scheduler.request_ledger import RequestLedger
 from freechat_scheduler.scheduler import NoEligibleWorker, RoutingStrategy, Scheduler
 
-
-@dataclass(slots=True)
-class LeaseBook:
-    store: KeyValueStore = field(default_factory=InMemoryStore)
-    key_prefix: str = "/freechat/leases/"
-
-    async def remember(self, decision: RouteDecision) -> None:
-        await self.store.put(self._key(decision.decision_id), decision.model_dump_json().encode())
-
-    async def require(
-        self,
-        decision_id: str,
-        worker_id: str,
-        generation: int,
-    ) -> RouteDecision:
-        item = await self.store.get(self._key(decision_id))
-        if item is None:
-            raise KeyError("decision_not_found")
-        decision = RouteDecision.model_validate_json(item.value)
-        if decision.worker_id != worker_id or decision.worker_generation != generation:
-            raise ValueError("lease_fencing_mismatch")
-        return decision
-
-    async def release(
-        self,
-        decision_id: str,
-        worker_id: str,
-        generation: int,
-    ) -> RouteDecision:
-        key = self._key(decision_id)
-        item = await self.store.get(key)
-        if item is None:
-            raise KeyError("decision_not_found")
-        decision = RouteDecision.model_validate_json(item.value)
-        if decision.worker_id != worker_id or decision.worker_generation != generation:
-            raise ValueError("lease_fencing_mismatch")
-        await self.store.compare_and_delete(key, item.revision)
-        return decision
-
-    def _key(self, decision_id: str) -> str:
-        return f"{self.key_prefix}{decision_id}"
+LOGGER = logging.getLogger(__name__)
+LeaseBook = RequestLedger
 
 
 class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
@@ -76,147 +46,110 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
         scheduler: Scheduler,
         leases: LeaseBook,
         emitter: DurableLifecycleEmitter | None = None,
+        execution: RequestExecutionReconciler | None = None,
     ) -> None:
-        self._scheduler = scheduler
-        self._leases = leases
-        self._emitter = emitter
+        self._scheduler, self._leases, self._emitter = scheduler, leases, emitter
+        self._flush_lock = asyncio.Lock()
+        self._execution = execution
 
     async def Route(
-        self,
-        request: control_pb2.RouteRequest,
-        context: Any,
+        self, request: control_pb2.RouteRequest, context: Any
     ) -> control_pb2.RouteDecision:
         try:
-            decision = self._scheduler.route(_request_profile(request))
+            profile = _request_profile(request)
+            decision = await self._leases.reserve(
+                profile,
+                request.context.idempotency_key or profile.request_id,
+                lambda reserved: self._scheduler.route(profile, reserved=reserved),
+            )
         except (ValueError, NoEligibleWorker) as error:
             await context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
             raise AssertionError("context.abort must terminate the RPC") from error
-        await self._leases.remember(decision)
-        await self._emit(
-            event_type="route.decided",
-            idempotency_key=request.context.idempotency_key,
-            tenant_id=request.context.tenant_id,
-            aggregate_id=request.context.request_id,
-            aggregate_generation=decision.worker_generation,
-            harness_id=request.hints.harness_id or "openai-compatible",
-            payload={
-                "decision_id": decision.decision_id,
-                "worker_id": decision.worker_id,
-                "worker_generation": decision.worker_generation,
-                "topology_generation": decision.topology_generation,
-                "strategy": decision.strategy,
-                "requested_strategy": decision.requested_strategy,
-                "fallback_reason": decision.fallback_reason,
-                "cost": decision.selected.model_dump(),
-                "kv_transfer": decision.kv_transfer.model_dump(),
-            },
-        )
         return _decision_message(decision)
 
     async def RenewLease(
-        self,
-        request: control_pb2.LeaseRequest,
-        context: Any,
+        self, request: control_pb2.LeaseRequest, context: Any
     ) -> control_pb2.Operation:
         try:
-            await self._leases.require(
+            await self._leases.renew(
                 request.decision_id,
                 request.worker_id,
                 request.worker_generation,
+                request.context.tenant_id,
+                request.context.idempotency_key,
             )
         except (KeyError, ValueError) as error:
             await context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
         return control_pb2.Operation(operation_id=request.decision_id, status="renewed")
 
     async def Release(
-        self,
-        request: control_pb2.LeaseRequest,
-        context: Any,
+        self, request: control_pb2.LeaseRequest, context: Any
     ) -> control_pb2.Operation:
         try:
-            decision = await self._leases.release(
+            await self._leases.release(
                 request.decision_id,
                 request.worker_id,
                 request.worker_generation,
+                request.context.tenant_id,
             )
         except (KeyError, ValueError) as error:
             await context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
-        await self._emit_lease_event("lease.released", request, decision)
-        return control_pb2.Operation(operation_id=request.decision_id, status="released")
+        state = (await self._leases.snapshot()).reservations[request.decision_id].state
+        return control_pb2.Operation(operation_id=request.decision_id, status=state)
 
     async def Cancel(
-        self,
-        request: control_pb2.LeaseRequest,
-        context: Any,
+        self, request: control_pb2.LeaseRequest, context: Any
     ) -> control_pb2.Operation:
         try:
-            decision = await self._leases.release(
+            await self._leases.release(
                 request.decision_id,
                 request.worker_id,
                 request.worker_generation,
+                request.context.tenant_id,
+                cancelled=True,
             )
         except (KeyError, ValueError) as error:
             await context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
-        await self._emit_lease_event("lease.cancelled", request, decision)
-        return control_pb2.Operation(operation_id=request.decision_id, status="cancelled")
+        return control_pb2.Operation(operation_id=request.decision_id, status="cancel_requested")
 
     async def ExplainDecision(
-        self,
-        request: control_pb2.LeaseRequest,
-        context: Any,
+        self, request: control_pb2.LeaseRequest, context: Any
     ) -> control_pb2.RouteDecision:
         try:
             decision = await self._leases.require(
                 request.decision_id,
                 request.worker_id,
                 request.worker_generation,
+                request.context.tenant_id,
             )
         except (KeyError, ValueError) as error:
             await context.abort(grpc.StatusCode.NOT_FOUND, str(error))
             raise AssertionError("context.abort must terminate the RPC") from error
         return _decision_message(decision)
 
-    async def _emit_lease_event(
-        self,
-        event_type: str,
-        request: control_pb2.LeaseRequest,
-        decision: RouteDecision,
-    ) -> None:
-        await self._emit(
-            event_type=event_type,
-            idempotency_key=request.context.idempotency_key,
-            tenant_id=request.context.tenant_id,
-            aggregate_id=decision.request_id,
-            aggregate_generation=decision.worker_generation,
-            harness_id="gateway",
-            payload={"decision_id": decision.decision_id, "worker_id": decision.worker_id},
-        )
-
-    async def _emit(
-        self,
-        *,
-        event_type: str,
-        idempotency_key: str,
-        tenant_id: str,
-        aggregate_id: str,
-        aggregate_generation: int,
-        harness_id: str,
-        payload: dict[str, Any],
-    ) -> None:
+    async def flush_events(self) -> None:
         if self._emitter is None:
             return
-        event_id = hashlib.sha256(f"{event_type}:{idempotency_key}".encode()).hexdigest()
-        await self._emitter.emit(
-            EventEnvelope(
-                event_id=event_id,
-                event_type=event_type,
-                tenant_id=tenant_id,
-                aggregate_id=aggregate_id,
-                aggregate_generation=aggregate_generation,
-                payload=payload,
-            ),
-            harness_id,
-        )
+        async with self._flush_lock:
+            for event in (await self._leases.snapshot()).pending.values():
+                await self._emitter.emit(event, str(event.payload["harness_id"]))
+                await self._leases.acknowledge_event(event.event_id)
+
+    async def maintain(self) -> None:
+        while True:
+            for action in (self.flush_events, self._leases.expire):
+                try:
+                    await action()
+                except Exception:
+                    LOGGER.exception("request ledger maintenance failed; pending intents retained")
+            if self._execution is not None:
+                try:
+                    errors = await self._execution.tick()
+                    if errors:
+                        LOGGER.warning("request execution observations unavailable: %s", errors)
+                except Exception:
+                    LOGGER.exception("request execution reconciliation failed; capacity retained")
+            await asyncio.sleep(1)
 
 
 class WorkerGrpcService(control_pb2_grpc.WorkerControlServiceServicer):
@@ -249,7 +182,11 @@ class WorkerGrpcService(control_pb2_grpc.WorkerControlServiceServicer):
             generation=capabilities.generation,
             free_vram_bytes=capabilities.total_vram_bytes,
         )
-        await self._registry.register(capabilities, telemetry)
+        try:
+            await self._registry.register(capabilities, telemetry)
+        except ValueError as error:
+            await context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
+            raise AssertionError("context.abort must terminate the RPC") from error
         if self._emitter is not None:
             event_id = hashlib.sha256(
                 f"worker.registered:{request.context.idempotency_key}".encode()
@@ -306,6 +243,7 @@ def _request_profile(request: control_pb2.RouteRequest) -> RequestProfile:
         input_tokens=request.input_tokens,
         output_tokens=request.output_tokens,
         cache_key=request.cache_key or None,
+        local_node_id=request.local_node_id if request.HasField("local_node_id") else None,
         hints=AgentHints(
             harness_id=hints.harness_id or "openai-compatible",
             harness_version=hints.harness_version or None,
@@ -323,7 +261,11 @@ def _request_profile(request: control_pb2.RouteRequest) -> RequestProfile:
             expected_reuse_probability=hints.expected_reuse_probability,
             expected_resume_ms=(
                 hints.expected_resume_ms
-                if lifecycle in {Lifecycle.TOOL_WAIT, Lifecycle.RESUME}
+                if (
+                    hints.expected_resume_ms
+                    or lifecycle in {Lifecycle.TOOL_WAIT, Lifecycle.RESUME}
+                    or hints.metadata.get("reuse_forecast_status") == "caller_supplied"
+                )
                 else None
             ),
             ttl_ms=hints.ttl_ms or 300_000,
@@ -336,6 +278,7 @@ def _request_profile(request: control_pb2.RouteRequest) -> RequestProfile:
             allow_remote_worker=hints.allow_remote_worker,
             confidence=hints.confidence,
             source=HintSource(hints.source or HintSource.EXPLICIT),
+            metadata=dict(hints.metadata),
         ),
     )
 
@@ -347,6 +290,7 @@ def _decision_message(decision: RouteDecision) -> control_pb2.RouteDecision:
         worker_id=decision.worker_id,
         endpoint=decision.endpoint,
         worker_generation=decision.worker_generation,
+        engine_instance_id=decision.engine_instance_id,
         cost=control_pb2.CostBreakdown(
             queue_ms=cost.queue_ms,
             prefill_ms=cost.prefill_ms,
@@ -367,6 +311,7 @@ def _decision_message(decision: RouteDecision) -> control_pb2.RouteDecision:
             for worker_id, reasons in sorted(decision.rejected.items())
         ],
         lease_ttl_ms=decision.lease_ttl_ms,
+        reserved_kv_bytes_per_rank=decision.reserved_kv_bytes_per_rank,
         topology_generation=decision.topology_generation,
         strategy=decision.strategy,
         requested_strategy=decision.requested_strategy or "",
@@ -376,12 +321,8 @@ def _decision_message(decision: RouteDecision) -> control_pb2.RouteDecision:
             enabled=decision.kv_transfer.enabled,
             max_offload_tokens=decision.kv_transfer.max_offload_tokens,
             estimated_kv_bytes=decision.kv_transfer.estimated_kv_bytes,
-            predicted_reuse_probability=(
-                decision.kv_transfer.predicted_reuse_probability
-            ),
-            predicted_eviction_probability=(
-                decision.kv_transfer.predicted_eviction_probability
-            ),
+            predicted_reuse_probability=(decision.kv_transfer.predicted_reuse_probability),
+            predicted_eviction_probability=(decision.kv_transfer.predicted_eviction_probability),
             estimated_recompute_ms=decision.kv_transfer.estimated_recompute_ms,
             estimated_store_ms=decision.kv_transfer.estimated_store_ms,
             estimated_restore_ms=decision.kv_transfer.estimated_restore_ms,
@@ -412,17 +353,34 @@ async def serve(address: str) -> None:
         emitter = DurableLifecycleEmitter(store, publisher)
         await emitter.replay()
     server = grpc.aio.server()
-    control_pb2_grpc.add_SchedulerServiceServicer_to_server(  # type: ignore[no-untyped-call]
-        SchedulerGrpcService(
-            Scheduler(
-                registry,
-                strategy=RoutingStrategy(
-                    os.environ.get("FREECHAT_ROUTING_STRATEGY", "lifecycle-aware")
-                ),
+    group_config_path = os.environ.get("FREECHAT_GROUP_RUNTIME_CONFIG")
+    reconciler = None
+    if group_config_path:
+        config = GroupRuntimeConfig.model_validate_json(Path(group_config_path).read_text())
+        reconciler = configured_reconciler(config, store, registry)
+        await reconciler.tick()
+    leases = LeaseBook(store)
+    execution = None
+    execution_config_path = os.environ.get("FREECHAT_REQUEST_EXECUTION_CONFIG")
+    if execution_config_path:
+        execution_config = RequestExecutionConfig.model_validate_json(
+            Path(execution_config_path).read_text()
+        )
+        execution = RequestExecutionReconciler(leases, LocalGrpcExecutionDriver(execution_config))
+    scheduler_service = SchedulerGrpcService(
+        Scheduler(
+            registry,
+            group_snapshot=None if reconciler is None else reconciler.snapshot,
+            strategy=RoutingStrategy(
+                os.environ.get("FREECHAT_ROUTING_STRATEGY", "lifecycle-aware")
             ),
-            LeaseBook(store),
-            emitter,
         ),
+        leases,
+        emitter,
+        execution,
+    )
+    control_pb2_grpc.add_SchedulerServiceServicer_to_server(  # type: ignore[no-untyped-call]
+        scheduler_service,
         server,
     )
     control_pb2_grpc.add_WorkerControlServiceServicer_to_server(  # type: ignore[no-untyped-call]
@@ -430,10 +388,23 @@ async def serve(address: str) -> None:
         server,
     )
     server.add_insecure_port(address)
+    maintenance = None
+    group_maintenance = None
     try:
         await server.start()
+        maintenance = asyncio.create_task(scheduler_service.maintain())
+        if reconciler is not None:
+            group_maintenance = asyncio.create_task(reconciler.run())
         await server.wait_for_termination()
     finally:
+        if group_maintenance is not None:
+            group_maintenance.cancel()
+            with suppress(asyncio.CancelledError):
+                await group_maintenance
+        if maintenance is not None:
+            maintenance.cancel()
+            with suppress(asyncio.CancelledError):
+                await maintenance
         await server.stop(grace=5)
         if etcd is not None:
             await etcd.close()

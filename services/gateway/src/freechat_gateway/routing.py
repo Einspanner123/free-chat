@@ -21,6 +21,8 @@ class SchedulerClient(Protocol):
 
     async def release(self, request: RequestProfile, decision: RouteDecision) -> None: ...
 
+    async def cancel(self, request: RequestProfile, decision: RouteDecision) -> None: ...
+
     async def aclose(self) -> None: ...
 
 
@@ -65,6 +67,9 @@ class StaticSchedulerClient:
         del request, decision
 
     async def renew(self, request: RequestProfile, decision: RouteDecision) -> None:
+        del request, decision
+
+    async def cancel(self, request: RequestProfile, decision: RouteDecision) -> None:
         del request, decision
 
 
@@ -114,11 +119,13 @@ class GrpcSchedulerClient:
                     allow_remote_worker=hints.allow_remote_worker,
                     confidence=hints.confidence,
                     source=hints.source,
+                    metadata=hints.metadata,
                 ),
                 model=request.model_id,
                 input_tokens=request.input_tokens,
                 output_tokens=request.output_tokens,
                 cache_key=request.cache_key or "",
+                local_node_id=request.local_node_id,
             )
         )
         cost = CandidateCost(
@@ -142,6 +149,9 @@ class GrpcSchedulerClient:
             request_id=request.request_id,
             worker_id=response.worker_id,
             worker_generation=response.worker_generation,
+            engine_instance_id=response.engine_instance_id
+            if response.HasField("engine_instance_id")
+            else None,
             endpoint=response.endpoint,
             selected=cost,
             candidates=(cost,),
@@ -151,14 +161,13 @@ class GrpcSchedulerClient:
             requested_strategy=response.requested_strategy or None,
             fallback_reason=response.fallback_reason or None,
             lease_ttl_ms=response.lease_ttl_ms,
+            reserved_kv_bytes_per_rank=response.reserved_kv_bytes_per_rank,
             kv_transfer=PredictiveOffloadDirective(
                 applicable=response.kv_transfer.applicable,
                 enabled=response.kv_transfer.enabled,
                 max_offload_tokens=response.kv_transfer.max_offload_tokens,
                 estimated_kv_bytes=response.kv_transfer.estimated_kv_bytes,
-                predicted_reuse_probability=(
-                    response.kv_transfer.predicted_reuse_probability
-                ),
+                predicted_reuse_probability=(response.kv_transfer.predicted_reuse_probability),
                 predicted_eviction_probability=(
                     response.kv_transfer.predicted_eviction_probability
                 ),
@@ -184,7 +193,7 @@ class GrpcSchedulerClient:
                 worker_generation=decision.worker_generation,
             )
         )
-        if response.status != "released":
+        if response.status not in {"released", "completion_pending", "cancel_requested", "expired"}:
             raise RuntimeError(f"scheduler lease release failed: {response.status}")
 
     async def renew(self, request: RequestProfile, decision: RouteDecision) -> None:
@@ -192,7 +201,7 @@ class GrpcSchedulerClient:
             control_pb2.LeaseRequest(
                 context=control_pb2.RequestContext(
                     request_id=f"{request.request_id}:renew",
-                    idempotency_key=f"{request.request_id}:renew:{decision.decision_id}",
+                    idempotency_key=f"{request.request_id}:renew:{uuid4()}",
                     tenant_id=request.tenant_id,
                     schema_version=request.hints.schema_version,
                 ),
@@ -203,6 +212,22 @@ class GrpcSchedulerClient:
         )
         if response.status != "renewed":
             raise RuntimeError(f"scheduler lease renewal failed: {response.status}")
+
+    async def cancel(self, request: RequestProfile, decision: RouteDecision) -> None:
+        response = await self._stub.Cancel(
+            control_pb2.LeaseRequest(
+                context=control_pb2.RequestContext(
+                    request_id=request.request_id,
+                    idempotency_key=f"{request.request_id}:cancel:{decision.decision_id}",
+                    tenant_id=request.tenant_id,
+                ),
+                decision_id=decision.decision_id,
+                worker_id=decision.worker_id,
+                worker_generation=decision.worker_generation,
+            )
+        )
+        if response.status != "cancel_requested":
+            raise RuntimeError(f"scheduler cancellation failed: {response.status}")
 
 
 def _parse_rejections(entries: Any) -> dict[str, tuple[str, ...]]:

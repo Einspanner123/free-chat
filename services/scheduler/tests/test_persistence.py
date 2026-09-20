@@ -4,7 +4,7 @@ from freechat_contracts import ModelCapability, WorkerCapabilities, WorkerTeleme
 from freechat_control_store import InMemoryStore
 from freechat_scheduler.grpc_server import LeaseBook
 from freechat_scheduler.registry import PersistentWorkerRegistry
-from test_leases import decision
+from test_leases import decision, request
 
 
 def capabilities(generation: int = 3) -> WorkerCapabilities:
@@ -56,16 +56,19 @@ def test_registry_and_lease_restore_from_authoritative_store() -> None:
 
         leases = LeaseBook(store)
         route = decision()
-        await leases.remember(route)
+        await leases.reserve(request(), "request", lambda _: route)
         after_restart = LeaseBook(store)
         assert (
-            await after_restart.require(route.decision_id, route.worker_id, route.worker_generation)
+            await after_restart.require(
+                route.decision_id, route.worker_id, route.worker_generation, "tenant-a"
+            )
             == route
         )
         await after_restart.release(
             route.decision_id,
             route.worker_id,
             route.worker_generation,
+            "tenant-a",
         )
 
     asyncio.run(scenario())

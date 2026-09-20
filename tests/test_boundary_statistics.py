@@ -4,7 +4,7 @@ from benchmarks.analyze_offload_boundary import paired_p95, percentile
 
 
 def test_linear_percentile() -> None:
-    assert percentile([10.0, 0.0], 0.95) == pytest.approx(9.5)
+    assert percentile([10.0, 0.0], .95) == pytest.approx(9.5)
 
 
 def test_paired_interval_keeps_constant_difference() -> None:

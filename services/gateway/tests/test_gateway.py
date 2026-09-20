@@ -3,6 +3,7 @@ import json
 from collections.abc import AsyncIterator
 
 import httpx
+import pytest
 from fastapi.testclient import TestClient
 from freechat_contracts import PredictiveOffloadDirective, RequestProfile, RouteDecision
 from freechat_gateway import GatewayConfig, create_app
@@ -37,6 +38,7 @@ class RecordingScheduler:
         self._kv_transfer = kv_transfer
         self.renewals: list[tuple[RequestProfile, RouteDecision]] = []
         self.releases: list[tuple[RequestProfile, RouteDecision]] = []
+        self.cancellations: list[tuple[RequestProfile, RouteDecision]] = []
 
     async def route(self, request: RequestProfile) -> RouteDecision:
         decision = await self._delegate.route(request)
@@ -50,6 +52,9 @@ class RecordingScheduler:
 
     async def release(self, request: RequestProfile, decision: RouteDecision) -> None:
         self.releases.append((request, decision))
+
+    async def cancel(self, request: RequestProfile, decision: RouteDecision) -> None:
+        self.cancellations.append((request, decision))
 
     async def aclose(self) -> None:
         return None
@@ -285,12 +290,15 @@ def test_streaming_relays_sse_without_buffering_status_loss() -> None:
         scheduler=scheduler,
         transport=httpx.MockTransport(stream_upstream),
     )
-    with TestClient(app) as test_client, test_client.stream(
-        "POST",
-        "/v1/responses",
-        headers={"x-api-key": "secret-key"},
-        json={"model": "local", "input": "hello", "stream": True},
-    ) as response:
+    with (
+        TestClient(app) as test_client,
+        test_client.stream(
+            "POST",
+            "/v1/responses",
+            headers={"x-api-key": "secret-key"},
+            json={"model": "local", "input": "hello", "stream": True},
+        ) as response,
+    ):
         payload = b"".join(response.iter_bytes())
 
     assert response.status_code == 201
@@ -347,7 +355,8 @@ def test_worker_transport_failure_returns_bad_gateway() -> None:
 
     assert response.status_code == 502
     assert response.json() == {"detail": "worker request failed"}
-    assert len(scheduler.releases) == 1
+    assert not scheduler.releases
+    assert len(scheduler.cancellations) == 1
 
 
 def test_streaming_transport_failure_returns_bad_gateway_before_headers() -> None:
@@ -370,13 +379,12 @@ def test_streaming_transport_failure_returns_bad_gateway_before_headers() -> Non
 
     assert response.status_code == 502
     assert response.json() == {"detail": "worker stream failed"}
-    assert len(scheduler.releases) == 1
+    assert not scheduler.releases
+    assert len(scheduler.cancellations) == 1
 
 
 def test_long_stream_renews_lease_until_response_finishes() -> None:
-    stream = StaticAsyncStream(
-        [b"data: first\n\n", b"data: [DONE]\n\n"], delay_seconds=0.4
-    )
+    stream = StaticAsyncStream([b"data: first\n\n", b"data: [DONE]\n\n"], delay_seconds=0.4)
     scheduler = RecordingScheduler(lease_ttl_ms=1_000)
 
     def slow_upstream(_: httpx.Request) -> httpx.Response:
@@ -423,3 +431,50 @@ def test_non_streaming_success_releases_route_once() -> None:
     profile, decision = scheduler.releases[0]
     assert profile.request_id == "request-1"
     assert decision.request_id == "request-1"
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+def test_lease_renewal_covers_prefill_before_response_headers(streaming: bool) -> None:
+    scheduler = RecordingScheduler(lease_ttl_ms=1000)
+
+    async def slow_headers(_: httpx.Request) -> httpx.Response:
+        await asyncio.sleep(0.45)
+        return httpx.Response(200, stream=StaticAsyncStream([b"data: done\n\n"]))
+
+    app = create_app(
+        GatewayConfig(api_keys={"tenant-a": "key"}, cache_salt_secret=b"s" * 32),
+        scheduler=scheduler,
+        transport=httpx.MockTransport(slow_headers),
+    )
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/v1/responses",
+            headers={"x-api-key": "key"},
+            json={"model": "local", "input": "hello", "stream": streaming},
+        )
+    assert response.status_code == 200
+    assert scheduler.renewals
+    assert len(scheduler.releases) == 1
+    assert not scheduler.cancellations
+
+
+async def test_stream_interruption_requests_cancel_instead_of_release() -> None:
+    from freechat_gateway.app import _relay_upstream
+
+    scheduler = RecordingScheduler()
+    profile = RequestProfile(
+        tenant_id="tenant",
+        model_id="model",
+        input_tokens=1,
+        output_tokens=1,
+        hints={"harness_id": "test", "task_id": "task", "agent_id": "agent"},
+    )
+    route = await scheduler.route(profile)
+    stream = StaticAsyncStream([b"first", b"second"])
+    response = httpx.Response(200, stream=stream)
+    relay = _relay_upstream(response, scheduler=scheduler, profile=profile, decision=route)
+    assert await anext(relay) == b"first"
+    await relay.aclose()
+    assert stream.closed
+    assert len(scheduler.cancellations) == 1
+    assert not scheduler.releases

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "DECLARED_NOT_HARDWARE_VERIFIED",
+  "source": "Owner: three nodes, four H100 per node, NVLink available",
+  "nodes": [
+    {"node_id": "h100-node-1", "gpu_count": 4, "gpu_family": "H100", "memory_bytes_per_gpu": null},
+    {"node_id": "h100-node-2", "gpu_count": 4, "gpu_family": "H100", "memory_bytes_per_gpu": null},
+    {"node_id": "h100-node-3", "gpu_count": 4, "gpu_family": "H100", "memory_bytes_per_gpu": null}
+  ],
+  "intra_node_nvlink": {"declared": true, "matrix_verified": false},
+  "inter_node_network": {"type": null, "bandwidth": null, "rdma_verified": false},
+  "candidate_tensor_parallel_sizes": [1, 2, 4],
+  "cross_node_collectives_enabled": false,
+  "cross_node_hot_kv_transfer_enabled": false,
+  "auto_parallel_reconfiguration_enabled": false
+}

@@ -1,3 +1,4 @@
+import pytest
 from freechat_scheduler import (
     DeviceLink,
     ParallelCandidate,
@@ -73,3 +74,78 @@ def test_collective_is_enabled_only_after_all_gates() -> None:
         ),
     )
     assert PLANNER.evaluate(candidate, links).accepted
+
+
+@pytest.mark.parametrize("gpus", [(), ("",), ("node/a", "node/a")])
+def test_invalid_gpu_sets(gpus: tuple[str, ...]) -> None:
+    assert not PLANNER.evaluate(
+        ParallelCandidate(ParallelMode.INDEPENDENT, gpus, True), ()
+    ).accepted
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -1.0])
+def test_nonfinite_measurements_cannot_pass_gates(value: float) -> None:
+    candidate = ParallelCandidate(ParallelMode.TENSOR, ("a", "b"), True, value, 2)
+    assert not PLANNER.evaluate(candidate, (DeviceLink("a", "b", True, True, True),)).accepted
+
+
+def test_duplicate_edges_do_not_hide_disconnected_gpu() -> None:
+    candidate = ParallelCandidate(ParallelMode.TENSOR, ("a", "b", "c", "d"), True, 0.1, 2)
+    edge = DeviceLink("a", "b", True, True, True)
+    decision = PLANNER.evaluate(candidate, (edge, edge, DeviceLink("b", "c", True, True, True)))
+    assert "topology_link_unmeasured" in decision.reasons
+    assert "duplicate_or_self_link" in decision.reasons
+
+
+@pytest.mark.parametrize(
+    "communication,speedup,reason",
+    [
+        (None, 2, "communication_fraction_unmeasured"),
+        (0.5, 2, "communication_fraction_too_high"),
+        (0.1, 1, "no_end_to_end_gain"),
+    ],
+)
+def test_parallel_measurement_boundaries(
+    communication: float | None, speedup: float, reason: str
+) -> None:
+    candidate = ParallelCandidate(ParallelMode.TENSOR, ("a", "b"), True, communication, speedup)
+    assert reason in PLANNER.evaluate(candidate, (DeviceLink("a", "b", True, True, True),)).reasons
+
+
+def test_independent_singleton_and_collective_singleton() -> None:
+    assert PLANNER.evaluate(ParallelCandidate(ParallelMode.INDEPENDENT, ("a",), True), ()).accepted
+    assert (
+        "collective_requires_multiple_gpus"
+        in PLANNER.evaluate(
+            ParallelCandidate(ParallelMode.TENSOR, ("a",), True, 0.1, 2), ()
+        ).reasons
+    )
+
+
+@pytest.mark.parametrize("threshold", [-1, 2, float("nan"), float("inf")])
+def test_invalid_parallel_policy(threshold: float) -> None:
+    with pytest.raises(ValueError):
+        ParallelPlanner(maximum_communication_fraction=threshold)
+
+
+@pytest.mark.parametrize(
+    "bandwidth,latency", [(0, 1), (-1, 1), (float("nan"), 1), (1, -1), (1, float("inf"))]
+)
+def test_invalid_link_samples(bandwidth: float, latency: float) -> None:
+    decision = PLANNER.evaluate(
+        ParallelCandidate(ParallelMode.TENSOR, ("a", "b"), True, 0.1, 2),
+        (DeviceLink("a", "b", True, True, True, bandwidth, latency),),
+    )
+    assert "invalid_link_measurement" in decision.reasons
+
+
+def test_connected_chain_can_be_listed_in_any_order() -> None:
+    decision = PLANNER.evaluate(
+        ParallelCandidate(ParallelMode.TENSOR, ("a", "b", "c", "d"), True, 0.1, 2),
+        (
+            DeviceLink("c", "d", True, True, True),
+            DeviceLink("b", "c", True, True, True),
+            DeviceLink("a", "b", True, True, True),
+        ),
+    )
+    assert decision.accepted

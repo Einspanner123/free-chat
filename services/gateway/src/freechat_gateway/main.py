@@ -25,6 +25,7 @@ def build_app():  # type: ignore[no-untyped-def]
         GatewayConfig(
             api_keys=_keys_from_environment(),
             cache_salt_secret=secret,
+            origin_node_id=os.environ.get("FREECHAT_ORIGIN_NODE_ID") or None,
             default_worker_endpoint=os.environ.get(
                 "FREECHAT_DEFAULT_WORKER_ENDPOINT", "http://worker:8000"
             ),

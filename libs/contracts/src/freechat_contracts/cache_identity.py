@@ -2,7 +2,33 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import json
 from collections.abc import Iterable
+
+from freechat_contracts.models import AgentHints, PrefixScope
+
+
+def scoped_cache_salt(secret: bytes, tenant_id: str, hints: AgentHints) -> str:
+    """Tenant-bounded namespaces; PRIVATE is one logical call, including its retries."""
+    identity: list[str | None] = ["scope-policy-1", hints.prefix_scope, hints.privacy_domain]
+    if hints.prefix_scope is not PrefixScope.GLOBAL:
+        identity.append(hints.harness_id)
+    if hints.prefix_scope in {
+        PrefixScope.TASK,
+        PrefixScope.AGENT,
+        PrefixScope.BRANCH,
+        PrefixScope.PRIVATE,
+    }:
+        identity.extend([hints.task_id, hints.session_id])
+    if hints.prefix_scope in {PrefixScope.AGENT, PrefixScope.BRANCH, PrefixScope.PRIVATE}:
+        identity.append(hints.agent_id)
+    if hints.prefix_scope in {PrefixScope.BRANCH, PrefixScope.PRIVATE}:
+        identity.append(hints.branch_id)
+    if hints.prefix_scope is PrefixScope.PRIVATE:
+        if not hints.call_id.strip():
+            raise ValueError("private cache scope requires call identity")
+        identity.append(hints.call_id)
+    return derive_cache_salt(secret, tenant_id, json.dumps(identity, separators=(",", ":")))
 
 
 def derive_cache_salt(secret: bytes, tenant_id: str, sharing_scope: str) -> str:

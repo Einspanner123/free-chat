@@ -37,6 +37,13 @@ uv run ruff check .
 uv run mypy libs services worker
 ```
 
+Development takes place only on ross. Initialize the engine with
+`git submodule update --init --recursive`; do not use `--remote` for builds.
+Run `uv run python -m tools.check_source_checkout` before recording source evidence.
+Use `--check-remote` to verify retrieval of the pinned fork tree.
+`--release` also checks the image-digest prerequisite, not GPU/runtime acceptance.
+See `docs/source-governance.md` for roles and consolidation status.
+
 The implementation contract remains in
-`.hermes/plans/agent-aware-inference-infra-plan.md` until every acceptance gate
+`agent-aware-inference-infra-plan.md` until every acceptance gate
 has passed and the project owner explicitly approves its deletion.

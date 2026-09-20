@@ -29,10 +29,7 @@ class LifecyclePublisher:
         self._jetstream = jetstream
 
     async def publish(self, event: EventEnvelope, harness_id: str) -> str:
-        tenant = _safe_segment(event.tenant_id)
-        harness = _safe_segment(harness_id)
-        event_name = _safe_segment(event.event_type.replace(".", "_"))
-        subject = f"freechat.lifecycle.{tenant}.{harness}.{event_name}"
+        subject = lifecycle_subject(event.tenant_id, harness_id, event.event_type)
         await self._jetstream.publish(
             subject,
             event.model_dump_json().encode(),
@@ -104,6 +101,12 @@ async def connect_lifecycle_stream(url: str) -> tuple[NatsClient, LifecyclePubli
             duplicate_window=120,
         )
     return client, LifecyclePublisher(jetstream)
+
+
+def lifecycle_subject(tenant_id: str, harness_id: str, event_type: str) -> str:
+    tenant, harness = _safe_segment(tenant_id), _safe_segment(harness_id)
+    event_name = _safe_segment(event_type.replace(".", "_"))
+    return f"freechat.lifecycle.{tenant}.{harness}.{event_name}"
 
 
 def _safe_segment(value: str) -> str:

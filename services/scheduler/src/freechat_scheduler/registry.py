@@ -43,17 +43,18 @@ class InMemoryWorkerRegistry:
         return True
 
     def snapshot(self) -> tuple[int, tuple[WorkerSnapshot, ...]]:
-        return self.topology_generation, tuple(
-            self._workers[key] for key in sorted(self._workers)
-        )
+        return self.topology_generation, tuple(self._workers[key] for key in sorted(self._workers))
 
     async def register(
         self,
         capabilities: WorkerCapabilities,
         telemetry: WorkerTelemetry,
     ) -> None:
-        self.upsert(capabilities, telemetry)
-        self.topology_generation += 1
+        current = self._workers.get(capabilities.worker_id)
+        snapshot = _registration_snapshot(current, capabilities, telemetry)
+        self.upsert(snapshot.capabilities, snapshot.telemetry)
+        if current is None or current.capabilities != snapshot.capabilities:
+            self.topology_generation += 1
 
     async def heartbeat(self, telemetry: WorkerTelemetry) -> None:
         current = self._workers.get(telemetry.worker_id)
@@ -86,25 +87,46 @@ class PersistentWorkerRegistry(InMemoryWorkerRegistry):
         capabilities: WorkerCapabilities,
         telemetry: WorkerTelemetry,
     ) -> None:
-        await self._store.put(
-            f"{self._worker_prefix}{capabilities.worker_id}",
-            _encode_snapshot(capabilities, telemetry),
-        )
-        self.upsert(capabilities, telemetry)
-        self.topology_generation = await self._increment_topology_generation()
+        key = f"{self._worker_prefix}{capabilities.worker_id}"
+        for _ in range(32):
+            item = await self._store.get(key)
+            current = None if item is None else WorkerSnapshot(*_decode_snapshot(item.value))
+            snapshot = _registration_snapshot(current, capabilities, telemetry)
+            if current is not None and current.capabilities == capabilities:
+                self.upsert(current.capabilities, current.telemetry)
+                return
+            try:
+                await self._store.compare_and_put(
+                    key,
+                    0 if item is None else item.revision,
+                    _encode_snapshot(snapshot.capabilities, snapshot.telemetry),
+                )
+            except CompareFailed:
+                continue
+            self.upsert(snapshot.capabilities, snapshot.telemetry)
+            self.topology_generation = await self._increment_topology_generation()
+            return
+        raise RuntimeError("registration_contention_retry_exhausted")
 
     async def heartbeat(self, telemetry: WorkerTelemetry) -> None:
-        current = self._workers.get(telemetry.worker_id)
-        if current is None:
-            raise ValueError("worker_not_registered")
-        _validate_heartbeat(current, telemetry)
-        if current.capabilities.generation != telemetry.generation:
-            raise ValueError("worker_generation_mismatch")
-        await self._store.put(
-            f"{self._worker_prefix}{telemetry.worker_id}",
-            _encode_snapshot(current.capabilities, telemetry),
-        )
-        self.upsert(current.capabilities, telemetry)
+        key = f"{self._worker_prefix}{telemetry.worker_id}"
+        for _ in range(32):
+            item = await self._store.get(key)
+            if item is None:
+                raise ValueError("worker_not_registered")
+            current = WorkerSnapshot(*_decode_snapshot(item.value))
+            _validate_heartbeat(current, telemetry)
+            try:
+                await self._store.compare_and_put(
+                    key,
+                    item.revision,
+                    _encode_snapshot(current.capabilities, telemetry),
+                )
+            except CompareFailed:
+                continue
+            self.upsert(current.capabilities, telemetry)
+            return
+        raise RuntimeError("heartbeat_contention_retry_exhausted")
 
     async def _increment_topology_generation(self) -> int:
         while True:
@@ -120,6 +142,27 @@ class PersistentWorkerRegistry(InMemoryWorkerRegistry):
             except CompareFailed:
                 continue
             return generation
+
+
+def _registration_snapshot(
+    current: WorkerSnapshot | None,
+    capabilities: WorkerCapabilities,
+    telemetry: WorkerTelemetry,
+) -> WorkerSnapshot:
+    if (
+        capabilities.worker_id != telemetry.worker_id
+        or capabilities.generation != telemetry.generation
+    ):
+        raise ValueError("registration_telemetry_mismatch")
+    if current is not None:
+        if capabilities.generation < current.capabilities.generation:
+            raise ValueError("stale_worker_registration")
+        if capabilities.generation == current.capabilities.generation:
+            if capabilities != current.capabilities:
+                raise ValueError("registration_incarnation_conflict")
+            # A retry must not reset engine identity, load or observation time.
+            return current
+    return WorkerSnapshot(capabilities, telemetry)
 
 
 def _encode_snapshot(

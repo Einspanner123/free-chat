@@ -144,6 +144,9 @@ class ModelCapability(BaseModel):
     supports_prefix_cache: bool = True
     supports_kv_offload: bool = False
     kv_bytes_per_token: int = Field(default=0, ge=0)
+    # Worst rank, including replication (do not divide by TP); reported by the worker.
+    kv_admission_bytes_per_token_per_rank: int | None = Field(default=None, gt=0)
+    kv_block_size_tokens: int | None = Field(default=None, gt=0)
     supports_tool_calling: bool = True
 
 
@@ -162,6 +165,9 @@ class WorkerCapabilities(BaseModel):
     network_domain: str
     models: tuple[ModelCapability, ...]
     allow_remote_requests: bool = True
+    resource_group_id: str | None = None
+    resource_group_generation: int | None = Field(default=None, ge=1)
+    gpu_ids: tuple[str, ...] = ()
 
 
 class CostCalibration(BaseModel):
@@ -223,6 +229,9 @@ class WorkerTelemetry(BaseModel):
     queue_depth: int = Field(default=0, ge=0)
     active_requests: int = Field(default=0, ge=0)
     free_vram_bytes: int = Field(ge=0)
+    # Minimum usable KV admission budget across ranks, including safe reclaimable blocks.
+    # Not CUDA free memory, and not the sum of ranks' capacity.
+    kv_admission_available_bytes_per_rank: int | None = Field(default=None, ge=0)
     kv_cache_capacity_bytes: int | None = Field(default=None, gt=0)
     kv_cache_free_bytes: int | None = Field(default=None, ge=0)
     cached_prefixes: frozenset[str] = Field(default_factory=frozenset)
@@ -261,7 +270,7 @@ class RequestProfile(BaseModel):
     output_tokens: int = Field(gt=0)
     estimated_kv_bytes: int = Field(default=0, ge=0)
     cache_key: str | None = None
-    local_node_id: str | None = None
+    local_node_id: str | None = Field(default=None, min_length=1)
     hints: AgentHints
 
 
@@ -328,6 +337,8 @@ class RouteDecision(BaseModel):
     requested_strategy: str | None = None
     fallback_reason: str | None = None
     lease_ttl_ms: int = Field(default=30_000, ge=1_000)
+    reserved_kv_bytes_per_rank: int = Field(default=0, ge=0)
+    engine_instance_id: str | None = Field(default=None, min_length=1)
     kv_transfer: PredictiveOffloadDirective = Field(
         default_factory=lambda: PredictiveOffloadDirective(reason="not_evaluated")
     )

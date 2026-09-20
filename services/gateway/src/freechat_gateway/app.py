@@ -3,16 +3,17 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
+import grpc
 import httpx
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
-from freechat_contracts import AgentHints, RequestProfile, RouteDecision, derive_cache_salt
+from freechat_contracts import AgentHints, RequestProfile, RouteDecision, scoped_cache_salt
 
 from freechat_gateway.auth import APIKeyAuthenticator, AuthContext
 from freechat_gateway.console import ConsoleReadModel, EmptyConsoleReadModel
@@ -28,12 +29,17 @@ class GatewayConfig:
     cache_salt_secret: bytes
     default_worker_endpoint: str = "http://worker:8000"
     request_timeout_seconds: float = 600.0
+    origin_node_id: str | None = None
 
     def __post_init__(self) -> None:
         if len(self.cache_salt_secret) < 32:
             raise ValueError("cache_salt_secret must be at least 32 bytes")
         if not self.api_keys:
             raise ValueError("at least one API key is required")
+        if self.origin_node_id is not None and (
+            not self.origin_node_id.strip() or self.origin_node_id != self.origin_node_id.strip()
+        ):
+            raise ValueError("origin_node_id must be nonblank and trimmed")
 
 
 def create_app(
@@ -109,11 +115,7 @@ def create_app(
         if not model_id:
             raise HTTPException(status_code=422, detail="model is required")
         output_tokens = int(body.get("max_tokens") or body.get("max_output_tokens") or 512)
-        cache_salt = derive_cache_salt(
-            config.cache_salt_secret,
-            auth.tenant_id,
-            f"{hints.prefix_scope}:{hints.privacy_domain}",
-        )
+        cache_salt = scoped_cache_salt(config.cache_salt_secret, auth.tenant_id, hints)
         profile = RequestProfile(
             request_id=request_id,
             tenant_id=auth.tenant_id,
@@ -122,8 +124,20 @@ def create_app(
             output_tokens=output_tokens,
             cache_key=request.headers.get("x-freechat-cache-key"),
             hints=hints,
+            local_node_id=config.origin_node_id,
         )
-        decision = await scheduler_client.route(profile)
+        try:
+            decision = await scheduler_client.route(profile)
+        except grpc.aio.AioRpcError as error:
+            status = {
+                grpc.StatusCode.INVALID_ARGUMENT: 422,
+                grpc.StatusCode.FAILED_PRECONDITION: 503,
+                grpc.StatusCode.UNAVAILABLE: 503,
+                grpc.StatusCode.DEADLINE_EXCEEDED: 504,
+            }.get(error.code(), 502)
+            raise HTTPException(
+                status_code=status, detail="scheduler could not admit request"
+            ) from error
         upstream_url = f"{decision.endpoint.rstrip('/')}{path}"
         upstream_headers = _upstream_headers(
             request,
@@ -131,6 +145,7 @@ def create_app(
             request_id=request_id,
             decision_id=decision.decision_id,
             worker_generation=decision.worker_generation,
+            engine_instance_id=decision.engine_instance_id,
         )
         body["cache_salt"] = cache_salt
         if decision.kv_transfer.applicable:
@@ -150,57 +165,65 @@ def create_app(
             "x-freechat-task-id": hints.task_id,
             "x-freechat-decision-id": decision.decision_id,
             "x-freechat-route-class": "agent-aware" if hints.confidence > 0.25 else "compatible",
-            "x-freechat-kv-offload": (
-                "enabled" if decision.kv_transfer.enabled else "disabled"
-            ),
+            "x-freechat-kv-offload": ("enabled" if decision.kv_transfer.enabled else "disabled"),
         }
         if stream:
+            keepalive = asyncio.create_task(_renew_lease_loop(scheduler_client, profile, decision))
+            upstream = None
             try:
                 upstream = await _send_stream_request(
                     http_client, upstream_url, upstream_headers, body
                 )
-            except HTTPException:
-                await _release_route(scheduler_client, profile, decision)
+                media_type = upstream.headers.get("content-type", "text/event-stream").split(
+                    ";", 1
+                )[0]
+                if upstream.is_error:
+                    content = await upstream.aread()
+                    status_code = upstream.status_code
+                    await upstream.aclose()
+                    keepalive.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await keepalive
+                    await _release_route(scheduler_client, profile, decision)
+                    return Response(
+                        content=content,
+                        status_code=status_code,
+                        media_type=media_type,
+                        headers=response_headers,
+                    )
+            except BaseException:
+                keepalive.cancel()
+                with suppress(asyncio.CancelledError):
+                    await keepalive
+                try:
+                    if upstream is not None:
+                        await upstream.aclose()
+                finally:
+                    await _release_route(scheduler_client, profile, decision, uncertain=True)
                 raise
-            media_type = upstream.headers.get(
-                "content-type", "text/event-stream"
-            ).split(";", 1)[0]
-            if upstream.is_error:
-                content = await upstream.aread()
-                status_code = upstream.status_code
-                await upstream.aclose()
-                await _release_route(scheduler_client, profile, decision)
-                return Response(
-                    content=content,
-                    status_code=status_code,
-                    media_type=media_type,
-                    headers=response_headers,
-                )
             return StreamingResponse(
                 _relay_upstream(
                     upstream,
                     scheduler=scheduler_client,
                     profile=profile,
                     decision=decision,
+                    keepalive=keepalive,
                 ),
                 status_code=upstream.status_code,
                 media_type=media_type,
                 headers=response_headers,
             )
+        completed = False
+        keepalive = asyncio.create_task(_renew_lease_loop(scheduler_client, profile, decision))
         try:
             try:
-                upstream = await http_client.post(
-                    upstream_url, headers=upstream_headers, json=body
-                )
+                upstream = await http_client.post(upstream_url, headers=upstream_headers, json=body)
+                completed = True
             except httpx.TimeoutException as error:
-                raise HTTPException(
-                    status_code=504, detail="worker request timed out"
-                ) from error
+                raise HTTPException(status_code=504, detail="worker request timed out") from error
             except httpx.RequestError as error:
                 raise HTTPException(status_code=502, detail="worker request failed") from error
-            media_type = upstream.headers.get("content-type", "application/json").split(
-                ";", 1
-            )[0]
+            media_type = upstream.headers.get("content-type", "application/json").split(";", 1)[0]
             return Response(
                 content=upstream.content,
                 status_code=upstream.status_code,
@@ -208,7 +231,10 @@ def create_app(
                 headers=response_headers,
             )
         finally:
-            await _release_route(scheduler_client, profile, decision)
+            keepalive.cancel()
+            with suppress(asyncio.CancelledError):
+                await keepalive
+            await _release_route(scheduler_client, profile, decision, uncertain=not completed)
 
     @app.post("/v1/chat/completions")
     async def chat_completions(
@@ -282,6 +308,7 @@ def _upstream_headers(
     request_id: str,
     decision_id: str,
     worker_generation: int,
+    engine_instance_id: str | None,
 ) -> dict[str, str]:
     traceparent = request.headers.get("traceparent", "")
     return {
@@ -290,6 +317,7 @@ def _upstream_headers(
         "x-freechat-internal-request-id": request_id,
         "x-freechat-internal-decision-id": decision_id,
         "x-freechat-internal-worker-generation": str(worker_generation),
+        "x-freechat-internal-engine-instance-id": engine_instance_id or "",
         "traceparent": traceparent,
     }
 
@@ -315,11 +343,14 @@ async def _relay_upstream(
     scheduler: SchedulerClient,
     profile: RequestProfile,
     decision: RouteDecision,
-) -> AsyncIterator[bytes]:
-    keepalive = asyncio.create_task(_renew_lease_loop(scheduler, profile, decision))
+    keepalive: asyncio.Task[None] | None = None,
+) -> AsyncGenerator[bytes, None]:
+    keepalive = keepalive or asyncio.create_task(_renew_lease_loop(scheduler, profile, decision))
+    completed = False
     try:
         async for chunk in response.aiter_raw():
             yield chunk
+        completed = True
     finally:
         keepalive.cancel()
         try:
@@ -329,7 +360,7 @@ async def _relay_upstream(
             try:
                 await response.aclose()
             finally:
-                await _release_route(scheduler, profile, decision)
+                await _release_route(scheduler, profile, decision, uncertain=not completed)
 
 
 async def _renew_lease_loop(
@@ -358,9 +389,14 @@ async def _release_route(
     scheduler: SchedulerClient,
     profile: RequestProfile,
     decision: RouteDecision,
+    *,
+    uncertain: bool = False,
 ) -> None:
     try:
-        await scheduler.release(profile, decision)
+        if uncertain:
+            await scheduler.cancel(profile, decision)
+        else:
+            await scheduler.release(profile, decision)
     except Exception:
         LOGGER.exception(
             "scheduler lease release failed",

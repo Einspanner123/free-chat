@@ -22,6 +22,8 @@ MODEL = ModelCapability(
     dtype="float16",
     supports_kv_offload=True,
     kv_bytes_per_token=16_384,
+    kv_admission_bytes_per_token_per_rank=16_384,
+    kv_block_size_tokens=16,
 )
 
 
@@ -58,6 +60,9 @@ def add_worker(
             queue_depth=queue,
             active_requests=active,
             free_vram_bytes=free_vram_bytes,
+            kv_admission_available_bytes_per_rank=min(
+                kv_cache_capacity_bytes or free_vram_bytes, free_vram_bytes
+            ),
             kv_cache_capacity_bytes=kv_cache_capacity_bytes,
             kv_cache_free_bytes=kv_cache_free_bytes,
             cached_prefixes=cached,

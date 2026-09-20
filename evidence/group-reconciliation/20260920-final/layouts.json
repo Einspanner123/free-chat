@@ -1,0 +1,56 @@
+{
+  "scope": "local loopback, synthetic inventory, no model execution",
+  "layouts": [
+    {
+      "tp": 1,
+      "resource_groups": 12,
+      "gpu_count": 12,
+      "routed_requests": 24,
+      "unique_workers": [
+        "group-0-0",
+        "group-0-1",
+        "group-0-2",
+        "group-0-3",
+        "group-1-0",
+        "group-1-1",
+        "group-1-2",
+        "group-1-3",
+        "group-2-0",
+        "group-2-1",
+        "group-2-2",
+        "group-2-3"
+      ],
+      "evidence_level": "LOCAL_SIMULATION_ONLY",
+      "hardware_verified": false
+    },
+    {
+      "tp": 2,
+      "resource_groups": 6,
+      "gpu_count": 12,
+      "routed_requests": 12,
+      "unique_workers": [
+        "group-0-0",
+        "group-0-2",
+        "group-1-0",
+        "group-1-2",
+        "group-2-0",
+        "group-2-2"
+      ],
+      "evidence_level": "LOCAL_SIMULATION_ONLY",
+      "hardware_verified": false
+    },
+    {
+      "tp": 4,
+      "resource_groups": 3,
+      "gpu_count": 12,
+      "routed_requests": 6,
+      "unique_workers": [
+        "group-0-0",
+        "group-1-0",
+        "group-2-0"
+      ],
+      "evidence_level": "LOCAL_SIMULATION_ONLY",
+      "hardware_verified": false
+    }
+  ]
+}

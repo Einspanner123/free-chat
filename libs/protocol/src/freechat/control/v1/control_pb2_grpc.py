@@ -270,6 +270,150 @@ class SchedulerService:
             _registered_method=True)
 
 
+class GroupRuntimeServiceStub:
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Apply = channel.unary_unary(
+                '/freechat.control.v1.GroupRuntimeService/Apply',
+                request_serializer=freechat_dot_control_dot_v1_dot_control__pb2.GroupRuntimeCommand.SerializeToString,
+                response_deserializer=freechat_dot_control_dot_v1_dot_control__pb2.GroupRuntimeReceipt.FromString,
+                _registered_method=True)
+
+
+class GroupRuntimeServiceServicer:
+    """Missing associated documentation comment in .proto file."""
+
+    def Apply(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_GroupRuntimeServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Apply': grpc.unary_unary_rpc_method_handler(
+                    servicer.Apply,
+                    request_deserializer=freechat_dot_control_dot_v1_dot_control__pb2.GroupRuntimeCommand.FromString,
+                    response_serializer=freechat_dot_control_dot_v1_dot_control__pb2.GroupRuntimeReceipt.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'freechat.control.v1.GroupRuntimeService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('freechat.control.v1.GroupRuntimeService', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class GroupRuntimeService:
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Apply(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/freechat.control.v1.GroupRuntimeService/Apply',
+            freechat_dot_control_dot_v1_dot_control__pb2.GroupRuntimeCommand.SerializeToString,
+            freechat_dot_control_dot_v1_dot_control__pb2.GroupRuntimeReceipt.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class RequestExecutionServiceStub:
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Observe = channel.unary_unary(
+                '/freechat.control.v1.RequestExecutionService/Observe',
+                request_serializer=freechat_dot_control_dot_v1_dot_control__pb2.RequestExecutionCommand.SerializeToString,
+                response_deserializer=freechat_dot_control_dot_v1_dot_control__pb2.RequestExecutionReceipt.FromString,
+                _registered_method=True)
+
+
+class RequestExecutionServiceServicer:
+    """Missing associated documentation comment in .proto file."""
+
+    def Observe(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_RequestExecutionServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Observe': grpc.unary_unary_rpc_method_handler(
+                    servicer.Observe,
+                    request_deserializer=freechat_dot_control_dot_v1_dot_control__pb2.RequestExecutionCommand.FromString,
+                    response_serializer=freechat_dot_control_dot_v1_dot_control__pb2.RequestExecutionReceipt.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'freechat.control.v1.RequestExecutionService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('freechat.control.v1.RequestExecutionService', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class RequestExecutionService:
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Observe(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/freechat.control.v1.RequestExecutionService/Observe',
+            freechat_dot_control_dot_v1_dot_control__pb2.RequestExecutionCommand.SerializeToString,
+            freechat_dot_control_dot_v1_dot_control__pb2.RequestExecutionReceipt.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
 class WorkerControlServiceStub:
     """Missing associated documentation comment in .proto file."""
 

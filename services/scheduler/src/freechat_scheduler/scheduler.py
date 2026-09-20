@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -16,6 +17,8 @@ from freechat_contracts import (
 from freechat_scheduler.calibration import matching_calibration
 from freechat_scheduler.forecasts import forecast_rejection
 from freechat_scheduler.registry import InMemoryWorkerRegistry, WorkerSnapshot
+from freechat_scheduler.resource_groups import GroupLedger, GroupState
+from freechat_scheduler.resources import required_kv_bytes_per_rank
 
 
 class NoEligibleWorker(RuntimeError):
@@ -52,18 +55,48 @@ class Scheduler:
         *,
         weights: CostWeights | None = None,
         strategy: RoutingStrategy = RoutingStrategy.LIFECYCLE_AWARE,
+        group_snapshot: Callable[[], tuple[datetime, GroupLedger]] | None = None,
     ) -> None:
         self._registry = registry
+        self._group_snapshot = group_snapshot
         self._weights = weights or CostWeights()
         self._strategy = strategy
         self._round_robin_index = 0
 
-    def route(self, request: RequestProfile) -> RouteDecision:
+    def route(
+        self,
+        request: RequestProfile,
+        *,
+        reserved: dict[str, tuple[int, int]] | None = None,
+    ) -> RouteDecision:
         topology_generation, workers = self._registry.snapshot()
+        if reserved:
+            workers = tuple(
+                WorkerSnapshot(
+                    item.capabilities,
+                    item.telemetry.model_copy(
+                        update={
+                            "kv_admission_available_bytes_per_rank": (
+                                None
+                                if item.telemetry.kv_admission_available_bytes_per_rank is None
+                                else max(
+                                    0,
+                                    item.telemetry.kv_admission_available_bytes_per_rank
+                                    - reserved.get(item.capabilities.worker_id, (0, 0))[0],
+                                )
+                            ),
+                            "active_requests": item.telemetry.active_requests
+                            + reserved.get(item.capabilities.worker_id, (0, 0))[1],
+                        }
+                    ),
+                )
+                for item in workers
+            )
+        group_view = self._group_snapshot() if self._group_snapshot is not None else None
         rejected: dict[str, tuple[str, ...]] = {}
         eligible: list[WorkerSnapshot] = []
         for worker in workers:
-            reasons = self._hard_filter(request, worker)
+            reasons = self._hard_filter(request, worker, group_view)
             if reasons:
                 rejected[worker.capabilities.worker_id] = tuple(reasons)
             else:
@@ -99,6 +132,7 @@ class Scheduler:
             request_id=request.request_id,
             worker_id=worker_caps.worker_id,
             worker_generation=worker_caps.generation,
+            engine_instance_id=selected_worker.telemetry.engine_instance_id,
             endpoint=worker_caps.endpoint,
             selected=selected,
             candidates=costs,
@@ -108,6 +142,11 @@ class Scheduler:
             requested_strategy=self._strategy,
             fallback_reason="candidate_cost_unavailable" if fallback else None,
             kv_transfer=self._predictive_offload(request, selected_worker),
+            reserved_kv_bytes_per_rank=required_kv_bytes_per_rank(
+                request,
+                next(model for model in worker_caps.models if model.model_id == request.model_id),
+            )
+            or 0,
         )
 
     def _predictive_offload(
@@ -255,7 +294,12 @@ class Scheduler:
             key=lambda item: _sort_key(costs[item.capabilities.worker_id]),
         )
 
-    def _hard_filter(self, request: RequestProfile, worker: WorkerSnapshot) -> list[str]:
+    def _hard_filter(
+        self,
+        request: RequestProfile,
+        worker: WorkerSnapshot,
+        group_view: tuple[datetime, GroupLedger] | None = None,
+    ) -> list[str]:
         caps = worker.capabilities
         telemetry = worker.telemetry
         reasons: list[str] = []
@@ -277,10 +321,57 @@ class Scheduler:
             reasons.append("model_unavailable")
             return reasons
         required_context = request.input_tokens + request.output_tokens
+        grouped = (
+            caps.resource_group_id is not None
+            or max(model.tensor_parallel_size, model.pipeline_parallel_size, len(caps.gpu_ids)) > 1
+        )
+        if grouped:
+            if group_view is None or caps.resource_group_id is None:
+                reasons.append("resource_group_snapshot_required")
+            else:
+                timestamp, ledger = group_view
+                if (
+                    timestamp.tzinfo is None
+                    or not 0 <= (datetime.now(UTC) - timestamp).total_seconds() <= 5
+                ):
+                    reasons.append("resource_group_snapshot_stale")
+                group = ledger.groups.get(caps.resource_group_id)
+                if group is None or group.state is not GroupState.READY:
+                    reasons.append("resource_group_not_ready")
+                elif group.expires_at <= datetime.now(UTC):
+                    reasons.append("resource_group_lease_expired")
+                elif (
+                    caps.resource_group_generation != group.generation
+                    or caps.generation != group.generation
+                    or caps.worker_id != group.spec.worker_id
+                    or caps.node_id != group.node_id
+                    or set(caps.gpu_ids) != set(group.spec.gpu_ids)
+                    or len(caps.gpu_ids) != len(group.spec.gpu_ids)
+                    or telemetry.engine_instance_id != group.engine_instance_id
+                    or model.model_id != group.spec.model_id
+                    or model.revision != group.spec.model_revision
+                    or model.tensor_parallel_size != group.spec.tensor_parallel_size
+                    or model.pipeline_parallel_size != 1
+                ):
+                    reasons.append("resource_group_binding_mismatch")
         if model.max_context_tokens < required_context:
             reasons.append("context_capacity")
-        if telemetry.free_vram_bytes < request.estimated_kv_bytes:
+        required_bytes = required_kv_bytes_per_rank(request, model)
+        available_bytes = telemetry.kv_admission_available_bytes_per_rank
+        if required_bytes is None:
+            reasons.append("kv_geometry_unknown")
+        if available_bytes is None:
+            reasons.append("kv_admission_budget_unknown")
+        if (
+            required_bytes is not None
+            and available_bytes is not None
+            and available_bytes < required_bytes
+        ):
             reasons.append("vram_capacity")
+        if request.local_node_id is None and (
+            not request.hints.allow_remote_worker or not caps.allow_remote_requests
+        ):
+            reasons.append("request_locality_unknown")
         remote = request.local_node_id is not None and caps.node_id != request.local_node_id
         if remote and not request.hints.allow_remote_worker:
             reasons.append("remote_worker_forbidden")
@@ -314,6 +405,22 @@ class Scheduler:
                 estimate_available=False,
                 unavailable_reason=reason,
             )
+        if request.local_node_id is None:
+            return CandidateCost(
+                worker_id=caps.worker_id,
+                queue_ms=0,
+                prefill_ms=0,
+                decode_ms=0,
+                cache_ms=0,
+                network_ms=0,
+                cold_start_ms=0,
+                deadline_risk=0,
+                eviction_externality=0,
+                affinity_credit_ms=0,
+                total_ms=0,
+                estimate_available=False,
+                unavailable_reason="request_locality_unknown",
+            )
         model_loaded = any(item.model_id == request.model_id for item in caps.models)
         queue_ms = telemetry.queue_depth * self._weights.queue_request_ms
         prefill_ms = request.input_tokens / calibration.prefill_tokens_per_second * 1_000
@@ -333,7 +440,14 @@ class Scheduler:
         externality = 0.0
         if include_lifecycle:
             externality = (
-                request.estimated_kv_bytes / (1024**3)
+                (
+                    required_kv_bytes_per_rank(
+                        request,
+                        next(item for item in caps.models if item.model_id == request.model_id),
+                    )
+                    or 0
+                )
+                / (1024**3)
             ) * self._weights.eviction_externality_per_gib_ms
         affinity_credit_ms = 0.0
         if include_lifecycle and cache_hit:

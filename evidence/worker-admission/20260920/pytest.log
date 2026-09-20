@@ -1,0 +1,26 @@
+........................................................................ [ 13%]
+........................................................................ [ 26%]
+........................................................................ [ 39%]
+........................................................................ [ 53%]
+........................................................................ [ 66%]
+........................................................................ [ 79%]
+.....................ss................................................. [ 92%]
+...............ssssssssss..............                                  [100%]
+================================ tests coverage ================================
+______________ coverage: platform darwin, python 3.12.14-final-0 _______________
+
+Name                                                             Stmts   Miss Branch BrPart  Cover   Missing
+------------------------------------------------------------------------------------------------------------
+libs/contracts/src/freechat_contracts/execution.py                  39      0      0      0   100%
+services/scheduler/src/freechat_scheduler/request_execution.py      78      2     18      1    97%   48, 97
+services/scheduler/src/freechat_scheduler/request_ledger.py        190      0     70      0   100%
+worker/src/freechat_worker/execution.py                            162      0     54      1    99%   121->123
+------------------------------------------------------------------------------------------------------------
+TOTAL                                                              469      2    142      2    99%
+Coverage JSON written to file evidence/worker-admission/20260920/coverage.json
+=========================== short test summary info ============================
+SKIPPED [1] worker/tests/test_block_table.py:8: GPU dependency group is not installed
+SKIPPED [1] worker/tests/test_block_table.py:18: GPU dependency group is not installed
+SKIPPED [9] worker/tests/test_kv_quantize.py:8: GPU dependency group is not installed
+SKIPPED [1] worker/tests/test_kv_quantize.py:35: GPU dependency group is not installed
+531 passed, 12 skipped in 15.19s

@@ -1,4 +1,8 @@
-from freechat_contracts.cache_identity import derive_cache_salt, make_cache_identity
+from freechat_contracts.cache_identity import (
+    derive_cache_salt,
+    make_cache_identity,
+    scoped_cache_salt,
+)
 from freechat_contracts.models import (
     AgentHints,
     CacheAction,
@@ -39,4 +43,5 @@ __all__ = [
     "WorkerTelemetry",
     "derive_cache_salt",
     "make_cache_identity",
+    "scoped_cache_salt",
 ]

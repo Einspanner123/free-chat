@@ -4,8 +4,7 @@ from freechat_worker.calibration import HISTOGRAMS, observe_request
 
 def metrics(*, count: int, cached: bool = False, busy: bool = False) -> str:
     values: dict[str, float] = {
-        "num_requests_running": int(busy),
-        "num_requests_waiting": 0,
+        "num_requests_running": int(busy), "num_requests_waiting": 0,
         "num_preemptions_total": 0,
     }
     totals = [0.01, 0.03, 90 if cached else 100, 100, 16]
@@ -13,7 +12,8 @@ def metrics(*, count: int, cached: bool = False, busy: bool = False) -> str:
         values[f"{name}_count"] = count
         values[f"{name}_sum"] = total * count
     return "\n".join(
-        f'vllm:{name}{{model_name="model",engine="0"}} {value}' for name, value in values.items()
+        f'vllm:{name}{{model_name="model",engine="0"}} {value}'
+        for name, value in values.items()
     )
 
 

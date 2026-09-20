@@ -40,6 +40,7 @@ message AgentHints {
   string source = 23;
   string harness_id = 24;
   string harness_version = 25;
+  map<string, string> metadata = 26;
 }
 
 message RouteRequest {
@@ -50,6 +51,7 @@ message RouteRequest {
   uint64 output_tokens = 5;
   string cache_key = 6;
   bool streaming = 7;
+  optional string local_node_id = 8;
 }
 
 message CostBreakdown {
@@ -81,6 +83,8 @@ message RouteDecision {
   PredictiveOffloadDirective kv_transfer = 10;
   string requested_strategy = 11;
   string fallback_reason = 12;
+  uint64 reserved_kv_bytes_per_rank = 13;
+  optional string engine_instance_id = 14;
 }
 
 message PredictiveOffloadDirective {
@@ -154,6 +158,30 @@ service SchedulerService {
   rpc Release(LeaseRequest) returns (Operation);
   rpc Cancel(LeaseRequest) returns (Operation);
   rpc ExplainDecision(LeaseRequest) returns (RouteDecision);
+}
+
+message GroupRuntimeCommand {
+  string command_json = 1;
+}
+
+message GroupRuntimeReceipt {
+  string receipt_json = 1;
+}
+
+service GroupRuntimeService {
+  rpc Apply(GroupRuntimeCommand) returns (GroupRuntimeReceipt);
+}
+
+message RequestExecutionCommand {
+  string command_json = 1;
+}
+
+message RequestExecutionReceipt {
+  string receipt_json = 1;
+}
+
+service RequestExecutionService {
+  rpc Observe(RequestExecutionCommand) returns (RequestExecutionReceipt);
 }
 
 service WorkerControlService {

@@ -10,15 +10,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-EXPECTED = {
-    "python": "3.12",
-    "torch": "2.13.0+cu130",
-    "torch_cuda": "13.0",
-    "triton": "3.7.1",
-    "transformers": "5.16.1",
-    "fork_revision": "8e78a3c613072632aa822c9aed2f698e76046219",
-    "upstream_revision": "9c22668436a4d94aab87ea74a220e060415cf1d8",
-}
+from tools.source_versions import expected_worker_versions
+
+# Backward-compatible public name; values have one source in versions.lock.yaml.
+EXPECTED = expected_worker_versions()
 
 
 @dataclass(frozen=True)
