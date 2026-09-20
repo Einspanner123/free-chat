@@ -173,3 +173,34 @@ async def test_default_scheduler_requires_worker_token(monkeypatch: pytest.Monke
     monkeypatch.delenv("FREECHAT_WORKER_TOKEN", raising=False)
     with pytest.raises(ValueError, match="worker token"):
         await serve("127.0.0.1:0")
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "reason"),
+    [("healthy", False, "worker_unhealthy"), ("draining", True, "worker_draining")],
+)
+@pytest.mark.parametrize("prepared_before_change", [False, True])
+def test_excluded_worker_retains_health_reason_after_preparation(
+    field: str,
+    value: bool,
+    reason: str,
+    prepared_before_change: bool,
+) -> None:
+    registry = InMemoryWorkerRegistry()
+    add_worker(registry, "a", node="ross")
+    add_worker(registry, "b", node="ross")
+    req = request()
+    budgets = {"a": prepared("a", req)}
+    if prepared_before_change:
+        budgets["b"] = prepared("b", req)
+    worker = next(item for item in registry.snapshot()[1] if item.capabilities.worker_id == "b")
+    registry.upsert(
+        worker.capabilities,
+        worker.telemetry.model_copy(update={field: value}),
+    )
+    scheduler = Scheduler(registry)
+    assert [item.capabilities.worker_id for item in scheduler.preparation_candidates(req)] == ["a"]
+    decision = scheduler.route(req, prepared=budgets)
+    assert decision.worker_id == "a"
+    assert reason in decision.rejected["b"]
+    assert "native_preparation_missing_expired_or_mismatched" not in decision.rejected["b"]

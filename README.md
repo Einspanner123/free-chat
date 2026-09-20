@@ -18,7 +18,8 @@ dependencies and the independent vLLM submodule are pinned in `uv.lock` and
 | Execution boundary | Durable route identity aggregates native engine calls; only EngineCore removal plus CUDA synchronization permits a terminal receipt |
 | Gateway/Scheduler | Real same-host Qwen2.5-0.5B inference on A5000/A4000 through automatic registration, authenticated heartbeat, native preparation, reservations and Worker execution reconciliation |
 | Concurrent admission | Three 8-request contention rounds per GPU against an actual 128-block pool on A5000/A4000; capacity backpressure, re-admission and complete fenced release verified, with no pool oversubscription |
-| Complete deployment | Same-host API path is exercised on two GPUs separately; shared multi-worker routing, WebUI integration, persistent control-state recovery and cross-node deployment remain incomplete |
+| Shared Scheduler | A5000/A4000 execute real concurrent requests under one Scheduler; per-GPU capacity and fenced release pass independent log audits. After an idle A4000 stops gracefully, new requests execute on A5000 |
+| Complete deployment | Same-host single/multi-worker API paths are exercised; WebUI integration, persistent control-state recovery and cross-node deployment remain incomplete |
 | Hardware expansion | A6000 validation is pending; 3×4 H100 is a future hardware target, not a verified deployment |
 
 The managed execution adapter currently accepts synchronous TP=PP=DP=1 text
@@ -87,7 +88,9 @@ testing. Build instructions and release-image limits are in `docs/operations.md`
 
 ## Validate, with no result directories
 
-Against the running three-service loop, execute the GPU validator:
+Against the running three-service loop, execute the GPU validator. For two GPUs under
+one Scheduler, use the peer launch and per-worker log audits in `docs/operations.md`;
+wait for both current Worker generations to register before starting contention:
 
 ```bash
 docker exec freechat-worker /opt/freechat/.venv/bin/python \

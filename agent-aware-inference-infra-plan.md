@@ -37,7 +37,8 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
    A5000/A4000 与真实 response usage 一致。Gateway 已移除字符数估计；
    Scheduler 按各候选 Worker 的原生预算计算并持久化预占，绑定所选 incarnation，
    Worker 校验实际 block 对齐字节；已接通实际注册/heartbeat 和 gross budget/活动请求不重复计数，
-   两卡分别通过真实 Gateway→Scheduler→Worker 容量复用与执行确认。多 Worker/多节点预算仍待验收。
+   两卡分别通过真实 Gateway→Scheduler→Worker 容量复用与执行确认。
+   同一 Scheduler 管理 A5000/A4000 已通过逐卡并发预算与释放核验；跨节点预算仍待验收。
 3. [~] **统一启动路径。** 同机 Worker 启动→注册→持续 heartbeat→执行确认轮询已验证；
    Gateway 启动现已要求显式 Scheduler 地址，缺失配置直接报错；static/fake 仅用于测试。
    当前容器共享 Worker 网络 namespace，RPC 保持真实同机边界；跨节点认证 transport 与启动仍待实现。
@@ -46,7 +47,10 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
    已修复 ASGI 取消作用域中断清理的问题。两卡分别完成实际 128-block 池、三轮 8 并发压力，
    观测到容量拒绝与确认后的再次准入；每卡 10/10 已准入请求释放，峰值预占未超过物理池。
    HTTP 完成到可信确认之间允许有界重试，不提前回收。日志核验可复跑且不生成结果目录。
-   WebUI、多 Worker 并发及以下故障/生命周期矩阵仍待完成：
+   同一 Scheduler 的两卡三轮并发已验证，每轮每卡执行两个 800-token 请求；
+   停止空闲 A4000 后新请求由 A5000 执行，健康/排空拒绝原因明确。
+   此证据不代表在途任务恢复；注册完成前的模型 HTTP 健康也不代表已进入调度器。
+   WebUI 及以下故障/生命周期矩阵仍待完成：
    streaming、取消、断连、重复、迟到、重启；再贯通 Tool Wait/Resume、
    KV action、tracing、三协议和四 Harness。复用原生协议，不重新实现另一套 API。
 5. [ ] **扩展与指标。** 实际 residency→调度基线→生命周期/成本策略→多卡与 kernel。

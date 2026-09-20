@@ -6,7 +6,7 @@ from typing import Any
 import httpx
 import pytest
 
-from tools.validate_inference_loop import audit_log, concurrent_probe
+from tools.validate_inference_loop import audit_log, concurrent_probe, worker_pools
 
 
 def events() -> list[dict[str, Any]]:
@@ -185,7 +185,7 @@ async def test_concurrent_probe_retries_and_counts_pending_release_backpressure(
             return httpx.Response(503, json={"detail": "not admitted"})
         return httpx.Response(
             200,
-            headers={"x-freechat-reserved-kv-bytes": "1234"},
+            headers={"x-freechat-reserved-kv-bytes": "1234", "x-freechat-worker-id": "gpu"},
             json={"usage": {"completion_tokens": body["max_tokens"]}},
         )
 
@@ -193,6 +193,8 @@ async def test_concurrent_probe_retries_and_counts_pending_release_backpressure(
     runtime = {
         "worker_id": "gpu",
         "capacity": {
+            "num_blocks": 128,
+            "gpu_uuid": "physical-gpu",
             "max_context_tokens": 1024,
             "block_size_tokens": 16,
             "block_bytes": 196608,
@@ -204,3 +206,59 @@ async def test_concurrent_probe_retries_and_counts_pending_release_backpressure(
     assert summary["expected_routes"] == 4  # Readiness, two long calls, recovery.
     assert summary["expected_capacity_rejections"] == 15
     assert long_calls == 16 and recovery_calls == 2
+
+
+def test_multiworker_pool_inventory_rejects_duplicate_physical_gpus() -> None:
+    first = {
+        "worker_id": "a",
+        "capacity": {
+            "gpu_uuid": "physical-a",
+            "num_blocks": 128,
+            "block_bytes": 196608,
+        },
+    }
+    second = copy.deepcopy(first)
+    second["worker_id"] = "b"
+    with pytest.raises(ValueError, match="physical GPU"):
+        worker_pools((first, second))
+    second["capacity"]["gpu_uuid"] = "physical-b"
+    assert worker_pools((first, second)) == {"a": 24969216, "b": 24969216}
+
+
+def test_shared_scheduler_logs_are_audited_per_worker_without_pool_mixing() -> None:
+    primary = events()
+    peer = copy.deepcopy(primary)
+    for event in peer:
+        event["event_id"] = "peer-" + event["event_id"]
+        event["aggregate_id"] = "peer-" + event["aggregate_id"]
+        event["payload"]["worker_id"] = "peer"
+        receipt = event["payload"]["execution_receipt"]
+        if receipt:
+            receipt["command"]["worker_id"] = "peer"
+            receipt["command"]["decision_id"] = event["aggregate_id"]
+    lines = [
+        "lifecycle_event " + json.dumps(event)
+        for pair in zip(primary, peer, strict=True)
+        for event in pair
+    ]
+    for worker in ("gpu", "peer"):
+        report = audit_log(
+            lines,
+            pool=100,
+            worker=worker,
+            expected_routes=2,
+            expected_cancels=1,
+            expected_rejections=0,
+            allow_other_workers=True,
+        )
+        assert report["peak_reserved_bytes"] == 90 and report["releases"] == 2
+    with pytest.raises(ValueError, match="oversubscribed"):
+        audit_log(
+            lines,
+            pool=80,
+            worker="peer",
+            expected_routes=2,
+            expected_cancels=1,
+            expected_rejections=0,
+            allow_other_workers=True,
+        )

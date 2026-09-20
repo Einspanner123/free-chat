@@ -189,6 +189,7 @@ def create_app(
             "x-freechat-request-id": request_id,
             "x-freechat-task-id": hints.task_id,
             "x-freechat-decision-id": decision.decision_id,
+            "x-freechat-worker-id": decision.worker_id,
             "x-freechat-reserved-kv-bytes": str(decision.reserved_kv_bytes_per_rank),
             "x-freechat-route-class": "agent-aware" if hints.confidence > 0.25 else "compatible",
             "x-freechat-kv-offload": ("enabled" if decision.kv_transfer.enabled else "disabled"),

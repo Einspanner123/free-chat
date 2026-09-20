@@ -428,6 +428,7 @@ def test_non_streaming_success_releases_route_once() -> None:
         )
 
     assert response.status_code == 200
+    assert response.headers["x-freechat-worker-id"] == "worker"
     assert len(scheduler.releases) == 1
     profile, decision = scheduler.releases[0]
     assert profile.request_id == "request-1"

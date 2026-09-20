@@ -219,11 +219,32 @@ class WorkerGrpcService(control_pb2_grpc.WorkerControlServiceServicer):
             generation=capabilities.generation,
             free_vram_bytes=capabilities.total_vram_bytes,
         )
+        previous = next(
+            (
+                item
+                for item in self._registry.snapshot()[1]
+                if item.capabilities.worker_id == capabilities.worker_id
+            ),
+            None,
+        )
         try:
             await self._registry.register(capabilities, telemetry)
         except ValueError as error:
             await context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
             raise AssertionError("context.abort must terminate the RPC") from error
+        if previous is None or previous.capabilities != capabilities:
+            LOGGER.info(
+                "worker_registered %s",
+                json.dumps(
+                    {
+                        "worker_id": capabilities.worker_id,
+                        "generation": capabilities.generation,
+                        "gpu_id": capabilities.gpu_id,
+                        "endpoint": capabilities.endpoint,
+                        "execution_endpoint": capabilities.execution_endpoint,
+                    }
+                ),
+            )
         if self._emitter is not None:
             event_id = hashlib.sha256(
                 f"worker.registered:{request.context.idempotency_key}".encode()

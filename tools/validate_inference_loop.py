@@ -7,6 +7,7 @@ import asyncio
 import json
 import os
 import sys
+from collections import Counter
 from collections.abc import Iterable
 from typing import Any
 
@@ -68,7 +69,23 @@ async def validate(args: argparse.Namespace) -> None:
                     warmup.raise_for_status()
                 await asyncio.sleep(1)
         if args.mode == "concurrent":
-            await concurrent_probe(client, args, headers, runtime, pool)
+            peers = []
+            for url in args.peer_worker_url:
+                response = await client.get(
+                    url + "/freechat/runtime",
+                    headers={"x-freechat-worker-token": worker_token},
+                )
+                response.raise_for_status()
+                peers.append(response.json())
+            await concurrent_probe(
+                client,
+                args,
+                headers,
+                runtime,
+                pool,
+                peers=tuple(peers),
+                warmup_worker=warmup.headers["x-freechat-worker-id"],
+            )
             return
         for protocol in ("chat/completions", "responses", "messages"):
             for mode in ("json", "stream", "disconnect"):
@@ -148,24 +165,57 @@ async def validate(args: argparse.Namespace) -> None:
         )
 
 
+def worker_pools(runtimes: tuple[dict[str, Any], ...]) -> dict[str, int]:
+    """Bind each measured single-rank pool to a distinct physical GPU."""
+    pools: dict[str, int] = {}
+    gpu_ids: set[str] = set()
+    for runtime in runtimes:
+        capacity, worker = runtime["capacity"], runtime["worker_id"]
+        gpu = capacity.get("gpu_uuid")
+        if not gpu or gpu in gpu_ids or worker in pools:
+            raise ValueError("distinct Worker and physical GPU identities required")
+        pool = (capacity["num_blocks"] - 1) * capacity["block_bytes"]
+        if pool <= 0:
+            raise ValueError("positive physical pool required")
+        gpu_ids.add(gpu)
+        pools[worker] = pool
+    return pools
+
+
 async def concurrent_probe(
     client: httpx.AsyncClient,
     args: argparse.Namespace,
     headers: dict[str, str],
     runtime: dict[str, Any],
     pool: int,
+    *,
+    peers: tuple[dict[str, Any], ...] = (),
+    warmup_worker: str | None = None,
 ) -> None:
-    capacity = runtime["capacity"]
-    limit = min(800, capacity["max_context_tokens"] - 128)
-    if (
-        limit < 128
-        or args.concurrent_requests
-        * limit
-        * (capacity["block_bytes"] // capacity["block_size_tokens"])
-        <= pool
-    ):
+    runtimes = (runtime, *peers)
+    pools = worker_pools(runtimes)
+    if pool != pools[runtime["worker_id"]]:
+        raise ValueError("primary pool does not match runtime geometry")
+    limit = min(800, *(item["capacity"]["max_context_tokens"] - 128 for item in runtimes))
+    minimum_bytes = min(
+        item["capacity"]["block_bytes"] // item["capacity"]["block_size_tokens"]
+        for item in runtimes
+    )
+    if limit < 128 or args.concurrent_requests * limit * minimum_bytes <= sum(pools.values()):
         raise ValueError("use a smaller real KV pool to exercise concurrent capacity rejection")
-    routes, rejected = 1, 0  # Includes the successful readiness request.
+    initial_worker = warmup_worker or runtime["worker_id"]
+    if initial_worker not in pools:
+        raise ValueError("warmup routed to an unobserved Worker")
+    routes = Counter({initial_worker: 1})
+    long_routes: Counter[str] = Counter()
+    rejected = 0
+
+    def selected(response: httpx.Response) -> str:
+        worker = response.headers["x-freechat-worker-id"]
+        if worker not in pools:
+            raise ValueError("request routed to an unobserved Worker")
+        return worker
+
     for round_index in range(args.rounds):
         body = {
             "model": args.model,
@@ -173,6 +223,7 @@ async def concurrent_probe(
             "ignore_eos": True,
         }
         before_rejected = rejected
+        round_routes: Counter[str] = Counter()
         # HTTP completion precedes confirmed release. Retry real backpressure,
         # count every rejection, and bound the wait instead of assuming instant reuse.
         async with asyncio.timeout(30):
@@ -190,7 +241,10 @@ async def concurrent_probe(
                     if response.status_code == 200:
                         assert response.json()["usage"]["completion_tokens"] == limit
                         assert int(response.headers["x-freechat-reserved-kv-bytes"]) > 0
-                        routes += 1
+                        worker = selected(response)
+                        routes[worker] += 1
+                        long_routes[worker] += 1
+                        round_routes[worker] += 1
                     else:
                         assert "x-freechat-decision-id" not in response.headers
                         rejected += 1
@@ -209,7 +263,7 @@ async def concurrent_probe(
                     },
                 )
                 if recovery.status_code == 200:
-                    routes += 1
+                    routes[selected(recovery)] += 1
                     break
                 if recovery.status_code != 503:
                     recovery.raise_for_status()
@@ -219,8 +273,9 @@ async def concurrent_probe(
             json.dumps(
                 {
                     "scope": "CONCURRENT_CAPACITY",
-                    "worker": runtime["worker_id"],
+                    "workers": sorted(pools),
                     "round": round_index,
+                    "accepted_by_worker": dict(round_routes),
                     "accepted": statuses.count(200),
                     "backpressure_including_retries": rejected - before_rejected,
                     "recovery": 200,
@@ -228,20 +283,24 @@ async def concurrent_probe(
             ),
             flush=True,
         )
-    print(
-        json.dumps(
-            {
-                "scope": "AUDIT_REQUIRED",
-                "worker": runtime["worker_id"],
-                "physical_usable_kv_bytes": pool,
-                "expected_routes": routes,
-                "expected_cancels": 0,
-                "expected_capacity_rejections": rejected,
-                "claim_boundary": "audit Scheduler logs; not throughput or recovery-time evidence",
-            }
-        ),
-        flush=True,
-    )
+    if set(long_routes) != set(pools):
+        raise ValueError("not every observed Worker executed the contention workload")
+    for worker, physical_pool in pools.items():
+        print(
+            json.dumps(
+                {
+                    "scope": "AUDIT_REQUIRED",
+                    "worker": worker,
+                    "physical_usable_kv_bytes": physical_pool,
+                    "expected_routes": routes[worker],
+                    "expected_cancels": 0,
+                    "expected_capacity_rejections": rejected,
+                    "allow_other_workers": bool(peers),
+                    "claim_boundary": "audit Scheduler logs; no performance claim",
+                }
+            ),
+            flush=True,
+        )
 
 
 def audit_log(
@@ -252,6 +311,7 @@ def audit_log(
     expected_routes: int,
     expected_cancels: int,
     expected_rejections: int,
+    allow_other_workers: bool = False,
 ) -> dict[str, Any]:
     """Check a complete single-incarnation Scheduler log, without writing artifacts."""
     if pool <= 0 or expected_routes <= 0:
@@ -273,6 +333,8 @@ def audit_log(
         event = json.loads(line.split("lifecycle_event ", 1)[1])
         payload = event["payload"]
         if payload["worker_id"] != worker:
+            if allow_other_workers:
+                continue
             raise ValueError("audit requires an isolated single-Worker log")
         if event["event_id"] in seen:
             if event != seen[event["event_id"]]:
@@ -345,6 +407,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default="http://127.0.0.1:8080")
     parser.add_argument("--worker-url", default="http://127.0.0.1:8000")
+    parser.add_argument("--peer-worker-url", action="append", default=[])
     parser.add_argument("--model", default="qwen")
     parser.add_argument(
         "--mode", choices=("sequential", "concurrent", "audit-log"), default="sequential"
@@ -352,6 +415,7 @@ def main() -> None:
     parser.add_argument("--concurrent-requests", type=int, default=8)
     parser.add_argument("--rounds", type=int, default=3)
     parser.add_argument("--worker")
+    parser.add_argument("--allow-other-workers", action="store_true")
     parser.add_argument("--pool-bytes", type=int, default=0)
     parser.add_argument("--expected-routes", type=int, default=0)
     parser.add_argument("--expected-cancels", type=int, default=0)
@@ -359,6 +423,8 @@ def main() -> None:
     args = parser.parse_args()
     if not 2 <= args.concurrent_requests <= 64 or not 1 <= args.rounds <= 20:
         parser.error("concurrent requests must be 2..64 and rounds 1..20")
+    if args.peer_worker_url and args.mode != "concurrent":
+        parser.error("peer workers are supported by the concurrent probe")
     if args.mode == "audit-log":
         if not args.worker:
             parser.error("--worker is required for log audit")
@@ -371,6 +437,7 @@ def main() -> None:
                     expected_routes=args.expected_routes,
                     expected_cancels=args.expected_cancels,
                     expected_rejections=args.expected_rejections,
+                    allow_other_workers=args.allow_other_workers,
                 )
             ),
             flush=True,

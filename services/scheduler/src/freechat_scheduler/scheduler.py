@@ -68,7 +68,9 @@ class Scheduler:
     def preparation_candidates(self, request: RequestProfile) -> tuple[WorkerSnapshot, ...]:
         """Apply locality/health/model gates before disclosing a prompt to workers."""
         _, workers = self._registry.snapshot()
-        probe = request.model_copy(update={"input_tokens": 0, "output_tokens": 1})
+        probe = request.model_copy(
+            update={"input_tokens": 0, "output_tokens": 1, "estimated_kv_bytes": 0}
+        )
         group_view = self._group_snapshot() if self._group_snapshot is not None else None
         return tuple(
             worker for worker in workers if not self._hard_filter(probe, worker, group_view)
@@ -122,6 +124,15 @@ class Scheduler:
             worker_id = worker.capabilities.worker_id
             profile = request
             if prepared is not None:
+                # A Worker excluded before preparation must retain its actual
+                # health/locality/capability reason. Recheck after CAS contention too.
+                probe = request.model_copy(
+                    update={"input_tokens": 0, "output_tokens": 1, "estimated_kv_bytes": 0}
+                )
+                reasons = self._hard_filter(probe, worker, group_view)
+                if reasons:
+                    rejected[worker_id] = tuple(reasons)
+                    continue
                 item = prepared.get(worker_id)
                 if (
                     item is None

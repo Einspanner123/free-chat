@@ -188,6 +188,46 @@ docker logs freechat-scheduler 2>&1 | \
 `--expected-cancels` 用于带生成中断连的完整协议测试；这时必须匹配真实 ABORT 回执。
 这些计数不是吞吐、RTO 或分布式 exactly-once 指标。所有输出仍只到 stdout 和服务日志。
 
+## 同一 Scheduler 管理多 Worker
+
+同机独立 Worker 可以共享第一个 Worker 的网络 namespace，并各自使用独立 GPU、HTTP/执行 RPC
+端口和持久 state volume。仍然只启动一个 Gateway 与一个 Scheduler；共享控制面不等于 TP/PP、
+跨节点 transport 或共享 KV tensor。两个 Worker 的 `node-id` 必须与 Gateway origin 一致，
+服务 token 必须一致。以下示例接在 README 启动路径之后；做并发压力时，第一张卡也应使用
+前述 128-block/1024-context 配置。
+
+```bash
+docker run -d --name freechat-peer --network container:freechat-worker \
+  --gpus device=1 --shm-size 1g -e FREECHAT_WORKER_TOKEN \
+  -v /absolute/path/to/Qwen2.5-0.5B-Instruct:/model:ro \
+  -v freechat-peer-state:/var/lib/freechat "$WORKER_IMAGE" \
+  --worker-id peer-worker --node-id local-node --model /model --served-model-name qwen \
+  --host 127.0.0.1 --port 8001 --control-port 50053 \
+  --scheduler-target 127.0.0.1:50051 --gpu-memory-utilization 0.25 \
+  --num-gpu-blocks-override 128 --max-model-len 1024 --enforce-eager
+
+docker exec freechat-worker /opt/freechat/.venv/bin/python \
+  -m tools.validate_inference_loop --mode concurrent \
+  --peer-worker-url http://127.0.0.1:8001
+```
+
+先在当前 Scheduler 的正常日志中确认两个 `worker_registered`，逐一核对 worker ID、
+generation、物理 GPU 和 HTTP/执行端口；`/health` 或 `/freechat/runtime` 可用不代表注册完成。
+控制面重新启动时 gRPC 重连可能延迟，禁止把只有一张卡注册的测试作为双卡结果。
+若验证器报 `not every observed Worker executed the contention workload`，本轮失败，
+检查注册与拒绝日志后从独立日志范围重新验收，不删失败日志或强行通过。
+验证器核对不同物理 GPU UUID，根据 Gateway 的
+`x-freechat-worker-id` 统计实际执行位置，要求每个声明的 Worker 都执行长请求；
+不从预期路由或输入列表猜测执行位置。stdout 为每个 Worker 输出单独的 audit 参数。
+对同一份 Scheduler 日志逐卡运行 `--mode audit-log --allow-other-workers`，
+每张卡必须使用自己的 pool 与 route 数，不能把显存简单合并后掩盖单卡超售。
+停止时先停止 peer，再停止持有共享网络 namespace 的主 Worker。
+空闲 peer 正常停止后可运行主 Worker 的单卡 probe；当前 Scheduler 日志包含前后两段，
+audit 需要累加同一卡的 route/rejection 数并保留 `--allow-other-workers`。
+停止卡的拒绝必须明确包含 `worker_unhealthy` / `worker_draining`（或超时后的 stale 原因），
+不能将它计成容量不足；正常停止不等于故障注入或在途任务恢复。
+这不证明 Worker 崩溃后的在途任务迁移、跨节点部署或调度性能收益。
+
 ## Telemetry、校准与 Harness 测试
 
 - `python -m freechat_worker.telemetry --help`：采集原生 Prometheus 队列、KV 使用率与传输计数，发送带 generation/engine identity 的 heartbeat。先注册同一 capability/generation。采集器目前不提供可信的 KV 空闲字节预算或完整 prefix inventory。
