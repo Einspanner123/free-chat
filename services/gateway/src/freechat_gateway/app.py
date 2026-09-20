@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
 
+import anyio
 import grpc
 import httpx
 from fastapi import FastAPI, Header, HTTPException, Request, Response
@@ -21,6 +22,7 @@ from freechat_gateway.hints import extract_agent_hints
 from freechat_gateway.routing import SchedulerClient, StaticSchedulerClient
 
 LOGGER = logging.getLogger(__name__)
+_CLEANUP_TIMEOUT_SECONDS = 5.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -187,6 +189,7 @@ def create_app(
             "x-freechat-request-id": request_id,
             "x-freechat-task-id": hints.task_id,
             "x-freechat-decision-id": decision.decision_id,
+            "x-freechat-reserved-kv-bytes": str(decision.reserved_kv_bytes_per_rank),
             "x-freechat-route-class": "agent-aware" if hints.confidence > 0.25 else "compatible",
             "x-freechat-kv-offload": ("enabled" if decision.kv_transfer.enabled else "disabled"),
         }
@@ -203,11 +206,14 @@ def create_app(
                 if upstream.is_error:
                     content = await upstream.aread()
                     status_code = upstream.status_code
-                    await upstream.aclose()
-                    keepalive.cancel()
-                    with suppress(asyncio.CancelledError):
-                        await keepalive
-                    await _release_route(scheduler_client, profile, decision)
+                    await _finish_route(
+                        scheduler_client,
+                        profile,
+                        decision,
+                        keepalive,
+                        response=upstream,
+                        uncertain=False,
+                    )
                     return Response(
                         content=content,
                         status_code=status_code,
@@ -215,14 +221,14 @@ def create_app(
                         headers=response_headers,
                     )
             except BaseException:
-                keepalive.cancel()
-                with suppress(asyncio.CancelledError):
-                    await keepalive
-                try:
-                    if upstream is not None:
-                        await upstream.aclose()
-                finally:
-                    await _release_route(scheduler_client, profile, decision, uncertain=True)
+                await _finish_route(
+                    scheduler_client,
+                    profile,
+                    decision,
+                    keepalive,
+                    response=upstream,
+                    uncertain=True,
+                )
                 raise
             return StreamingResponse(
                 _relay_upstream(
@@ -237,6 +243,7 @@ def create_app(
                 headers=response_headers,
             )
         completed = False
+        upstream = None
         keepalive = asyncio.create_task(_renew_lease_loop(scheduler_client, profile, decision))
         try:
             try:
@@ -254,10 +261,14 @@ def create_app(
                 headers=response_headers,
             )
         finally:
-            keepalive.cancel()
-            with suppress(asyncio.CancelledError):
-                await keepalive
-            await _release_route(scheduler_client, profile, decision, uncertain=not completed)
+            await _finish_route(
+                scheduler_client,
+                profile,
+                decision,
+                keepalive,
+                response=upstream,
+                uncertain=not completed,
+            )
 
     @app.post("/v1/chat/completions")
     async def chat_completions(
@@ -375,15 +386,45 @@ async def _relay_upstream(
             yield chunk
         completed = True
     finally:
-        keepalive.cancel()
+        await _finish_route(
+            scheduler,
+            profile,
+            decision,
+            keepalive,
+            response=response,
+            uncertain=not completed,
+        )
+
+
+async def _finish_route(
+    scheduler: SchedulerClient,
+    profile: RequestProfile,
+    decision: RouteDecision,
+    keepalive: asyncio.Task[None],
+    *,
+    response: httpx.Response | None,
+    uncertain: bool,
+) -> None:
+    # ASGI disconnect cancels the enclosing AnyIO scope at every checkpoint.
+    # Cleanup must survive that scope, but must not block shutdown indefinitely.
+    keepalive.cancel()
+    with anyio.move_on_after(_CLEANUP_TIMEOUT_SECONDS, shield=True) as close_scope:
         try:
             with suppress(asyncio.CancelledError):
                 await keepalive
-        finally:
-            try:
+            if response is not None:
                 await response.aclose()
-            finally:
-                await _release_route(scheduler, profile, decision, uncertain=not completed)
+        except Exception:
+            LOGGER.exception("upstream cleanup failed decision_id=%s", decision.decision_id)
+    if close_scope.cancel_called:
+        LOGGER.warning("upstream cleanup timed out decision_id=%s", decision.decision_id)
+
+    # A stuck/failed transport close must not prevent the cancellation intent.
+    # This is an intent only: the Scheduler still needs a quiescent Worker receipt.
+    with anyio.move_on_after(_CLEANUP_TIMEOUT_SECONDS, shield=True) as release_scope:
+        await _release_route(scheduler, profile, decision, uncertain=uncertain)
+    if release_scope.cancel_called:
+        LOGGER.warning("scheduler cleanup timed out decision_id=%s", decision.decision_id)
 
 
 async def _renew_lease_loop(

@@ -30,18 +30,20 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
    A5000 + Qwen2.5-0.5B 真实权重已验证 12 次完成、提交后取消及首 token 后取消、重复准入拒绝；
    见既有 `evidence/execution-gpu/20260921/`。原生 HTTP 三协议、认证边界与 Worker launcher 已接通，
    A5000/A4000 已通过普通响应、SSE、生成中取消和重复准入验证；A6000 待完成。
-   当前仍不代表 Gateway→Scheduler→Worker 全链路或重启恢复已经完成。
+   同机 Gateway→Scheduler→Worker API 闭环已在两卡分别验证，重启恢复和跨节点仍待完成。
 2. [~] **真实预算。** Worker 已通过上游具名 extension RPC 读取分配后的 KV layout，
    A5000/A4000 实测通过；报告 gross pool 并扣除 null block，不伪装成实时空闲预算。
    原生三协议预处理已给出准确 token 数，并在 GPU 提交前核对实际 prompt 与输出上限，
    A5000/A4000 与真实 response usage 一致。Gateway 已移除字符数估计；
    Scheduler 按各候选 Worker 的原生预算计算并持久化预占，绑定所选 incarnation，
-   Worker 校验实际 block 对齐字节；调度路径已过 CPU 契约，两卡已过 Worker GPU 校验。
-   仍需真实注册/heartbeat 接线和 gross budget/活动请求不重复计数，完成 GPU 全链路验收。
-3. [ ] **统一启动路径。** Worker 启动→注册→持续 heartbeat→执行确认轮询；
+   Worker 校验实际 block 对齐字节；已接通实际注册/heartbeat 和 gross budget/活动请求不重复计数，
+   两卡分别通过真实 Gateway→Scheduler→Worker 容量复用与执行确认。多 Worker/多节点预算仍待验收。
+3. [~] **统一启动路径。** 同机 Worker 启动→注册→持续 heartbeat→执行确认轮询已验证；
    Gateway 启动现已要求显式 Scheduler 地址，缺失配置直接报错；static/fake 仅用于测试。
-   不把 loopback fixture RPC 直接用于跨容器连接。
-4. [ ] **运行闭环。** 从 WebUI/API 连续调用超过初始并发容量，验证容量释放、
+   当前容器共享 Worker 网络 namespace，RPC 保持真实同机边界；跨节点认证 transport 与启动仍待实现。
+4. [~] **运行闭环。** 两卡分别完成三协议 JSON/SSE/断连；累计顺序预占超过一个实际 KV 池后仍可复用，
+   A5000 161/161、A4000 126/126 请求由可信终态回执释放，各 3 次断连具有取消意图与 aborted 回执。
+   已修复 ASGI 取消作用域中断清理的问题。WebUI、并发压力及以下故障/生命周期矩阵仍待完成：
    streaming、取消、断连、重复、迟到、重启；再贯通 Tool Wait/Resume、
    KV action、tracing、三协议和四 Harness。复用原生协议，不重新实现另一套 API。
 5. [ ] **扩展与指标。** 实际 residency→调度基线→生命周期/成本策略→多卡与 kernel。
@@ -65,8 +67,8 @@ GPU 验证可以使用已有兼容镜像派生的明确标识开发制品，记�
 - 资源组 START/READY/DRAIN/STOP 回执不等于真实进程/collective 已经停止；
   group stop 不自动释放逐请求 reservation。
 - 现有执行 RPC 用 loopback peer 与配置 token 校验，只是同机边界，不代表 SPIFFE/mTLS。
-- 默认 telemetry 尚不生成所需的逐 rank KV budget；该缺口和运行入口必须真实接线，
-  不以伪造预算或提前释放容量绕过。
+- Managed telemetry 使用实测单 rank gross KV pool，标注 scheduler-exclusive，不重复扣活动请求；
+  独立 telemetry CLI 和多 rank 路径不能借用该已验证口径。默认内存 store/日志不等于 etcd/NATS 故障验收。
 - 完整 fork 已恢复；源码不再缺失，不能继续将源码问题当作执行器实施的阻塞。
 - 发生实质设计冲突时记录 CONFLICT、选项和负责人答复，未确认不擅自改变方向。
 - 无日历/人力限制裁剪范围；无收益的实验保留，不制造简历百分比。

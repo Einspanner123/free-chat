@@ -99,8 +99,16 @@ class Scheduler:
                                     - reserved.get(item.capabilities.worker_id, (0, 0))[0],
                                 )
                             ),
-                            "active_requests": item.telemetry.active_requests
-                            + reserved.get(item.capabilities.worker_id, (0, 0))[1],
+                            "active_requests": (
+                                max(
+                                    item.telemetry.active_requests,
+                                    reserved.get(item.capabilities.worker_id, (0, 0))[1],
+                                )
+                                if item.telemetry.admission_accounting
+                                == "scheduler_exclusive_gross"
+                                else item.telemetry.active_requests
+                                + reserved.get(item.capabilities.worker_id, (0, 0))[1]
+                            ),
                         }
                     ),
                 )
@@ -127,11 +135,13 @@ class Scheduler:
                 ):
                     rejected[worker_id] = ("native_preparation_missing_expired_or_mismatched",)
                     continue
-                profile = request.model_copy(update={
-                    "input_tokens": item.budget.input_tokens,
-                    "output_tokens": item.budget.output_tokens,
-                    "estimated_kv_bytes": 0,
-                })
+                profile = request.model_copy(
+                    update={
+                        "input_tokens": item.budget.input_tokens,
+                        "output_tokens": item.budget.output_tokens,
+                        "estimated_kv_bytes": 0,
+                    }
+                )
             profiles[worker_id] = profile
             reasons = self._hard_filter(profile, worker, group_view)
             if reasons:
@@ -180,7 +190,8 @@ class Scheduler:
             fallback_reason="candidate_cost_unavailable" if fallback else None,
             preparation=None if prepared is None else prepared[worker_caps.worker_id],
             kv_transfer=(
-                self._predictive_offload(request, selected_worker) if prepared is None
+                self._predictive_offload(request, selected_worker)
+                if prepared is None
                 else PredictiveOffloadDirective(reason="managed_native_transfer_not_enabled")
             ),
             reserved_kv_bytes_per_rank=required_kv_bytes_per_rank(

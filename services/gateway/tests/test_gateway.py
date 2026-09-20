@@ -2,6 +2,7 @@ import asyncio
 import json
 from collections.abc import AsyncIterator
 
+import anyio
 import httpx
 import pytest
 from fastapi.testclient import TestClient
@@ -568,3 +569,41 @@ def test_gateway_bounds_body_before_preparation() -> None:
             json={"model": "qwen", "input": "x" * (4 * 1024 * 1024)},
         )
         assert response.status_code == 413
+
+
+async def test_disconnect_cleanup_survives_cancelled_asgi_scope() -> None:
+    from freechat_gateway.app import _relay_upstream
+
+    class CheckpointScheduler(RecordingScheduler):
+        async def cancel(self, request: RequestProfile, decision: RouteDecision) -> None:
+            await anyio.sleep(0)
+            await super().cancel(request, decision)
+
+    class CheckpointStream(StaticAsyncStream):
+        async def aclose(self) -> None:
+            await anyio.sleep(0)
+            await super().aclose()
+
+    scheduler = CheckpointScheduler()
+    profile = RequestProfile(
+        tenant_id="tenant",
+        model_id="model",
+        input_tokens=1,
+        output_tokens=1,
+        hints={"harness_id": "test", "task_id": "task", "agent_id": "agent"},
+    )
+    route = await scheduler.route(profile)
+    stream = CheckpointStream([b"first", b"second"])
+    relay = _relay_upstream(
+        httpx.Response(200, stream=stream),
+        scheduler=scheduler,
+        profile=profile,
+        decision=route,
+    )
+    assert await anext(relay) == b"first"
+    with anyio.CancelScope() as scope:
+        scope.cancel()
+        await relay.aclose()
+    assert stream.closed
+    assert len(scheduler.cancellations) == 1
+    assert not scheduler.releases

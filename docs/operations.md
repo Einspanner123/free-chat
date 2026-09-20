@@ -17,7 +17,7 @@ python -m tools.validate_native_http --model qwen
 ```
 
 该命令覆盖原生三协议的普通响应、SSE、生成中取消、重复准入拒绝和未认证请求拒绝。
-它不代替尚未接通的完整 Gateway/Scheduler 启动与容量对账。
+它不代替 Gateway/Scheduler 启动与容量对账；完整同机入口及 `tools.validate_inference_loop` 见 README。
 缓存事件通过 `freechat_worker.benchmark_hook:create_cache_log_hook` 写入服务 logger，
 消息前缀 `FREECHAT_CACHE_EVENT`；不再创建独立 JSONL 文件。
 
@@ -122,8 +122,10 @@ prepare 不可用时拒绝，不退回字符估算。原生请求不进入 ledge
 默认 Scheduler 入口必须配置 `FREECHAT_WORKER_TOKEN`；`contract_only=True` 仅用于显式 CPU fixture。
 当前 managed 路径无 KV connector，因此 offload 指令明确标为未启用，不在准备后改写请求。
 
-节点时钟必须同步，过期/未来 telemetry 不可绕过。自动注册、持续 heartbeat、gross budget 与
-活动请求预占不重复计数仍待接通，不能将这些 CPU 集成测试和单 Worker GPU 测试合称为全链路验收。
+节点时钟必须同步，过期/未来 telemetry 不可绕过。默认 Worker 通过 `--scheduler-target` 和
+`--node-id` 启用自动注册、持续 heartbeat；注册地址、HTTP 和执行 RPC 目前只接受同机 loopback。
+Gateway/Scheduler/Worker 在同一个网络 namespace 中运行，不通过放开 peer 校验冒充跨节点部署。
+同机 API 推理闭环已在 A5000/A4000 分别运行；多 Worker、跨节点和重启恢复仍待验收。
 
 ## KV 容量报告
 
@@ -132,7 +134,29 @@ Managed Worker 在分配 KV 后调用 vLLM 原生 Worker extension 的具名 RPC
 `/freechat/runtime` 的认证响应包含 `capacity`。当前支持单 rank、单 full-attention/MLA
 缓存组；混合、不明或不一致布局拒绝启动。`basis` 明确为 gross engine pool，
 其中一个 null block 不可分配。它既不是 CUDA 空闲显存，也不是扣过请求预占的余额；
-不得直接与已扣预占的实时空闲计数混用。目前还未接入 Scheduler 的真实准入闭环。
+不得直接与已扣预占的实时空闲计数混用。
+
+Managed heartbeat 明确标记 `scheduler_exclusive_gross`，Scheduler 从该物理池扣减自身请求预占，
+活动请求用观测值与预占数的最大值而非相加，避免同一请求重复计数。此模式要求请求经过同一
+Scheduler，禁止同时直接向 Worker 压测；`unmanaged_observation` 保留独立观测的原有语义。
+GPU UUID、KV geometry 和 CUDA free memory 来自原生 Worker extension；队列/活动数来自原生指标。
+注册的模型 revision 是只读本地权重和 tokenizer 文件内容清单的 SHA-256，不冒称上游仓库 commit。
+健康检查失败发布 unhealthy；控制面不可达时已有观测自然过期。没有真实预算不准入。
+
+## 生命周期清理与运行日志
+
+默认 Scheduler 根据注册的 execution endpoint 轮询 Worker，只接受同一 generation/engine identity；
+替换 Worker 不得接管旧 incarnation 的终止确认。缺失/不匹配的执行端点保留预占，不提前释放。
+SSE 断连、非流式中断、建连失败使用有界、屏蔽外层 ASGI 取消作用域的清理；上游关闭与调度通知
+各有 5 秒上限，关闭失败也会尝试发送 cancel。此通知只是意图，仍以 Worker 的静止与准入关闭回执
+决定资源释放。超时进入服务日志，不能记为成功取消。
+
+未配置 NATS 时，默认服务把 outbox 事件写入 INFO 级 `lifecycle_event` 日志，再确认本地事件；
+关闭 INFO 不静默丢弃待发事件。配置 NATS 时使用既有可靠事件路径。日志 fallback 不是持久消息总线。
+未配置 etcd 时，默认 Scheduler 使用内存 store，不得据此宣称重启对账、故障恢复率或 HA。
+`tools.validate_inference_loop` 的 stdout decision ID 与这些事件对应；应核对每个 route 的
+cancel/completion intent 和唯一 release，release 的 execution receipt 必须 terminal、quiescent、
+admission_closed。HTTP 200 或顺序请求成功本身不是全部释放证据。
 
 ## Telemetry、校准与 Harness 测试
 

@@ -9,6 +9,7 @@ import logging
 import os
 import re
 import time
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -27,6 +28,12 @@ from freechat_worker.native_serving import (
     NativeExecutionBackend,
 )
 from freechat_worker.preparation import NativeRenderer, PreparationService
+from freechat_worker.registration import (
+    RegistrationConfig,
+    RegistrationLoop,
+    artifact_identity,
+    capabilities,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +44,14 @@ async def serve(args: Any) -> None:
         raise ValueError("FREECHAT_WORKER_TOKEN must contain at least 32 characters")
     if re.fullmatch(r"[a-zA-Z0-9_-]{1,80}", args.worker_id) is None:
         raise ValueError("worker ID must be a safe filesystem identifier")
+    registration_config = None
+    if args.scheduler_target is not None:
+        registration_config = RegistrationConfig(
+            scheduler_target=args.scheduler_target,
+            node_id=args.node_id or "",
+            endpoint=f"http://127.0.0.1:{args.port}",
+            execution_endpoint=f"127.0.0.1:{args.control_port}",
+        )
     directory = Path(args.state_dir) / args.worker_id
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     # One managed incarnation per persistent worker directory, before allocating GPU.
@@ -70,13 +85,18 @@ async def serve(args: Any) -> None:
             if not control.add_insecure_port(f"127.0.0.1:{args.control_port}"):
                 driver.close()
                 raise RuntimeError("worker control port unavailable")
+            registration_task = None
             try:
                 tasks = await proxy.get_supported_tasks()
                 app = api.build_app(args, tasks, engine.model_config)
                 await api.init_app_state(proxy, app.state, args, tasks)
                 wrapped = AdmissionMiddleware(
-                    app, driver=driver, backend=backend, token=token, capacity=capacity,
-                    preparer=PreparationService(NativeRenderer(app.state))
+                    app,
+                    driver=driver,
+                    backend=backend,
+                    token=token,
+                    capacity=capacity,
+                    preparer=PreparationService(NativeRenderer(app.state)),
                 )
                 await control.start()
                 LOGGER.info(
@@ -96,8 +116,39 @@ async def serve(args: Any) -> None:
                         log_level=args.uvicorn_log_level,
                     )
                 )
+                if registration_config is not None:
+                    revision = await asyncio.to_thread(
+                        artifact_identity, Path(engine.model_config.model)
+                    )
+                    caps = capabilities(
+                        registration_config,
+                        capacity,
+                        engine.model_config,
+                        worker_id=args.worker_id,
+                        generation=args.worker_generation,
+                        revision=revision,
+                    )
+                    registration = RegistrationLoop(
+                        registration_config,
+                        caps,
+                        capacity,
+                        instance,
+                        token,
+                        engine,
+                    )
+
+                    async def register_when_ready() -> None:
+                        while not server.started:
+                            await asyncio.sleep(0.05)
+                        await registration.run()
+
+                    registration_task = asyncio.create_task(register_when_ready())
                 await server.serve()
             finally:
+                if registration_task is not None:
+                    registration_task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await registration_task
                 await control.stop(grace=5)
                 driver.close()
 
@@ -110,8 +161,11 @@ def main() -> None:
     parser.add_argument("--worker-generation", type=int, default=time.time_ns())
     parser.add_argument("--state-dir", default="/var/lib/freechat")
     parser.add_argument("--control-port", type=int, default=50052)
+    parser.add_argument("--scheduler-target")
+    parser.add_argument("--node-id")
     parser.set_defaults(
-        async_scheduling=False, host="127.0.0.1",
+        async_scheduling=False,
+        host="127.0.0.1",
         worker_extension_cls="freechat_worker.capacity.CapacityExtension",
     )
     args = parser.parse_args()

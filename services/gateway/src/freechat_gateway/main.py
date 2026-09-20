@@ -26,7 +26,7 @@ def build_app() -> FastAPI:
     worker_token = os.environ.get("FREECHAT_WORKER_TOKEN", "")
     if len(worker_token) < 32:
         raise ValueError("FREECHAT_WORKER_TOKEN must contain at least 32 characters")
-    scheduler = GrpcSchedulerClient(scheduler_target)
+    scheduler = GrpcSchedulerClient(scheduler_target, token=worker_token)
     return create_app(
         GatewayConfig(
             api_keys=_keys_from_environment(),

@@ -10,6 +10,7 @@ COPY pyproject.toml uv.lock ./
 COPY libs ./libs
 COPY services ./services
 COPY worker ./worker
+COPY tools/validate_native_http.py tools/validate_inference_loop.py ./tools/
 RUN uv sync --frozen --all-packages --no-dev
 
 USER 65532:65532

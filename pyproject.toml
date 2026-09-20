@@ -8,7 +8,11 @@ dependencies = []
 package = false
 
 [tool.uv.workspace]
-members = ["libs/*", "services/*", "worker"]
+members = [
+  "libs/contracts", "libs/control-store", "libs/protocol", "libs/harness-adapters",
+  "services/gateway", "services/scheduler", "services/trace-replay",
+  "services/kv-controller", "services/topology-agent", "worker",
+]
 
 [dependency-groups]
 dev = [

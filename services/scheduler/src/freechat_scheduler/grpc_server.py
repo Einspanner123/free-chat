@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import grpc
+from freechat.control.auth import authenticate_control
 from freechat.control.v1 import control_pb2, control_pb2_grpc
 from freechat_contracts import (
     AgentHints,
@@ -31,6 +32,7 @@ from freechat_scheduler.preparation import NativePreparer
 from freechat_scheduler.registry import InMemoryWorkerRegistry, PersistentWorkerRegistry
 from freechat_scheduler.request_execution import (
     LocalGrpcExecutionDriver,
+    RegisteredExecutionDriver,
     RequestExecutionConfig,
     RequestExecutionReconciler,
 )
@@ -49,15 +51,20 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
         emitter: DurableLifecycleEmitter | None = None,
         execution: RequestExecutionReconciler | None = None,
         preparer: NativePreparer | None = None,
+        token: str | None = None,
+        log_events: bool = False,
     ) -> None:
+        self._log_events = log_events
         self._scheduler, self._leases, self._emitter = scheduler, leases, emitter
         self._flush_lock = asyncio.Lock()
         self._execution = execution
         self._preparer = preparer
+        self._token = token
 
     async def Route(
         self, request: control_pb2.RouteRequest, context: Any
     ) -> control_pb2.RouteDecision:
+        await authenticate_control(context, self._token)
         try:
             profile = _request_profile(request)
             prepared = None
@@ -82,6 +89,7 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
     async def RenewLease(
         self, request: control_pb2.LeaseRequest, context: Any
     ) -> control_pb2.Operation:
+        await authenticate_control(context, self._token)
         try:
             await self._leases.renew(
                 request.decision_id,
@@ -97,6 +105,7 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
     async def Release(
         self, request: control_pb2.LeaseRequest, context: Any
     ) -> control_pb2.Operation:
+        await authenticate_control(context, self._token)
         try:
             await self._leases.release(
                 request.decision_id,
@@ -112,6 +121,7 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
     async def Cancel(
         self, request: control_pb2.LeaseRequest, context: Any
     ) -> control_pb2.Operation:
+        await authenticate_control(context, self._token)
         try:
             await self._leases.release(
                 request.decision_id,
@@ -127,6 +137,7 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
     async def ExplainDecision(
         self, request: control_pb2.LeaseRequest, context: Any
     ) -> control_pb2.RouteDecision:
+        await authenticate_control(context, self._token)
         try:
             decision = await self._leases.require(
                 request.decision_id,
@@ -140,11 +151,14 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
         return _decision_message(decision)
 
     async def flush_events(self) -> None:
-        if self._emitter is None:
+        if self._emitter is None and not (self._log_events and LOGGER.isEnabledFor(logging.INFO)):
             return
         async with self._flush_lock:
             for event in (await self._leases.snapshot()).pending.values():
-                await self._emitter.emit(event, str(event.payload["harness_id"]))
+                if self._emitter is not None:
+                    await self._emitter.emit(event, str(event.payload["harness_id"]))
+                else:
+                    LOGGER.info("lifecycle_event %s", event.model_dump_json())
                 await self._leases.acknowledge_event(event.event_id)
 
     async def maintain(self) -> None:
@@ -169,7 +183,9 @@ class WorkerGrpcService(control_pb2_grpc.WorkerControlServiceServicer):
         self,
         registry: InMemoryWorkerRegistry,
         emitter: DurableLifecycleEmitter | None = None,
+        token: str | None = None,
     ) -> None:
+        self._token = token
         self._registry = registry
         self._emitter = emitter
 
@@ -178,6 +194,7 @@ class WorkerGrpcService(control_pb2_grpc.WorkerControlServiceServicer):
         request: control_pb2.WorkerRegistration,
         context: Any,
     ) -> control_pb2.Operation:
+        await authenticate_control(context, self._token)
         try:
             capabilities = WorkerCapabilities.model_validate_json(request.capabilities_json)
             if (
@@ -228,6 +245,7 @@ class WorkerGrpcService(control_pb2_grpc.WorkerControlServiceServicer):
         request_iterator: AsyncIterable[control_pb2.WorkerHeartbeat],
         context: Any,
     ) -> AsyncIterator[control_pb2.Operation]:
+        await authenticate_control(context, self._token)
         async for request in request_iterator:
             try:
                 telemetry = WorkerTelemetry.model_validate_json(request.telemetry_json)
@@ -380,7 +398,13 @@ async def serve(address: str, *, contract_only: bool = False) -> None:
         reconciler = configured_reconciler(config, store, registry)
         await reconciler.tick()
     leases = LeaseBook(store)
-    execution = None
+    execution = (
+        None
+        if contract_only
+        else RequestExecutionReconciler(
+            leases, RegisteredExecutionDriver(registry, os.environ["FREECHAT_WORKER_TOKEN"])
+        )
+    )
     execution_config_path = os.environ.get("FREECHAT_REQUEST_EXECUTION_CONFIG")
     if execution_config_path:
         execution_config = RequestExecutionConfig.model_validate_json(
@@ -399,13 +423,17 @@ async def serve(address: str, *, contract_only: bool = False) -> None:
         emitter,
         execution,
         preparer,
+        None if contract_only else os.environ["FREECHAT_WORKER_TOKEN"],
+        log_events=not contract_only and emitter is None,
     )
     control_pb2_grpc.add_SchedulerServiceServicer_to_server(  # type: ignore[no-untyped-call]
         scheduler_service,
         server,
     )
     control_pb2_grpc.add_WorkerControlServiceServicer_to_server(  # type: ignore[no-untyped-call]
-        WorkerGrpcService(registry, emitter),
+        WorkerGrpcService(
+            registry, emitter, None if contract_only else os.environ["FREECHAT_WORKER_TOKEN"]
+        ),
         server,
     )
     server.add_insecure_port(address)
@@ -434,4 +462,5 @@ async def serve(address: str, *, contract_only: bool = False) -> None:
 
 
 def run() -> None:
+    logging.basicConfig(level=logging.INFO)
     asyncio.run(serve(os.environ.get("FREECHAT_SCHEDULER_LISTEN", "0.0.0.0:50051")))

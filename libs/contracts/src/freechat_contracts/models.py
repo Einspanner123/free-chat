@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -170,6 +170,7 @@ class WorkerCapabilities(BaseModel):
     resource_group_id: str | None = None
     resource_group_generation: int | None = Field(default=None, ge=1)
     gpu_ids: tuple[str, ...] = ()
+    execution_endpoint: str | None = None
 
 
 class CostCalibration(BaseModel):
@@ -244,6 +245,9 @@ class WorkerTelemetry(BaseModel):
     cache_load_bytes_per_second: float = Field(default=1.0, gt=0)
     cache_store_bytes_per_second: float | None = Field(default=None, gt=0)
     telemetry_source: str = "unspecified"
+    admission_accounting: Literal["unmanaged_observation", "scheduler_exclusive_gross"] = (
+        "unmanaged_observation"
+    )
     engine_instance_id: str | None = None
     kv_cache_usage_ratio: float | None = Field(default=None, ge=0, le=1)
     transfer_observed_at: datetime | None = None

@@ -20,6 +20,7 @@ class EngineCapacity(BaseModel):
     allocated_bytes: int = Field(gt=0)
     max_context_tokens: int = Field(gt=0)
     gpu_name: str = Field(min_length=1)
+    gpu_uuid: str | None = None
     total_vram_bytes: int = Field(gt=0)
     compute_capability: str = Field(min_length=1)
 
@@ -51,17 +52,19 @@ def collect_rank_layout(worker: Any) -> dict[str, Any]:
     for group in config.kv_cache_groups:
         spec = group.kv_cache_spec
         inner = getattr(spec, "kv_cache_specs", None)
-        groups.append({
-            "kind": type(spec).__name__,
-            "block_size": spec.block_size,
-            "page_bytes": spec.page_size_bytes,
-            "layer_count": len(group.layer_names),
-            "eagle": group.is_eagle_group,
-            "inner_kinds": [] if inner is None else [type(s).__name__ for s in inner.values()],
-            "inner_blocks": [] if inner is None else [s.block_size for s in inner.values()],
-            "inner_layers": [] if inner is None else list(inner),
-            "layers": list(group.layer_names),
-        })
+        groups.append(
+            {
+                "kind": type(spec).__name__,
+                "block_size": spec.block_size,
+                "page_bytes": spec.page_size_bytes,
+                "layer_count": len(group.layer_names),
+                "eagle": group.is_eagle_group,
+                "inner_kinds": [] if inner is None else [type(s).__name__ for s in inner.values()],
+                "inner_blocks": [] if inner is None else [s.block_size for s in inner.values()],
+                "inner_layers": [] if inner is None else list(inner),
+                "layers": list(group.layer_names),
+            }
+        )
     props = torch.cuda.get_device_properties(worker.device)
     return {
         "num_blocks": config.num_blocks,
@@ -69,6 +72,7 @@ def collect_rank_layout(worker: Any) -> dict[str, Any]:
         "allocated_bytes": sum(tensor.size for tensor in config.kv_cache_tensors),
         "max_context_tokens": worker.model_config.max_model_len,
         "gpu_name": props.name,
+        "gpu_uuid": str(props.uuid) if hasattr(props, "uuid") else None,
         "total_vram_bytes": props.total_memory,
         "compute_capability": f"{props.major}.{props.minor}",
     }
@@ -101,6 +105,7 @@ def capacity_from_rank(raw: dict[str, Any]) -> EngineCapacity:
         allocated_bytes=raw["allocated_bytes"],
         max_context_tokens=raw["max_context_tokens"],
         gpu_name=raw["gpu_name"],
+        gpu_uuid=raw.get("gpu_uuid"),
         total_vram_bytes=raw["total_vram_bytes"],
         compute_capability=raw["compute_capability"],
     )
@@ -108,6 +113,12 @@ def capacity_from_rank(raw: dict[str, Any]) -> EngineCapacity:
 
 class CapacityExtension:
     """Named vLLM Worker extension; no callable serialization across processes."""
+
+    device: Any  # Provided by vLLM when it composes the Worker extension.
+
+    def freechat_free_memory(self) -> int:
+        torch = importlib.import_module("torch")
+        return int(torch.cuda.mem_get_info(self.device)[0])
 
     def freechat_capacity(self) -> dict[str, Any]:
         return collect_rank_layout(self)

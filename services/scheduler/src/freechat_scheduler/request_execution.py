@@ -14,9 +14,10 @@ from freechat.control.execution import (
 )
 from freechat.control.v1 import control_pb2, control_pb2_grpc
 from freechat_contracts.execution import ExecutionAction, ExecutionCommand, ExecutionReceipt
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, SecretStr
 
 from freechat_scheduler.group_runtime import LocalRuntimeEndpoint
+from freechat_scheduler.registry import InMemoryWorkerRegistry
 from freechat_scheduler.request_ledger import RequestLedger, RequestState, Reservation
 
 
@@ -90,3 +91,40 @@ class RequestExecutionReconciler:
                 )
             )
             return errors
+
+
+class RegisteredExecutionDriver:
+    """Use only a currently registered same-host endpoint; never retarget old work."""
+
+    def __init__(self, registry: InMemoryWorkerRegistry, token: str) -> None:
+        if len(token) < 32:
+            raise ValueError("worker token requires at least 32 characters")
+        self.registry, self.token = registry, SecretStr(token)
+
+    async def observe(self, command: ExecutionCommand) -> ExecutionReceipt:
+        worker = next(
+            (
+                item
+                for item in self.registry.snapshot()[1]
+                if item.capabilities.worker_id == command.worker_id
+            ),
+            None,
+        )
+        if (
+            worker is None
+            or worker.capabilities.generation != command.worker_generation
+            or worker.telemetry.engine_instance_id != command.engine_instance_id
+            or worker.capabilities.execution_endpoint is None
+        ):
+            raise ValueError("registered_execution_incarnation_unavailable")
+        endpoint = LocalRuntimeEndpoint(
+            address=worker.capabilities.execution_endpoint,
+            token=self.token,
+        )
+        driver = LocalGrpcExecutionDriver(
+            RequestExecutionConfig(
+                mode="local-contract",
+                endpoints={command.worker_id: endpoint},
+            )
+        )
+        return await driver.observe(command)

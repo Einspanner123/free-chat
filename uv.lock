@@ -384,6 +384,7 @@ name = "freechat-gateway"
 version = "0.1.0"
 source = { editable = "services/gateway" }
 dependencies = [
+    { name = "anyio" },
     { name = "authlib" },
     { name = "fastapi" },
     { name = "freechat-contracts" },
@@ -397,6 +398,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anyio", specifier = ">=4.9,<5" },
     { name = "authlib", specifier = ">=1.6,<2" },
     { name = "fastapi", specifier = ">=0.116,<1" },
     { name = "freechat-contracts", editable = "libs/contracts" },

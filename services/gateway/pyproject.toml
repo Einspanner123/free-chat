@@ -3,6 +3,7 @@ name = "freechat-gateway"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+  "anyio>=4.9,<5",
   "authlib>=1.6,<2",
   "fastapi>=0.116,<1",
   "freechat-contracts",

@@ -75,7 +75,8 @@ class StaticSchedulerClient:
 
 
 class GrpcSchedulerClient:
-    def __init__(self, target: str) -> None:
+    def __init__(self, target: str, *, token: str | None = None) -> None:
+        self._metadata = () if token is None else (("authorization", f"Bearer {token}"),)
         self._channel = grpc.aio.insecure_channel(target)
         self._stub = control_pb2_grpc.SchedulerServiceStub(  # type: ignore[no-untyped-call]
             self._channel
@@ -129,7 +130,8 @@ class GrpcSchedulerClient:
                 output_tokens=request.output_tokens,
                 cache_key=request.cache_key or "",
                 local_node_id=request.local_node_id,
-            )
+            ),
+            metadata=self._metadata,
         )
         cost = CandidateCost(
             worker_id=response.worker_id,
@@ -167,7 +169,8 @@ class GrpcSchedulerClient:
             reserved_kv_bytes_per_rank=response.reserved_kv_bytes_per_rank,
             preparation=(
                 PreparedAdmission.model_validate_json(response.preparation_json)
-                if response.preparation_json else None
+                if response.preparation_json
+                else None
             ),
             kv_transfer=PredictiveOffloadDirective(
                 applicable=response.kv_transfer.applicable,
@@ -198,7 +201,8 @@ class GrpcSchedulerClient:
                 decision_id=decision.decision_id,
                 worker_id=decision.worker_id,
                 worker_generation=decision.worker_generation,
-            )
+            ),
+            metadata=self._metadata,
         )
         if response.status not in {"released", "completion_pending", "cancel_requested", "expired"}:
             raise RuntimeError(f"scheduler lease release failed: {response.status}")
@@ -215,7 +219,8 @@ class GrpcSchedulerClient:
                 decision_id=decision.decision_id,
                 worker_id=decision.worker_id,
                 worker_generation=decision.worker_generation,
-            )
+            ),
+            metadata=self._metadata,
         )
         if response.status != "renewed":
             raise RuntimeError(f"scheduler lease renewal failed: {response.status}")
@@ -231,7 +236,8 @@ class GrpcSchedulerClient:
                 decision_id=decision.decision_id,
                 worker_id=decision.worker_id,
                 worker_generation=decision.worker_generation,
-            )
+            ),
+            metadata=self._metadata,
         )
         if response.status != "cancel_requested":
             raise RuntimeError(f"scheduler cancellation failed: {response.status}")
