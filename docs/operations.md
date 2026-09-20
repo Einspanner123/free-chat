@@ -214,9 +214,67 @@ engine instance 与未释放预占。随后启动同一 Worker，核对其新身
 - `execution_endpoint_missing`：当前身份缺少执行端点。
 
 这些原因都只表示无法向原执行主体取证，不能授权释放。不得删除 etcd/SQLite 状态、
-改写 generation 或伪造终态回执来通过测试。后续须接入实际进程管理器的终止确认，
+改写 generation 或伪造终态回执来通过测试。现在可使用下面的显式退役路径，
 绑定旧 runtime 身份、关闭迟到准入，再幂等回收对应预占；任务失败/重试与容量回收分别验收。
 故障测试结束可以停机，保留未决状态和正常日志，不必为了等待未实现的恢复一直运行服务。
+
+### Docker 停止后的显式退役与容量回收
+
+这是操作员触发的同机恢复路径，不是自动故障转移。容器启动时必须给出唯一的
+`FREECHAT_RUNTIME_ID`（32 位小写十六进制，如 uuid4().hex），同时设置同值
+`io.freechat.runtime-id` label。每个新容器使用新 ID；同一容器重启保持原 ID。
+共享 network namespace 的 hostname 可能属于另一个容器，禁止据此推断 Worker 身份。
+
+保持 etcd 作为稳定 namespace 所属容器，Worker 状态卷必须持久。Worker 停止后、
+新 generation 注册前，使用旧 worker/generation/engine 和完整 Docker container ID：
+
+```bash
+# 从正常 Worker 日志/持久请求记录获取这两个精确值，不生成或猜测。
+export RETIRED_GENERATION=GENERATION_FROM_SERVICE_LOG
+export RETIRED_ENGINE=ENGINE_INSTANCE_FROM_SERVICE_LOG
+export RETIRED_CONTAINER="$(docker inspect freechat-worker --format '{{.Id}}')"
+# 恢复工具是另一个容器，必须使用自己的 ID。
+export FREECHAT_RUNTIME_ID="$(python3 -c 'import uuid; print(uuid.uuid4().hex)')"
+docker run -d --name freechat-retirement --network container:freechat-etcd \
+  --label "io.freechat.runtime-id=$FREECHAT_RUNTIME_ID" -e FREECHAT_RUNTIME_ID \
+  -e FREECHAT_WORKER_TOKEN \
+  -v freechat-worker-state:/var/lib/freechat \
+  -v /var/run/docker.sock:/var/run/docker.sock:ro \
+  --entrypoint /opt/freechat/.venv/bin/python "$WORKER_IMAGE" \
+  -m freechat_worker.retirement --serve --worker-id gpu-worker \
+  --generation "$RETIRED_GENERATION" --engine-instance-id "$RETIRED_ENGINE" \
+  --container-id "$RETIRED_CONTAINER" --listen 127.0.0.1:50052
+```
+
+工具只向 Docker 发 GET，但 Docker socket 本身授予 daemon 权限；`:ro` 挂载不等于
+只读 Docker API。仅可信操作员恢复工具可使用，不能挂入 Gateway 或暴露给客户端。
+它核对唯一 label、环境 ID、容器创建/停止时间、私有 PID namespace、无自动重启、
+managed launcher、Worker 身份及同一可写状态挂载；拒绝运行中、特权、共享 PID 或缺失绑定的容器。
+持有与 Worker 启动共用的 runtime.owner 锁，再锁住 journal，才写持久退役标记。
+未携带容器绑定的历史 journal 不自动补写，也不能以新容器身份推断旧进程已停止。
+
+`--serve` 不启动推理引擎：只从已退役 journal 返回旧身份的终态回执。
+原先有可信完成记录的请求保留 completed；不确定的已提交请求记为 aborted；
+从未准入的旧身份记为 not_accepted。迟到准入、以退休身份重开推理都被拒绝，
+观测序号跨回执服务重启递增。服务持有 runtime.owner 锁，避免替代 Worker 与它并行启动。
+RPC 只监听 loopback、沿用 Worker token，不扩展远程信任边界。
+
+等待正常 Scheduler 日志显示原 decision 的 terminal/quiescent/admission_closed 回执
+和 `lease.released`，核对池预占与 route/release；然后依次执行：
+
+```bash
+docker stop freechat-retirement
+docker start freechat-worker
+```
+
+确认恢复工具 exit 0、新 Worker generation/engine 不同、新请求完成及可信释放。
+既有日志审计器要求单一 generation：恢复日志须按完整 lifecycle 的 aggregate_generation 分组，
+逐组核对全部 route/release，再确认旧实例最后一次释放早于新实例首次准入；不能删掉未决记录
+或放宽单实例审计以掩盖混合身份。
+本路径不恢复原客户端流，不重投未知提交，也不自动重试可能有副作用的 Agent 任务。
+若新 Worker 已替换注册，当前普通执行轮询仍拒绝向它查询旧身份；
+独立历史回执路由/自动协调仍待实现，不能手改 registry 或 ledger 绕过。
+所有记录仍在正常服务日志和状态卷，不生成结果目录。
 
 ## JetStream 中断与确认边界
 
@@ -310,7 +368,9 @@ docker logs freechat-scheduler 2>&1 | \
 前述 128-block/1024-context 配置。
 
 ```bash
+export PEER_RUNTIME_ID="$(python3 -c 'import uuid; print(uuid.uuid4().hex)')"
 docker run -d --name freechat-peer --network container:freechat-worker \
+  --label "io.freechat.runtime-id=$PEER_RUNTIME_ID" -e "FREECHAT_RUNTIME_ID=$PEER_RUNTIME_ID" \
   --gpus device=1 --shm-size 1g -e FREECHAT_WORKER_TOKEN \
   -v /absolute/path/to/Qwen2.5-0.5B-Instruct:/model:ro \
   -v freechat-peer-state:/var/lib/freechat "$WORKER_IMAGE" \

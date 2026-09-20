@@ -34,6 +34,7 @@ from freechat_worker.registration import (
     artifact_identity,
     capabilities,
 )
+from freechat_worker.runtime import ContainerBinding
 
 LOGGER = logging.getLogger(__name__)
 
@@ -70,6 +71,7 @@ async def serve(args: Any) -> None:
                 generation=args.worker_generation,
                 engine_instance_id=instance,
                 create=True,
+                container_binding=ContainerBinding.current(),
             )
             control = grpc.aio.server()
             control_pb2_grpc.add_RequestExecutionServiceServicer_to_server(  # type: ignore[no-untyped-call]

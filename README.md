@@ -21,7 +21,7 @@ dependencies and the independent vLLM submodule are pinned in `uv.lock` and
 | Shared Scheduler | A5000/A4000 execute real concurrent requests under one Scheduler; per-GPU capacity and fenced release pass independent log audits. After an idle A4000 stops gracefully, new requests execute on A5000 |
 | Scheduler restart | On A5000 with real single-node etcd, killing Scheduler after first generated token retains the reservation; restart reconciles the same live Worker/engine and admits new work |
 | Lifecycle delivery | Real A5000 inference and durable events pass short and 150-second NATS outage tests; Scheduler recovers delivery and admits new GPU work without restarting. Publish/consumer acknowledgment boundaries remain at-least-once |
-| Worker restart | A5000 crash/restart rejects old-incarnation execution commands and admits new work, but the interrupted request retains its reservation: automatic old-runtime retirement is not implemented |
+| Worker restart | A5000 operator-assisted recovery verifies stopped-container identity, seals the old journal and serves old-incarnation terminal receipts to reclaim capacity before starting a replacement. Automatic failover and task resumption remain incomplete |
 | Complete deployment | Same-host API paths, Scheduler restart and short/sustained NATS outages are exercised; Worker-crash recovery, store faults, consumer recovery, WebUI integration and cross-node deployment remain incomplete |
 | Hardware expansion | A6000 validation is pending; 3×4 H100 is a future hardware target, not a verified deployment |
 
@@ -46,8 +46,10 @@ docker build -f deploy/images/control.Dockerfile -t freechat-control:development
 export WORKER_IMAGE="$(docker image inspect freechat-worker:development --format '{{.Id}}')"
 export CONTROL_IMAGE="$(docker image inspect freechat-control:development --format '{{.Id}}')"
 export FREECHAT_API_KEYS="validation:${FREECHAT_VALIDATION_API_KEY}"
+export FREECHAT_RUNTIME_ID="$(python3 -c 'import uuid; print(uuid.uuid4().hex)')"
 
 docker run -d --name freechat-worker --gpus device=0 --shm-size 1g \
+  --label "io.freechat.runtime-id=$FREECHAT_RUNTIME_ID" -e FREECHAT_RUNTIME_ID \
   -e FREECHAT_WORKER_TOKEN -e FREECHAT_VALIDATION_API_KEY \
   -p 127.0.0.1:8080:8080 \
   -v /absolute/path/to/Qwen2.5-0.5B-Instruct:/model:ro \
@@ -83,7 +85,10 @@ execution gRPC endpoint is `127.0.0.1:50052`. The state directory contains the
 normal service admission journal and owner lock, **not validation results**.
 Do not reuse a generation with a different engine incarnation. The default
 generation changes on startup; a restart is not automatically proof that all
-old Scheduler reservations have been reconciled.
+old Scheduler reservations have been reconciled. Each newly created Worker container
+needs its own runtime ID in both its Docker label and environment; reuse that ID
+only when restarting the same container. Shared-network hostname is not container
+identity. The bounded, operator-assisted retirement procedure is in `docs/operations.md`.
 
 Container packaging is in `deploy/worker/Dockerfile`; provide the pinned fork
 base image using `--build-arg WORKER_BASE=...`. Resolve the built image ID before

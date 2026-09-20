@@ -24,6 +24,8 @@ from freechat_contracts.execution import (
 )
 from pydantic import BaseModel, ConfigDict, Field
 
+from freechat_worker.runtime import ContainerBinding, DockerStopProof
+
 
 class EngineObservation(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -70,12 +72,14 @@ class DurableExecutionDriver:
     def __init__(
         self,
         path: Path,
-        backend: ExecutionBackend,
+        backend: ExecutionBackend | None,
         *,
         worker_id: str,
         generation: int,
         engine_instance_id: str,
         create: bool = False,
+        container_binding: ContainerBinding | None = None,
+        retired: bool = False,
         max_records: int = 10_000,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
     ) -> None:
@@ -93,6 +97,10 @@ class DurableExecutionDriver:
         path = path.resolve()
         if not create and not path.is_file():
             raise ValueError("execution_journal_missing_requires_recovery")
+        if backend is None and not retired:
+            raise ValueError("execution_backend_required")
+        if retired and create:
+            raise ValueError("retired_journal_cannot_be_created")
         initialize = create and not path.exists()
         self.identity = (
             identity.worker_id,
@@ -117,6 +125,21 @@ class DurableExecutionDriver:
             self._db.execute("PRAGMA journal_mode=WAL")
             self._db.execute("PRAGMA synchronous=FULL")
             self._initialize(identity, create=initialize)
+            self.retirement: DockerStopProof | None = None
+            row = self._db.execute("SELECT value FROM meta WHERE id=2").fetchone()
+            if row is not None:
+                self.retirement = DockerStopProof.model_validate_json(row[0])
+            if (self.retirement is not None) != retired:
+                raise ValueError(
+                    "execution_incarnation_retired"
+                    if self.retirement
+                    else "execution_retirement_unproven"
+                )
+            if initialize and container_binding is not None:
+                with self._db:
+                    self._db.execute(
+                        "INSERT INTO meta VALUES (3, ?)", (container_binding.model_dump_json(),)
+                    )
         except BaseException:
             if hasattr(self, "_db"):
                 self._db.close()
@@ -198,6 +221,8 @@ class DurableExecutionDriver:
         A caller timeout is an uncertain dispatch, never permission to reclaim capacity.
         """
         key = self._key(command)
+        if self.retirement is not None:
+            raise ValueError("execution_incarnation_retired")
         if command.action != ExecutionAction.QUERY:
             raise ValueError("execution_admission_requires_query_identity")
         lock = self._lock(key, command)
@@ -209,6 +234,7 @@ class DurableExecutionDriver:
                     raise ValueError("execution_admission_closed")
                 record.dispatched = record.closed = True
                 self._save(key, record)
+                assert self.backend is not None
                 await self.backend.submit(key, payload)
                 return key
         finally:
@@ -221,6 +247,15 @@ class DurableExecutionDriver:
         try:
             async with lock:
                 record = self._record(key, command)
+                if self.retirement is not None:
+                    record.closed = record.cancel_requested = True
+                    if record.terminal is None:
+                        record.terminal = (
+                            ExecutionStatus.ABORTED
+                            if record.dispatched
+                            else ExecutionStatus.NOT_ACCEPTED
+                        )
+                    self._save(key, record)
                 if command.action == ExecutionAction.ABORT and record.terminal is None:
                     record.closed = record.cancel_requested = True
                     if not record.dispatched:
@@ -232,6 +267,7 @@ class DurableExecutionDriver:
                 elif not record.dispatched:
                     status, quiet, fenced = ExecutionStatus.UNKNOWN, False, False
                 else:
+                    assert self.backend is not None
                     if record.cancel_requested:
                         await self.backend.abort(key)
                     observed = await self.backend.query(key)
