@@ -1,0 +1,3 @@
+[submodule "third_party/vllm"]
+	path = third_party/vllm
+	url = ssh://linkst@ross/media/ross/8TB/linkst/freechat/vllm-fork.git

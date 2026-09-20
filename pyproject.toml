@@ -42,6 +42,7 @@ markers = [
 target-version = "py312"
 line-length = 100
 extend-exclude = [
+  "third_party/",
   "libs/protocol/src/freechat/control/v1/*_pb2*.py",
   "libs/protocol/src/freechat/control/v1/*_pb2*.pyi",
 ]
