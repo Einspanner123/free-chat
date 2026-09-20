@@ -13,6 +13,7 @@ dependencies and the independent vLLM submodule are pinned in `uv.lock` and
 | Layer | Current validation |
 |---|---|
 | Managed vLLM Worker | Real Qwen2.5-0.5B weights on workstation A5000/A4000: Chat Completions, Responses and Anthropic Messages, each with JSON, SSE and cancellation after generated text; duplicate admission rejected |
+| Token preparation | Native three-protocol rendering on A5000/A4000 agrees with response usage; request/body/tenant expiry and actual engine-input checks precede execution. Scheduler integration remains unfinished |
 | KV geometry | Allocator-reported block counts and per-block bytes verified on A5000/A4000; excludes the null block and reports gross capacity separately from Scheduler reservations |
 | Execution boundary | Durable route identity aggregates native engine calls; only EngineCore removal plus CUDA synchronization permits a terminal receipt |
 | Gateway/Scheduler | CPU contract and loopback gRPC tests; Gateway requires an explicit Scheduler and trusted Worker token |

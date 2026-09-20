@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hmac
 import json
+import time
 from collections.abc import AsyncGenerator, Mapping
 from contextvars import ContextVar
 from dataclasses import dataclass, field
@@ -14,6 +15,7 @@ from freechat_contracts.execution import ExecutionAction, ExecutionCommand, Exec
 
 from freechat_worker.capacity import EngineCapacity
 from freechat_worker.execution import DurableExecutionDriver, EngineObservation
+from freechat_worker.preparation import PreparationService, TokenBudget
 from freechat_worker.vllm_execution import VllmExecutionBackend
 
 CURRENT_ROUTE: ContextVar[str | None] = ContextVar("freechat_execution_route", default=None)
@@ -25,6 +27,7 @@ class _Route:
     children: list[str] = field(default_factory=list)
     closed: bool = False
     aborted: bool = False
+    budget: TokenBudget | None = None
 
 
 class NativeExecutionBackend:
@@ -35,9 +38,11 @@ class NativeExecutionBackend:
         self.routes: dict[str, _Route] = {}
 
     async def submit(self, engine_request_id: str, payload: Mapping[str, Any]) -> None:
-        if payload or engine_request_id in self.routes:
+        if (payload and set(payload) != {"budget"}) or engine_request_id in self.routes:
             raise ValueError("native_route_already_admitted_or_invalid")
-        self.routes[engine_request_id] = _Route()
+        self.routes[engine_request_id] = _Route(
+            budget=TokenBudget.model_validate(payload["budget"]) if payload else None
+        )
 
     async def generate(
         self, prompt: Any, sampling_params: Any, request_id: str, **options: Any
@@ -48,6 +53,10 @@ class NativeExecutionBackend:
         route = self.routes[route_id]
         if route.closed:
             raise ValueError("native_route_submission_closed")
+        if route.budget is not None:
+            if route.children:
+                raise ValueError("additional_engine_call_requires_new_budget")
+            route.budget.check_execution(prompt, sampling_params, time.time())
         # Bound native multi-step expansion; this is not n>1 sample fan-out.
         if len(route.children) >= 128:
             raise ValueError("native_route_child_limit")
@@ -141,11 +150,13 @@ class AdmissionMiddleware:
         backend: NativeExecutionBackend,
         token: str,
         capacity: EngineCapacity | None = None,
+        preparer: PreparationService | None = None,
     ) -> None:
         if len(token) < 32:
             raise ValueError("worker_token_requires_32_characters")
         self.app, self.driver, self.backend, self.token = app, driver, backend, token
         self.capacity = capacity
+        self.preparer = preparer
 
     async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
         if scope["type"] != "http":
@@ -175,7 +186,10 @@ class AdmissionMiddleware:
         if scope["method"] == "GET" and path in {"/v1/models", "/metrics", "/version"}:
             await self.app(scope, receive, send)
             return
-        if scope["method"] != "POST" or path not in INFERENCE_PATHS:
+        if scope["method"] != "POST" or (
+            path not in INFERENCE_PATHS
+            and not (path == "/freechat/prepare" and self.preparer is not None)
+        ):
             await self._error(send, 404, "endpoint not enabled by managed worker")
             return
         body = bytearray()
@@ -202,6 +216,25 @@ class AdmissionMiddleware:
                     if name in headers:
                         raise ValueError("duplicate execution identity header")
                     headers[name] = value.decode("latin1")
+            if path == "/freechat/prepare":
+                assert self.preparer is not None
+                if not isinstance(payload.get("request"), dict):
+                    raise ValueError("preparation requires a native request object")
+                preparation_id, prepared_budget = await self.preparer.prepare(
+                    headers["x-freechat-internal-tenant"], payload["protocol"], payload["request"]
+                )
+                await self._reply(send, 200, {
+                    "preparation_id": preparation_id,
+                    "budget": prepared_budget.model_dump(),
+                    "worker_id": self.driver.identity[0],
+                    "generation": self.driver.identity[1],
+                    "engine_instance_id": self.driver.identity[2],
+                })
+                return
+            budget = None if self.preparer is None else self.preparer.require(
+                headers["x-freechat-internal-preparation"],
+                headers["x-freechat-internal-tenant"], path, payload,
+            )
             command = ExecutionCommand(
                 worker_id=self.driver.identity[0],
                 action=ExecutionAction.QUERY,
@@ -211,7 +244,9 @@ class AdmissionMiddleware:
                 worker_generation=int(headers["x-freechat-internal-worker-generation"]),
                 engine_instance_id=headers["x-freechat-internal-engine-instance-id"],
             )
-            key = await self.driver.admit(command, {})
+            key = await self.driver.admit(
+                command, {} if budget is None else {"budget": budget.model_dump()}
+            )
         except (KeyError, ValueError) as error:
             await self._error(send, 409, str(error))
             return

@@ -90,14 +90,15 @@ def runtime(tmp_path: Path) -> Any:
         create=True,
     )
     app = FastAPI()
+    app.state.native_calls = 2
 
     @app.post("/v1/chat/completions")
     async def chat(request: Request) -> dict[str, Any]:
         await request.json()
-        for index in range(2):
+        for index in range(app.state.native_calls):
             async for output in proxy.generate(
                 {"type": "token", "prompt_token_ids": [1], "cache_salt": "tenant-salt"},
-                SimpleNamespace(n=1),
+                SimpleNamespace(n=1, max_tokens=4),
                 f"native-{index}",
                 priority=0,
             ):
@@ -197,3 +198,43 @@ async def test_native_generation_without_http_admission_is_rejected(runtime: Any
     _, backend, _, _ = runtime
     with pytest.raises(ValueError, match="without_admission"):
         await anext(backend.generate("prompt", SimpleNamespace(n=1), "bypass"))
+
+
+@pytest.mark.parametrize("rendered", [[1], [2]])
+async def test_preparation_is_required_and_actual_prompt_is_checked_before_gpu(
+    runtime: Any, rendered: list[int],
+) -> None:
+    from freechat_worker.preparation import PreparationService
+
+    engine, _, driver, app = runtime
+
+    async def render(path: str, body: dict[str, Any]) -> tuple[list[int], int]:
+        return rendered, 4
+
+    app.preparer = PreparationService(render)
+    app.app.state.native_calls = 1
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app), base_url="http://worker"
+    ) as client:
+        denied = await client.post("/v1/chat/completions", json={}, headers=headers())
+        assert denied.status_code == 409 and not engine.submissions
+        prepared = await client.post(
+            "/freechat/prepare", headers=headers(),
+            json={"protocol": "/v1/chat/completions", "request": {}},
+        )
+        assert prepared.status_code == 200
+        supplied = headers(
+            **{"x-freechat-internal-preparation": prepared.json()["preparation_id"]}
+        )
+        changed = await client.post(
+            "/v1/chat/completions", json={"max_tokens": 9}, headers=supplied,
+        )
+        assert changed.status_code == 409 and not engine.submissions
+        if rendered == [1]:
+            result = await client.post("/v1/chat/completions", json={}, headers=supplied)
+            assert result.status_code == 200 and len(engine.submissions) == 1
+        else:
+            with pytest.raises(ValueError, match="prepared_budget"):
+                await client.post("/v1/chat/completions", json={}, headers=supplied)
+            assert not engine.submissions
+        assert (await driver.observe(command())).releasable

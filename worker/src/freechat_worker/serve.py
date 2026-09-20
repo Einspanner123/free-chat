@@ -26,6 +26,7 @@ from freechat_worker.native_serving import (
     NativeEngineClient,
     NativeExecutionBackend,
 )
+from freechat_worker.preparation import NativeRenderer, PreparationService
 
 LOGGER = logging.getLogger(__name__)
 
@@ -74,7 +75,8 @@ async def serve(args: Any) -> None:
                 app = api.build_app(args, tasks, engine.model_config)
                 await api.init_app_state(proxy, app.state, args, tasks)
                 wrapped = AdmissionMiddleware(
-                    app, driver=driver, backend=backend, token=token, capacity=capacity
+                    app, driver=driver, backend=backend, token=token, capacity=capacity,
+                    preparer=PreparationService(NativeRenderer(app.state))
                 )
                 await control.start()
                 LOGGER.info(

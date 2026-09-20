@@ -33,7 +33,9 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
    当前仍不代表 Gateway→Scheduler→Worker 全链路或重启恢复已经完成。
 2. [~] **真实预算。** Worker 已通过上游具名 extension RPC 读取分配后的 KV layout，
    A5000/A4000 实测通过；报告 gross pool 并扣除 null block，不伪装成实时空闲预算。
-   仍需接通准确 tokenizer/template token 数、Scheduler reservation 扣减与 Worker 验证，避免双扣或低估。
+   原生三协议预处理已给出准确 token 数，并在 GPU 提交前核对实际 prompt 与输出上限，
+   A5000/A4000 与真实 response usage 一致。仍需将预算传给 Scheduler reservation，
+   替换 Gateway 字符数估计、绑定选中 Worker 并校验预占字节，避免双扣或低估。
 3. [ ] **统一启动路径。** Worker 启动→注册→持续 heartbeat→执行确认轮询；
    Gateway 启动现已要求显式 Scheduler 地址，缺失配置直接报错；static/fake 仅用于测试。
    不把 loopback fixture RPC 直接用于跨容器连接。

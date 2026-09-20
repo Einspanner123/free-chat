@@ -96,6 +96,24 @@ because no project registry is configured and the local tag has no repository
 digest. A registry push and a repeat of the same command against the resolved
 digest are still required; the local image ID is not a substitute.
 
+## 请求准备与执行预算
+
+Managed Worker 的推理入口要求 `x-freechat-internal-preparation`。先向认证的
+`POST /freechat/prepare` 提交 `{"protocol":"/v1/responses","request":原生请求对象}`，
+并提供由 Gateway 认证身份产生的 `x-freechat-internal-tenant`。响应包含 preparation ID、
+原生渲染后的 input/output token 预算以及 Worker generation/engine identity。
+随后提交同一原生请求体和 execution identity；只有调度生成的 `agent_lifecycle` 元数据
+允许在准备后添加。预算只在同一 Worker incarnation 内有效，默认 60 秒、最多 4096 条。
+
+处理器复用 vLLM 的请求校验、模板渲染和输出 token 上限计算，不复制模板或估计字符数。
+上游解析器处理独立副本，避免原地补默认字段改变原请求哈希。提交 GPU 前再次核对
+实际 prompt token 指纹和采样上限；不一致、过期或额外内部模型调用均明确拒绝。
+当前 native built-in tool loop 仍需逐调用准入，不等于外部 Harness 的多轮工具调用已禁用。
+
+`tools.validate_native_http` 自动执行准备，再核对真实 JSON response usage，并验证
+SSE、取消与重复拒绝。它尚未经过 Scheduler 的资源预占；Gateway 的字符数估计仍待替换，
+不能把准备成功当作已有资源租约。
+
 ## KV 容量报告
 
 Managed Worker 在分配 KV 后调用 vLLM 原生 Worker extension 的具名 RPC，

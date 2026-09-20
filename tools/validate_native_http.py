@@ -89,11 +89,22 @@ async def validate(url: str, control: str, model: str, token: str) -> None:
                             max_tokens=limit,
                         )
                     endpoint = f"/v1/{protocol}"
+                    prepared = await client.post(
+                        "/freechat/prepare", headers=headers,
+                        json={"protocol": endpoint, "request": body},
+                    )
+                    prepared.raise_for_status()
+                    preparation = prepared.json()
+                    headers["x-freechat-internal-preparation"] = preparation["preparation_id"]
                     seen = False
                     if mode == "json":
                         response = await client.post(endpoint, headers=headers, json=body)
                         response.raise_for_status()
-                        assert response.json(), "empty native response"
+                        result = response.json()
+                        usage = result["usage"]
+                        assert usage.get("prompt_tokens", usage.get("input_tokens")) == (
+                            preparation["budget"]["input_tokens"]
+                        ), "native usage differs from prepared token count"
                     else:
                         async with client.stream(
                             "POST", endpoint, headers=headers, json=body
@@ -121,6 +132,7 @@ async def validate(url: str, control: str, model: str, token: str) -> None:
                                 "mode": mode,
                                 "status": receipt.status.value,
                                 "releasable": receipt.releasable,
+                                "prepared_input_tokens": preparation["budget"]["input_tokens"],
                                 "duplicate_status": duplicate.status_code,
                                 "worker": identity,
                             }
