@@ -58,7 +58,10 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
    真实 NATS 短时中断已在 A5000 上验证：GPU 生成完成并由可信回执释放，
    待发 route/completion/release 事件保留到 JetStream 恢复，两个切片共 4/4 请求释放。
    发布确认丢失重试、消费未 ACK 重投及冲突事件保留通过；仅覆盖 120 秒去重窗口内，
-   不表示消费端持久幂等、长时间断网、永久零重复或分布式 exactly-once。
+   不表示消费端持久幂等、永久零重复或分布式 exactly-once。
+   又已验证超过默认重连上限的 150 秒 NATS 中断：Scheduler 不重启，待发事件自动补发，
+   新 GPU 请求恢复准入，3/3 请求确认释放。运行期继续重连，初次连接/流配置仍有 10 秒期限；
+   更长、反复中断、消费者副作用与其他故障矩阵仍待完成。
    WebUI 及以下故障/生命周期矩阵仍待完成：
    streaming、取消、断连、重复、迟到、重启；再贯通 Tool Wait/Resume、
    KV action、tracing、三协议和四 Harness。复用原生协议，不重新实现另一套 API。

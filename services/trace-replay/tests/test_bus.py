@@ -150,3 +150,84 @@ async def test_conflicting_event_identity_never_overwrites_or_acknowledges_pendi
         )
     assert stream.calls == []
     assert await store.list_prefix("/freechat/outbox/") == before
+
+
+class ConnectionFixture:
+    def __init__(self, *, stall: bool = False, fail_setup: bool = False) -> None:
+        self.stall, self.fail_setup, self.closed = stall, fail_setup, False
+        self.options: dict[str, Any] = {}
+
+    async def connect(self, url: str, **options: Any) -> None:
+        self.options = options
+        if self.stall:
+            await asyncio.Event().wait()
+
+    def jetstream(self, **options: Any) -> Any:
+        assert options["timeout"] == 5
+        return self
+
+    async def stream_info(self, name: str) -> None:
+        assert name == "FREECHAT_LIFECYCLE"
+        if self.fail_setup:
+            raise RuntimeError("stream configuration rejected")
+
+    async def close(self) -> None:
+        self.closed = True
+
+
+async def test_runtime_reconnect_has_no_finite_attempt_exhaustion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import freechat_trace_replay.bus as bus
+
+    client = ConnectionFixture()
+    monkeypatch.setattr(bus, "NatsClient", lambda: client)
+    connected, _ = await bus.connect_lifecycle_stream("nats://fixture")
+    assert id(connected) == id(client)
+    assert client.options["max_reconnect_attempts"] == -1
+    assert client.options["reconnect_time_wait"] == 2
+    assert client.closed is False
+
+
+@pytest.mark.parametrize("failure", ["timeout", "setup", "cancel"])
+async def test_failed_or_cancelled_bus_setup_closes_client(
+    monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    import freechat_trace_replay.bus as bus
+
+    client = ConnectionFixture(stall=failure != "setup", fail_setup=failure == "setup")
+    monkeypatch.setattr(bus, "NatsClient", lambda: client)
+    if failure == "cancel":
+        task = asyncio.create_task(bus.connect_lifecycle_stream("nats://fixture"))
+        await asyncio.sleep(0)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+    else:
+        with pytest.raises(TimeoutError if failure == "timeout" else RuntimeError):
+            await bus.connect_lifecycle_stream("nats://fixture", startup_timeout=0.01)
+    assert client.closed
+
+
+@pytest.mark.parametrize("state", ["connected", "closed", "reconnecting", "timeout"])
+async def test_bus_shutdown_always_closes_without_waiting_for_reconnect(state: str) -> None:
+    from freechat_trace_replay.bus import close_lifecycle_stream
+    from nats.errors import ConnectionClosedError, ConnectionReconnectingError
+
+    class Client:
+        closed = False
+
+        async def drain(self) -> None:
+            if state == "closed":
+                raise ConnectionClosedError()
+            if state == "reconnecting":
+                raise ConnectionReconnectingError()
+            if state == "timeout":
+                await asyncio.Event().wait()
+
+        async def close(self) -> None:
+            self.closed = True
+
+    client: Any = Client()
+    await close_lifecycle_stream(client, timeout=0.01)
+    assert client.closed

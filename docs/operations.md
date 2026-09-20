@@ -210,6 +210,10 @@ docker run -d --name freechat-nats --network container:freechat-etcd \
 ```
 
 Scheduler 启动时再传 `-e NATS_URL=nats://127.0.0.1:4222`，不与另一 Scheduler 并行占用同一控制端口。
+首次连接及流配置合计受 10 秒 deadline 限制，失败或取消时关闭客户端，不报告 Scheduler ready。
+已运行的客户端以 2 秒重连间隔持续尝试，不使用 SDK 默认 60 次耗尽即关闭的限制；
+单次 JetStream 操作仍有 5 秒 timeout。服务日志以 `lifecycle_bus_connection_error` 和
+`lifecycle_bus_reconnected` 表达连接状态，不记录含凭据的 URL/异常文本。
 此模式事件进入 `FREECHAT_LIFECYCLE`，不能再只凭日志 fallback 判断事件已送达。
 请求预占、RequestLedger.pending 和 publisher outbox 是不同状态；GPU 完成并获得可信回执后
 可以释放请求容量，但发布未确认的事件仍须保留，不把消息故障误记为 GPU 执行失败。
@@ -226,18 +230,26 @@ Scheduler 启动时再传 `-e NATS_URL=nats://127.0.0.1:4222`，不与另一 Sch
 
 待发事件以首次持久化的内容和时间戳为准。重试可以重建 enqueue 时间，但同一 event ID
 不得更改 tenant、harness、aggregate、generation、payload 等语义字段；冲突拒绝并保留原记录。
+延长中断时记录 NATS 实际停止/恢复时刻，并检查 Scheduler PID 与 StartedAt 均未改变；
+恢复不仅要求连接成功，还须检查待发清空、原事件可读取、新 GPU 请求及其终态释放。
+已验证 150 秒中断超过默认客户端的重连耗尽边界；该时长是故障注入持续时间，不是 RTO。
+跨过去重窗口的核验允许内容一致的重投，按 event ID 归并逻辑事件，冲突内容仍必须失败。
 当前 JetStream duplicate window 为 120 秒，窗口内发布去重不等于永久去重或分布式 exactly-once；
-消费者仍必须处理重复。消费端持久幂等、超窗口/长时间断网、quorum 和分区不属于这一切片的验收。
+消费者仍必须处理重复。消费端持久幂等、更长/反复中断、quorum 和分区仍待独立验收。
 所有探针输出到 stdout，事件保存在正常服务的 etcd/JetStream 数据卷，不建立测试结果目录。
 
 ## 开发服务停机
 
 停止测试发流并等待已准入请求的可信释放核验后，停止 Gateway、各 Worker，最后停止 Scheduler；
 共享 namespace 的 peer Worker 要先于 namespace 所属 Worker 停止。不删除 state volume 或服务日志。
+每次停机命令只指定一个服务，等待其返回后再停止下一个；不要把多个名字交给同一个
+`docker stop` 并假定按列表顺序停机。
 Scheduler 显式处理 SIGTERM/SIGINT，清理任务、停止 gRPC 并关闭已配置的依赖；
 正常日志依次出现 `scheduler_stop_requested`、`scheduler_shutdown_complete`，容器应以 0 退出。
 仅有 `docker stop` 返回不代表正常退出，必须检查 `State.ExitCode`；137/强杀不能记为清理通过。
-空闲容器停机已验证，但不证明在途任务迁移、持久恢复或依赖故障时的退出保证。
+空闲容器及 NATS 不可用/重连状态的退出已验证。NATS drain 最多等待 5 秒，已关闭、重连中
+或超时会记录 `lifecycle_bus_drain_unavailable`，随后关闭客户端；这不是投递确认，不能据此
+删除未获发布确认的持久事件。仍不证明在途任务迁移、存储故障或其他依赖故障下的退出保证。
 
 ## 并发准入验证
 

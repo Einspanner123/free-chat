@@ -20,8 +20,8 @@ dependencies and the independent vLLM submodule are pinned in `uv.lock` and
 | Concurrent admission | Three 8-request contention rounds per GPU against an actual 128-block pool on A5000/A4000; capacity backpressure, re-admission and complete fenced release verified, with no pool oversubscription |
 | Shared Scheduler | A5000/A4000 execute real concurrent requests under one Scheduler; per-GPU capacity and fenced release pass independent log audits. After an idle A4000 stops gracefully, new requests execute on A5000 |
 | Scheduler restart | On A5000 with real single-node etcd, killing Scheduler after first generated token retains the reservation; restart reconciles the same live Worker/engine and admits new work |
-| Lifecycle delivery | Real A5000 inference survives a short NATS outage; etcd retains events until JetStream recovery. Publish-ack retry and consumer redelivery boundaries are checked within the configured deduplication window |
-| Complete deployment | Same-host API paths, one Scheduler-crash case and short message-bus outage are exercised; Worker/store faults, long outages, WebUI integration and cross-node deployment remain incomplete |
+| Lifecycle delivery | Real A5000 inference and durable events pass short and 150-second NATS outage tests; Scheduler recovers delivery and admits new GPU work without restarting. Publish/consumer acknowledgment boundaries remain at-least-once |
+| Complete deployment | Same-host API paths, one Scheduler-crash case and short message-bus outage are exercised; Worker/store faults, broader outage/consumer-recovery coverage, WebUI integration and cross-node deployment remain incomplete |
 | Hardware expansion | A6000 validation is pending; 3×4 H100 is a future hardware target, not a verified deployment |
 
 The managed execution adapter currently accepts synchronous TP=PP=DP=1 text

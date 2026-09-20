@@ -27,7 +27,11 @@ from freechat_contracts import (
 )
 from freechat_control_store import EtcdHttpStore, InMemoryStore, KeyValueStore
 from freechat_trace_replay import EventEnvelope
-from freechat_trace_replay.bus import DurableLifecycleEmitter, connect_lifecycle_stream
+from freechat_trace_replay.bus import (
+    DurableLifecycleEmitter,
+    close_lifecycle_stream,
+    connect_lifecycle_stream,
+)
 
 from freechat_scheduler.group_reconciler import GroupRuntimeConfig, configured_reconciler
 from freechat_scheduler.preparation import NativePreparer
@@ -496,7 +500,7 @@ async def serve(
         if etcd is not None:
             await etcd.close()
         if nats_client is not None:
-            await nats_client.drain()
+            await close_lifecycle_stream(nats_client)
         LOGGER.info("scheduler_shutdown_complete")
 
 
