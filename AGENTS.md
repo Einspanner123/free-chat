@@ -11,4 +11,5 @@
 - Publish fork objects before updating the parent gitlink; keep versions.lock.yaml aligned.
 - Never confuse source synchronization with deployment authorization.
 - Record substantive merge conflicts and obtain the owner's decision before resolving them.
-- Source governance and the current consolidation boundary are in docs/source-governance.md.
+- Keep one authoritative root plan; operational instructions are in docs/operations.md.
+- CPU tests cover partial contracts only; real execution and full acceptance require GPU tests.

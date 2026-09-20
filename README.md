@@ -47,7 +47,7 @@ Initialize the engine with
 Run `uv run python -m tools.check_source_checkout` before recording source evidence.
 Use `--check-remote` to verify retrieval of the pinned fork tree.
 `--release` also checks the image-digest prerequisite, not GPU/runtime acceptance.
-See `docs/source-governance.md` for roles and consolidation status.
+Use `docs/operations.md` for operations and the root plan for the one implementation roadmap.
 
 The implementation contract remains in
 `agent-aware-inference-infra-plan.md` until every acceptance gate

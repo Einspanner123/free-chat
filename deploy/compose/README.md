@@ -23,6 +23,6 @@ a locality-dependent cost estimate and fall back explicitly.
 The Scheduler requires model KV block size, worst-rank KV bytes/token, and a
 generation-bound heartbeat reporting the minimum usable KV admission budget across
 ranks. Missing values reject admission. Existing generic telemetry sampling does
-not derive these values from CUDA free memory. See `docs/review-hardening.md` for
+not derive these values from CUDA free memory. See `agent-aware-inference-infra-plan.md` for
 the pending Worker integration. This deployment does not claim HA, SPIFFE identity,
 or a validated GPU data plane.

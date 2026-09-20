@@ -478,3 +478,29 @@ async def test_stream_interruption_requests_cancel_instead_of_release() -> None:
     assert stream.closed
     assert len(scheduler.cancellations) == 1
     assert not scheduler.releases
+
+
+@pytest.mark.parametrize("target", [None, "", "   "])
+def test_runtime_bootstrap_requires_explicit_scheduler(
+    monkeypatch: pytest.MonkeyPatch, target: str | None
+) -> None:
+    from freechat_gateway.main import build_app
+
+    if target is None:
+        monkeypatch.delenv("FREECHAT_SCHEDULER_TARGET", raising=False)
+    else:
+        monkeypatch.setenv("FREECHAT_SCHEDULER_TARGET", target)
+    with pytest.raises(ValueError, match="FREECHAT_SCHEDULER_TARGET is required"):
+        build_app()
+
+
+async def test_runtime_bootstrap_accepts_explicit_scheduler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from fastapi import FastAPI
+    from freechat_gateway.main import build_app
+
+    monkeypatch.setenv("FREECHAT_SCHEDULER_TARGET", "127.0.0.1:50051")
+    app = build_app()
+    async with app.router.lifespan_context(app):
+        assert isinstance(app, FastAPI)

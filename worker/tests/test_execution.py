@@ -466,3 +466,150 @@ async def test_real_local_process_exit_required_for_release(tmp_path: Path) -> N
             backend.process.kill()
             await backend.process.wait()
         gate.close()
+
+
+class AsyncEngineFixture:
+    """Models the pinned collector/utility boundary, not real GPU completion."""
+
+    def __init__(self) -> None:
+        from types import SimpleNamespace
+
+        self.vllm_config = SimpleNamespace(
+            parallel_config=SimpleNamespace(
+                tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1
+            ),
+            scheduler_config=SimpleNamespace(async_scheduling=False),
+            kv_transfer_config=None,
+            ec_transfer_config=None,
+        )
+        self.engine_core = self
+        self.queue: asyncio.Queue[Any] = asyncio.Queue()
+        self.collector = SimpleNamespace(request_id="internal-identity", get=self.queue.get)
+        self.calls: list[Any] = []
+        self.quiet = False
+        self.error = False
+
+    async def add_request(self, *args: Any) -> Any:
+        self.calls.append(("submit", args[0]))
+        if self.error:
+            raise RuntimeError("lost_add_ack")
+        return self.collector
+
+    async def abort(self, request_id: str, internal: bool) -> None:
+        self.calls.append(("abort", request_id, internal))
+
+    async def call_utility_async(self, method: str, request_id: str) -> dict[str, Any]:
+        self.calls.append(("query", method, request_id))
+        return {"request_id": request_id, "quiescent": self.quiet}
+
+
+async def test_vllm_adapter_requires_engine_barrier_after_final_output(tmp_path: Path) -> None:
+    from types import SimpleNamespace
+
+    from freechat_worker.vllm_execution import VllmExecutionBackend
+
+    engine = AsyncEngineFixture()
+    backend = VllmExecutionBackend(engine)
+    gate = driver(tmp_path / "actual-adapter.db", backend, create=True)  # type: ignore[arg-type]
+    try:
+        key = await gate.admit(
+            command(),
+            {
+                "prompt": "hello",
+                "sampling_params": SimpleNamespace(n=1),
+            },
+        )
+        engine.queue.put_nowait(SimpleNamespace(finished=True))
+        assert len([out async for out in backend.stream(key)]) == 1
+        assert not (await gate.observe(command())).releasable
+        engine.quiet = True
+        receipt = await gate.observe(command())
+        assert receipt.releasable and receipt.status == ExecutionStatus.COMPLETED
+        assert ("query", "freechat_execution_quiescent", "internal-identity") in engine.calls
+        with pytest.raises(ValueError, match="execution_admission_closed"):
+            await gate.admit(command(), {})
+    finally:
+        gate.close()
+
+
+async def test_vllm_adapter_abort_signal_does_not_prove_quiescence() -> None:
+    from types import SimpleNamespace
+
+    from freechat_worker.vllm_execution import VllmExecutionBackend
+
+    engine = AsyncEngineFixture()
+    backend = VllmExecutionBackend(engine)
+    await backend.submit("id", {"prompt": "x", "sampling_params": SimpleNamespace(n=1)})
+    await backend.abort("id")
+    assert ("abort", "internal-identity", True) in engine.calls
+    assert not (await backend.query("id")).quiescent
+    engine.quiet = True
+    observed = await backend.query("id")
+    assert observed.quiescent and observed.status == ExecutionStatus.ABORTED
+    assert [out async for out in backend.stream("id")] == []
+
+
+async def test_vllm_adapter_uncertain_submit_never_retries_or_releases() -> None:
+    from types import SimpleNamespace
+
+    from freechat_worker.vllm_execution import VllmExecutionBackend
+
+    engine = AsyncEngineFixture()
+    engine.error = True
+    backend = VllmExecutionBackend(engine)
+    payload = {"prompt": "x", "sampling_params": SimpleNamespace(n=1)}
+    with pytest.raises(RuntimeError, match="lost_add_ack"):
+        await backend.submit("id", payload)
+    with pytest.raises(ValueError, match="duplicate_backend_submit"):
+        await backend.submit("id", payload)
+    observed = await backend.query("id")
+    assert observed.status == ExecutionStatus.UNKNOWN
+    assert not observed.quiescent and not observed.submission_fenced
+    assert (await backend.query("never-seen")).status == ExecutionStatus.UNKNOWN
+
+
+@pytest.mark.parametrize("unsupported", ["n", "streaming", "multimodal"])
+async def test_vllm_adapter_rejects_untracked_child_or_input_shapes(unsupported: str) -> None:
+    from types import SimpleNamespace
+
+    from freechat_worker.vllm_execution import VllmExecutionBackend
+
+    backend = VllmExecutionBackend(AsyncEngineFixture())
+    prompt: Any = "x"
+    if unsupported == "streaming":
+        prompt = object()
+    if unsupported == "multimodal":
+        prompt = {"prompt_token_ids": [1], "multi_modal_data": {}}
+    with pytest.raises(ValueError, match="execution_adapter_requires"):
+        await backend.submit(
+            "id",
+            {
+                "prompt": prompt,
+                "sampling_params": SimpleNamespace(n=2 if unsupported == "n" else 1),
+            },
+        )
+
+
+@pytest.mark.parametrize(
+    "feature",
+    [
+        "tensor_parallel_size",
+        "pipeline_parallel_size",
+        "data_parallel_size",
+        "async_scheduling",
+        "kv_transfer_config",
+        "ec_transfer_config",
+    ],
+)
+def test_vllm_adapter_rejects_unverified_execution_modes(feature: str) -> None:
+    from freechat_worker.vllm_execution import VllmExecutionBackend
+
+    engine = AsyncEngineFixture()
+    if feature.endswith("_size"):
+        setattr(engine.vllm_config.parallel_config, feature, 2)
+    elif feature == "async_scheduling":
+        engine.vllm_config.scheduler_config.async_scheduling = True
+    else:
+        setattr(engine.vllm_config, feature, object())
+    with pytest.raises(ValueError, match="requires_sync_single_gpu"):
+        VllmExecutionBackend(engine)

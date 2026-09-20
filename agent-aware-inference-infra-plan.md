@@ -7,111 +7,60 @@
 
 ---
 
-## 0. 文档治理
+## 0. 唯一实施路线
 
-### 2026-09-21：目标校正与唯一执行路线（当前优先级）
+源码仅在 ross `/home/linkst/workspace/projects/free-chat` 的 `main` 修改；
+独立引擎仓库由 `third_party/vllm` submodule 和 `versions.lock.yaml` 精确固定。
+workstation 只部署 ross 构建的不可变测试制品，不修改源码。
+开发服务可按需停止；不再为普通开发增加常驻分支和生产切换流程。
 
-负责人要求停止开发服务、收敛分支，并由两个独立 subagent 审查目标。
-本节覆盖下方历史阶段中的“仅本地、不得 SSH”和“不得停止服务”等旧授权描述；
-不改变原功能范围、诚实证据要求或计划删除门禁。当前只在 ross 开发与 CPU 验证，
-不因此授权 workstation 修改、H100 部署或 GPU 性能实验。
+文档入口只有本计划、README、`docs/operations.md`（操作）、
+`docs/benchmark-metrics.md`（测量方法）和 `docs/claims-ledger.md`（证据）。
+过程说明、重复计划和已解决的归并记录不再保留在工作树；Git 历史可追溯。
+原始实验数据保留，不因整理文档而删除。本计划删除仍需最终验收和负责人确认。
 
-**目标：用户通过 WebUI/API 发起真实推理，Scheduler 真实准入，Worker 经 vLLM
-确认完成/取消后释放容量，重复请求和重启后仍能继续服务。**
-先实现一模型、单 Worker、Chat Completions 的完整切片，再在同一条路径扩展；
-三协议、四 Harness、KV 优化、kernel 和 3×4 H100 目标不删除。
+### 当前修复顺序
 
-两名审查者独立确认的代码事实：
+1. [~] **真实执行后端。** 复用 AsyncLLM 的 add_request/collector/abort，
+   将 DurableExecutionDriver 接至 pinned EngineCore 的请求移除与 CUDA 同步确认。
+   第一切片仅支持 TP=PP=DP=1、同步调度、文本、n=1、无 KV/EC 传输；
+   不支持的模式显式拒绝，不假装覆盖所有子请求与流水线。
+   A5000 + Qwen2.5-0.5B 真实权重已验证 12 次完成、提交后取消及首 token 后取消、重复准入拒绝；
+   见 `evidence/execution-gpu/20260921/`。HTTP 三协议入口与认证绑定、Worker launcher 仍待接通。
+2. [ ] **真实预算。** 从模型、tokenizer/template、cache allocator 和逐 rank 报告获得
+   token 数、KV layout 与可准入预算；明确 reservation 是否已扣除，避免双扣。
+3. [ ] **统一启动路径。** Worker 启动→注册→持续 heartbeat→执行确认轮询；
+   Gateway 启动现已要求显式 Scheduler 地址，缺失配置直接报错；static/fake 仅用于测试。
+   不把 loopback fixture RPC 直接用于跨容器连接。
+4. [ ] **运行闭环。** 从 WebUI/API 连续调用超过初始并发容量，验证容量释放、
+   streaming、取消、断连、重复、迟到、重启；再贯通 Tool Wait/Resume、
+   KV action、tracing、三协议和四 Harness。复用原生协议，不重新实现另一套 API。
+5. [ ] **扩展与指标。** 实际 residency→调度基线→生命周期/成本策略→多卡与 kernel。
+   目标 3×4 H100、节点内 NVLink；初始跨节点仅 request/data parallel。
+   实际硬件、网络和收益按原验收门禁确认，不因先做单卡而缩减最终范围。
 
-- `worker/execution.py` 的 `ExecutionBackend` 仅接口，持久准入 driver 只在测试实例化；
-  vLLM 尚未消费 Gateway 下发的完整执行身份。
-- `worker/telemetry.py` 未生成准入所需的逐 rank KV budget，Scheduler 会拒绝缺失预算。
-- 没有真实执行回执时，完成请求停在 `completion_pending`，不能持续回收容量。
-- Compose 缺 Worker 启动、注册、持续 heartbeat 和执行确认连接。
-- Gateway 缺 Scheduler 配置时静默使用 static 路由，存在绕过主路径的运行方式。
+CPU 只检查局部逻辑、类型和契约。真实模型、GPU 执行/取消、并行、
+kernel 与端到端性能必须在 GPU 上测；不能以 CPU 通过代替。
+首个 backend 的 GPU probe 不等于 Gateway/Scheduler/WebUI 全链路验收。
+GPU 验证可以使用已有兼容镜像派生的明确标识开发制品，记录镜像 ID、源码、
+环境、模型和结果；未达到 release digest 门禁不阻止功能开发，也不冒充正式发布。
 
-按下列依赖顺序修复，复用现有 ledger、journal、vLLM 协议和控制 RPC，
-不再新增另一套账本、推理协议或常驻服务框架：
+### 必须保留的实现边界
 
-1. [ ] **真实 Worker 入口与执行确认。** 在 `worker/src/freechat_worker/`、
-   `worker/pyproject.toml` 和 pinned fork 的现有 frontend/engine 接口补 runtime/backend。
-   将 request/decision/generation/engine incarnation 绑定到所有 engine child requests；
-   接通 admission、实际 submit、query、abort 和持久 journal。
-   CPU 测实际 adapter 的协议边界；真实引擎不可用则明确保留未验收状态。
-   不得把 HTTP EOF、abort 返回或 cache-free 当作 GPU 静止证明。
-2. [ ] **真实预算和输入计量。** 从模型配置、tokenizer/template、cache allocator 与各 rank
-   得到 token 数、KV layout、可用预算；修改 telemetry 与 Scheduler resource 对账入口。
-   明确可用预算是否已扣 reservation，避免重复扣减；未知值不编造。
-   验收满载拒绝、完成释放后重新准入、重复/迟到请求不二次占用。
-3. [ ] **一个明确启动路径。** 连接 Worker 启动→注册→heartbeat→执行确认轮询；
-   更新 Compose、Gateway `main.py` 和 Scheduler 启动配置。
-   实际运行显式使用 Scheduler；static/fake 仅显式测试模式。
-   loopback-only fixture RPC 不直接冒充跨容器 transport；先同机可信受控连接，
-   再为需要的容器地址补明确身份校验，不以全套 SPIFFE/HA 为单机闭环前提。
-4. [ ] **运行级测试与 Agent 闭环。** 先连续请求超过初始可容纳并发量，确认无永久 reservation；
-   覆盖 streaming、取消、断连、重复/迟到请求、Worker 重启与 etcd/NATS 本机真实进程故障。
-   再跑 Tool Wait→Resume→cache action→trace→WebUI，逐项扩展三协议与四 Harness。
-   fixture、真实依赖、真实引擎/GPU 分层报告，不以模拟替代端到端结果。
-5. [ ] **同一路线扩展与指标。** 接实际 KV residency，再比 round-robin、least-load、
-   session-sticky 与 lifecycle/cost 策略；成对报告任务 P95、重复 prefill、hit rate、
-   吞吐、利用率、恢复成功率与 RTO。保留负收益。3×4 H100 先做本地配置/模拟，
-   实机、kernel 端到端收益和 HA 后续按原门禁验收，不前置阻塞首个可运行切片。
-
-当前收敛记录：
-
-- [x] 已向原 Gateway 发送 SIGTERM，确认进程退出且 18080 不再监听；未停止无关 Hermes 容器。
-- [x] 原工作区与检查点 tree 完全一致后采用已有检查点 `c3054ff`，
-  `main` 快进至 `39df7a0`，未重写历史、丢弃文件或重复创建快照分支。
-- [x] 完整 vLLM submodule 已在原项目路径初始化，固定在 `8e78a3c613072632aa822c9aed2f698e76046219`。
-- [x] 原项目路径重跑 CPU：551 passed、2 dependency skips、10 GPU deselected；不代表推理闭环已完成。
-- 保留恢复归档、历史证据和原计划；临时归并工作区不再作为开发入口。
-- 暂停扩张治理专项；接下来的代码任务从上面第 1 项开始。
-
-### 2026-09-21：统一在 ross 开发（历史检查点）
-
-- 主工程和 vLLM fork 的源码修改统一在 ross；workstation 只用于明确授权的部署/测试，本地镜像不再继续开发。
-- 负责人已确认“使用本地已验证实现”：归并 RequestLedger/执行确认逻辑，保留校准与预测能力；重新生成 protobuf 并在 ross 进行 CPU 回归。
-- vLLM 完整源码通过 `third_party/vllm` submodule 管理；Git 指针必须与版本锁匹配。
-- 根目录本计划是当前权威计划；`.hermes/plans/` 中的既有计划保留用于溯源，不删除。
-- 此次操作不授权服务切换、容器重启或 GPU 实验；真实执行器与原验收门禁继续保留。
-
-
-### 2026-09-14 补充：3×4 H100 目标、本地验证阶段（历史授权）
-
-- 目标资源为三个节点、每节点四张 H100；NVLink 暂仅按节点内能力理解，显存和互联矩阵尚未实测。
-- 当前授权只在本地实现和验证，不连接远程服务器、不部署或运行 GPU 实验。
-- 默认布局：12 个 TP=1、6 个 TP=2、3 个 TP=4 Worker；跨节点仅 request/data parallel。
-- 补充实现及未完成门禁见 `docs/h100-local-implementation.md`；声明拓扑见 `deploy/h100/topology-intent.json`。
-- [~] 原子资源组预留、生命周期、generation 防陈旧、就绪路由与本地 gRPC 联调。
-- 本地阶段证据：`evidence/h100-local/20260914/`；292 项 Python 测试通过、12 项 GPU 依赖测试跳过；核心资源组、并行准入和预测验证达到本地行/分支覆盖 100%，不代表分布式或 GPU 验收。
-- [ ] 实际部署 reconciler、认证回执、持久事件与真实 etcd 故障验收。
-- [ ] H100 拓扑/并行性能、真实模型与四 Harness 验收；本地模拟不替代这些要求。
-- A 路线和原计划删除门禁不变；不以时间限制或本地测试通过缩减最终交付范围。
-
-### 本地审查问题整改
-
-- [x] 锁定 fork 源码恢复：2026-09-20 经负责人授权只读查找，在 workstation 的 `/home/linkst/workspace/freechat-vllm-authoritative` 找到精确提交 `8e78a3c613072632aa822c9aed2f698e76046219`，导出到独立本地目录，并通过 6,404 个 blob、tree、commit 和归档 SHA-256 校验。源码可用性冲突已解除；2026-09-21 已将精确对象恢复到 ross 裸仓库，并用原项目内完整 submodule 与版本锁固定。此项不代表真实执行接线完成，详见 `docs/decisions/20260920-fork-source-provenance-conflict.md`。
-
-- [~] Worker 持久化准入门禁：SQLite 本地身份 journal、迟到/重复请求拒绝、提交不确定时禁止重投、取消意图和观测序号持久化已实现；已通过真实本地子进程异常退出、重开记录及 loopback gRPC→Scheduler 回收测试。完整 vLLM 三协议入口、真实后端执行确认和逐 rank 预算仍未接通，未默认启用；见 `docs/worker-admission.md`。
-
-- [~] 逐请求执行确认：RouteDecision 固定 engine instance；Gateway 完成仅记 completion_pending；默认服务可配置 QUERY/ABORT 轮询，匹配的终态、静止及禁止迟到准入回执才能原子释放。已补本地契约与 loopback 测试，真实引擎准入 tombstone、取消执行和逐 rank 预算对账仍待完成，见 `docs/request-execution.md`。
-
-- [~] 2026-09-20：资源组协调器、结构化 ready/drain/stop 回执、运行端 incarnation/命令阶段防陈旧及默认服务入口配置已接通；只允许 loopback CPU 契约验证，无真实引擎执行器。详见 `docs/execution-closure.md`。
-- 接续顺序：请求完成/中止回执与预算对账 → 实际缓存驻留目录 → Session-Sticky 与成本基线 → AgentX/四 Harness → 本地依赖服务故障验收 → 经授权的 H100 实测。所有原验收项保留，不以本地验证替代。
-
-- [~] 请求 KV 几何/预算准入、可信来源节点传播、scope 缓存命名空间、注册与心跳 CAS 防陈旧：本地代码已补，真实 Worker 预算报告、精确 token 计数与运行协调器仍待接通。
-- [~] 请求容量预占、实际续租/到期、一次释放及请求状态/outbox 单 CAS 提交：已接默认 gRPC 入口并完成本地故障/并发测试；取消或到期保留容量，等待可信完成确认。证据见 `evidence/request-admission/20260915/`。
-- [ ] Worker 完成/中止确认、精确 token 计数及 reservation-aware 预算协调；多副本 watch；Worker/拓扑/事件原子发布；账本压缩/分片与真实 etcd/NATS 故障验收。
-- [ ] 四 Harness 逐次 forecast 输入及生命周期通知；控制台实际读模型和完整部署入口。
-- 实施边界、兼容性变化及未完成项见 `docs/review-hardening.md`；不得用本地测试替代这些门禁。
-
-### 0.1 权威关系
-
-- 本文件取代 `.hermes/plans/production-inference-platform-plan.md`，成为新增实现的唯一上位计划。
-- 需求来源记录进入 `REFERENCE_ONLY`，仅用于决策溯源；在目标系统验收和负责人确认前不得删除。
-- `.hermes/plans/context-management-plan.md` 仅作为历史设计资料，不再定义产品边界。
-- 出现设计冲突时，必须创建 `CONFLICT` 状态，记录冲突内容、相关文件/提交、可选方案、影响和负责人回复；得到用户明确决定前不得自行越过冲突。
-- 不允许用人力或日历时间缩减范围。功能边界由本计划的产品职责、非目标与验收门禁决定。
+- RequestLedger 的请求预占、实际 KV residency、transfer reservation 是三种资源状态。
+- Gateway EOF 只记录 completion_pending；终态、静止且禁止迟到准入的可信回执才释放。
+- Worker 本地 SQLite journal 持久化身份、取消意图、序号与 tombstone，不保存 prompt/KV；
+  一个 incarnation 一个 owner，未知提交不重投，重启不得猜测请求已经停止。
+- 当前 journal 上限 10,000 条，未实现安全压缩；达到上限拒绝新身份。
+  同一 journal 不能换 incarnation，丢失存储需明确恢复，不能静默重建。
+- 资源组 START/READY/DRAIN/STOP 回执不等于真实进程/collective 已经停止；
+  group stop 不自动释放逐请求 reservation。
+- 现有执行 RPC 用 loopback peer 与配置 token 校验，只是同机边界，不代表 SPIFFE/mTLS。
+- 默认 telemetry 尚不生成所需的逐 rank KV budget；该缺口和运行入口必须真实接线，
+  不以伪造预算或提前释放容量绕过。
+- 完整 fork 已恢复；源码不再缺失，不能继续将源码问题当作执行器实施的阻塞。
+- 发生实质设计冲突时记录 CONFLICT、选项和负责人答复，未确认不擅自改变方向。
+- 无日历/人力限制裁剪范围；无收益的实验保留，不制造简历百分比。
 
 ### 0.2 状态与完成口径
 

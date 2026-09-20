@@ -1,0 +1,12 @@
+# Development GPU probe: reuse the verified image's binaries; overlay Ross Python sources.
+# This is not the release image or full HTTP runtime.
+ARG WORKER_BASE=freechat-worker:8e78a3c61307
+FROM ${WORKER_BASE}
+COPY third_party/vllm/vllm/v1/engine/core.py /usr/local/lib/python3.12/dist-packages/vllm/v1/engine/core.py
+COPY libs/contracts/src /opt/freechat/libs/contracts/src
+COPY worker/src /opt/freechat/worker/src
+COPY tools/validate_execution_gpu.py /opt/freechat/tools/validate_execution_gpu.py
+RUN uv venv /opt/freechat/.venv --system-site-packages --python /usr/bin/python3
+WORKDIR /opt/freechat
+ENV PYTHONPATH=/opt/freechat:/opt/freechat/libs/contracts/src:/opt/freechat/worker/src
+ENTRYPOINT ["/opt/freechat/.venv/bin/python", "-m", "tools.validate_execution_gpu"]
