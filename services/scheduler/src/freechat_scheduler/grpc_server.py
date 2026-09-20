@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import os
+import signal
 from collections.abc import AsyncIterable, AsyncIterator
 from contextlib import suppress
 from pathlib import Path
@@ -396,7 +397,9 @@ def _decision_message(decision: RouteDecision) -> control_pb2.RouteDecision:
     )
 
 
-async def serve(address: str, *, contract_only: bool = False) -> None:
+async def serve(
+    address: str, *, contract_only: bool = False, stop_event: asyncio.Event | None = None
+) -> None:
     preparer = (
         None if contract_only else NativePreparer(os.environ.get("FREECHAT_WORKER_TOKEN", ""))
     )
@@ -465,7 +468,8 @@ async def serve(address: str, *, contract_only: bool = False) -> None:
         ),
         server,
     )
-    server.add_insecure_port(address)
+    if not server.add_insecure_port(address):
+        raise RuntimeError("scheduler control port unavailable")
     maintenance = None
     group_maintenance = None
     try:
@@ -473,7 +477,12 @@ async def serve(address: str, *, contract_only: bool = False) -> None:
         maintenance = asyncio.create_task(scheduler_service.maintain())
         if reconciler is not None:
             group_maintenance = asyncio.create_task(reconciler.run())
-        await server.wait_for_termination()
+        LOGGER.info("scheduler_ready address=%s", address)
+        if stop_event is None:
+            await server.wait_for_termination()
+        else:
+            await stop_event.wait()
+            LOGGER.info("scheduler_stop_requested")
     finally:
         if group_maintenance is not None:
             group_maintenance.cancel()
@@ -488,8 +497,25 @@ async def serve(address: str, *, contract_only: bool = False) -> None:
             await etcd.close()
         if nats_client is not None:
             await nats_client.drain()
+        LOGGER.info("scheduler_shutdown_complete")
+
+
+async def _run_until_signal() -> None:
+    # Container PID 1 needs explicit handlers; default SIGTERM can be ignored.
+    loop = asyncio.get_running_loop()
+    stopping = asyncio.Event()
+    signals = (signal.SIGTERM, signal.SIGINT)
+    for signum in signals:
+        loop.add_signal_handler(signum, stopping.set)
+    try:
+        await serve(
+            os.environ.get("FREECHAT_SCHEDULER_LISTEN", "0.0.0.0:50051"), stop_event=stopping
+        )
+    finally:
+        for signum in signals:
+            loop.remove_signal_handler(signum)
 
 
 def run() -> None:
     logging.basicConfig(level=logging.INFO)
-    asyncio.run(serve(os.environ.get("FREECHAT_SCHEDULER_LISTEN", "0.0.0.0:50051")))
+    asyncio.run(_run_until_signal())

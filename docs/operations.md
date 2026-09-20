@@ -158,6 +158,15 @@ SSE 断连、非流式中断、建连失败使用有界、屏蔽外层 ASGI 取�
 cancel/completion intent 和唯一 release，release 的 execution receipt 必须 terminal、quiescent、
 admission_closed。HTTP 200 或顺序请求成功本身不是全部释放证据。
 
+## 开发服务停机
+
+停止测试发流并等待已准入请求的可信释放核验后，停止 Gateway、各 Worker，最后停止 Scheduler；
+共享 namespace 的 peer Worker 要先于 namespace 所属 Worker 停止。不删除 state volume 或服务日志。
+Scheduler 显式处理 SIGTERM/SIGINT，清理任务、停止 gRPC 并关闭已配置的依赖；
+正常日志依次出现 `scheduler_stop_requested`、`scheduler_shutdown_complete`，容器应以 0 退出。
+仅有 `docker stop` 返回不代表正常退出，必须检查 `State.ExitCode`；137/强杀不能记为清理通过。
+空闲容器停机已验证，但不证明在途任务迁移、持久恢复或依赖故障时的退出保证。
+
 ## 并发准入验证
 
 使用 README 的独立同机启动路径，把 Worker 参数设置为
