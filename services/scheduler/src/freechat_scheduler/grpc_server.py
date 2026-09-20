@@ -41,6 +41,7 @@ from freechat_scheduler.request_execution import (
     RegisteredExecutionDriver,
     RequestExecutionConfig,
     RequestExecutionReconciler,
+    RetiredExecutionConfig,
 )
 from freechat_scheduler.request_ledger import RequestLedger
 from freechat_scheduler.scheduler import NoEligibleWorker, RoutingStrategy, Scheduler
@@ -404,6 +405,11 @@ def _decision_message(decision: RouteDecision) -> control_pb2.RouteDecision:
 async def serve(
     address: str, *, contract_only: bool = False, stop_event: asyncio.Event | None = None
 ) -> None:
+    retired = RetiredExecutionConfig.model_validate_json(
+        os.environ.get("FREECHAT_RETIRED_EXECUTION_ROUTES", "{}")
+    )
+    if retired.routes and (contract_only or os.environ.get("FREECHAT_REQUEST_EXECUTION_CONFIG")):
+        raise ValueError("retired_routes_require_managed_execution_driver")
     preparer = (
         None if contract_only else NativePreparer(os.environ.get("FREECHAT_WORKER_TOKEN", ""))
     )
@@ -438,7 +444,8 @@ async def serve(
         None
         if contract_only
         else RequestExecutionReconciler(
-            leases, RegisteredExecutionDriver(registry, os.environ["FREECHAT_WORKER_TOKEN"])
+            leases,
+            RegisteredExecutionDriver(registry, os.environ["FREECHAT_WORKER_TOKEN"], retired),
         )
     )
     execution_config_path = os.environ.get("FREECHAT_REQUEST_EXECUTION_CONFIG")

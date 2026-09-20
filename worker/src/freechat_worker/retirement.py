@@ -17,6 +17,7 @@ import os
 import re
 import signal
 import sqlite3
+from contextlib import ExitStack
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -117,8 +118,9 @@ async def serve_retired(
     engine_instance_id: str,
     listen: str,
     token: str,
+    exclusive_runtime: bool = True,
 ) -> None:
-    """Serve only an already sealed incarnation while excluding any live replacement."""
+    """Serve a sealed journal; independent historical RPC may coexist with a new engine."""
     if re.fullmatch(r"127\.0\.0\.1:[1-9][0-9]{0,4}", listen) is None:
         raise ValueError("retired_execution_loopback_required")
     if re.fullmatch(r"[a-zA-Z0-9_-]{1,80}", worker_id) is None or generation < 1:
@@ -126,11 +128,13 @@ async def serve_retired(
     if len(token) < 32:
         raise ValueError("FREECHAT_WORKER_TOKEN must contain at least 32 characters")
     directory = state_root.resolve(strict=True) / worker_id
-    with (directory / "runtime.owner").open("a+b") as owner:
-        try:
-            fcntl.flock(owner, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError:
-            raise ValueError("runtime_still_owned") from None
+    with ExitStack() as stack:
+        if exclusive_runtime:
+            owner = stack.enter_context((directory / "runtime.owner").open("a+b"))
+            try:
+                fcntl.flock(owner, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                raise ValueError("runtime_still_owned") from None
         driver = DurableExecutionDriver(
             directory / f"{generation}.sqlite",
             None,
@@ -182,13 +186,35 @@ def main() -> None:
     parser.add_argument("--worker-id", required=True)
     parser.add_argument("--generation", required=True, type=int)
     parser.add_argument("--engine-instance-id", required=True)
-    parser.add_argument("--container-id", required=True)
+    parser.add_argument("--container-id")
     parser.add_argument("--docker-socket", default="/var/run/docker.sock")
     parser.add_argument(
         "--serve", action="store_true", help="Serve sealed execution receipts, never inference"
     )
+    parser.add_argument(
+        "--observe-only",
+        action="store_true",
+        help="Observe a sealed journal without Docker access; use a separate RPC port",
+    )
     parser.add_argument("--listen", default="127.0.0.1:50052")
     args = parser.parse_args()
+    if args.observe_only:
+        if args.serve or args.container_id:
+            parser.error("--observe-only cannot seal a container")
+        asyncio.run(
+            serve_retired(
+                args.state_root,
+                worker_id=args.worker_id,
+                generation=args.generation,
+                engine_instance_id=args.engine_instance_id,
+                listen=args.listen,
+                token=os.environ.get("FREECHAT_WORKER_TOKEN", ""),
+                exclusive_runtime=False,
+            )
+        )
+        return
+    if not args.container_id:
+        parser.error("--container-id is required to seal a stopped container")
     inspector = DockerInspector(args.docker_socket)
     try:
         proof = retire_journal(

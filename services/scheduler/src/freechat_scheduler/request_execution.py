@@ -14,7 +14,7 @@ from freechat.control.execution import (
 )
 from freechat.control.v1 import control_pb2, control_pb2_grpc
 from freechat_contracts.execution import ExecutionAction, ExecutionCommand, ExecutionReceipt
-from pydantic import BaseModel, ConfigDict, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 
 from freechat_scheduler.group_runtime import LocalRuntimeEndpoint
 from freechat_scheduler.registry import InMemoryWorkerRegistry
@@ -40,6 +40,33 @@ class RequestExecutionConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     mode: Literal["local-contract"]
     endpoints: dict[str, LocalRuntimeEndpoint]
+
+
+class RetiredExecutionRoute(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    worker_id: str = Field(min_length=1)
+    generation: int = Field(ge=1)
+    engine_instance_id: str = Field(min_length=1)
+    address: str = Field(pattern=r"^127\.0\.0\.1:[1-9][0-9]{0,4}$")
+
+    @property
+    def identity(self) -> tuple[str, int, str]:
+        return self.worker_id, self.generation, self.engine_instance_id
+
+
+class RetiredExecutionConfig(BaseModel):
+    """Operator-owned historical receipt routes, never client hints or placements."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    routes: tuple[RetiredExecutionRoute, ...] = Field(default=(), max_length=256)
+
+    @model_validator(mode="after")
+    def unique(self) -> RetiredExecutionConfig:
+        if len({route.identity for route in self.routes}) != len(self.routes):
+            raise ValueError("duplicate_retired_execution_identity")
+        if len({route.address for route in self.routes}) != len(self.routes):
+            raise ValueError("duplicate_retired_execution_endpoint")
+        return self
 
 
 class LocalGrpcExecutionDriver:
@@ -111,14 +138,45 @@ class RequestExecutionReconciler:
 
 
 class RegisteredExecutionDriver:
-    """Use only a currently registered same-host endpoint; never retarget old work."""
+    """Resolve exact live ownership or an explicitly configured sealed-journal endpoint."""
 
-    def __init__(self, registry: InMemoryWorkerRegistry, token: str) -> None:
+    def __init__(
+        self,
+        registry: InMemoryWorkerRegistry,
+        token: str,
+        retired: RetiredExecutionConfig | None = None,
+    ) -> None:
         if len(token) < 32:
             raise ValueError("worker token requires at least 32 characters")
         self.registry, self.token = registry, SecretStr(token)
+        self.retired = {
+            route.identity: route for route in (retired or RetiredExecutionConfig()).routes
+        }
 
     async def observe(self, command: ExecutionCommand) -> ExecutionReceipt:
+        historical = self.retired.get(
+            (command.worker_id, command.worker_generation, command.engine_instance_id)
+        )
+        if historical is not None:
+            if any(
+                item.capabilities.execution_endpoint == historical.address
+                for item in self.registry.snapshot()[1]
+            ):
+                raise ValueError("retired_endpoint_conflicts_with_registered_worker")
+            driver = LocalGrpcExecutionDriver(
+                RequestExecutionConfig(
+                    mode="local-contract",
+                    endpoints={
+                        command.worker_id: LocalRuntimeEndpoint(
+                            address=historical.address, token=self.token
+                        )
+                    },
+                )
+            )
+            receipt = await driver.observe(command)
+            if not receipt.releasable:
+                raise ValueError("retired_execution_not_terminal")
+            return receipt
         worker = next(
             (
                 item

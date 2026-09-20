@@ -272,9 +272,55 @@ docker start freechat-worker
 逐组核对全部 route/release，再确认旧实例最后一次释放早于新实例首次准入；不能删掉未决记录
 或放宽单实例审计以掩盖混合身份。
 本路径不恢复原客户端流，不重投未知提交，也不自动重试可能有副作用的 Agent 任务。
-若新 Worker 已替换注册，当前普通执行轮询仍拒绝向它查询旧身份；
-独立历史回执路由/自动协调仍待实现，不能手改 registry 或 ledger 绕过。
+若新 Worker 已替换注册，普通执行轮询仍拒绝向它查询旧身份；
+使用下面的独立历史回执路径，不手改 registry 或 ledger 绕过。
 所有记录仍在正常服务日志和状态卷，不生成结果目录。
+
+### 替代 Worker 已注册后的历史回执
+
+前提仍是旧容器停止时已经完成可信封闭；未取证就启动新实例的历史 journal 不会被自动修复。
+已封闭的旧 journal 可以与新 generation 的 journal 并存。启动仅提供回执的独立端点：
+
+```bash
+docker run -d --name freechat-history --network container:freechat-etcd \
+  -e FREECHAT_WORKER_TOKEN -v freechat-worker-state:/var/lib/freechat \
+  --entrypoint /opt/freechat/.venv/bin/python "$WORKER_IMAGE" \
+  -m freechat_worker.retirement --observe-only --worker-id gpu-worker \
+  --generation "$RETIRED_GENERATION" --engine-instance-id "$RETIRED_ENGINE" \
+  --listen 127.0.0.1:50054
+```
+
+本模式不访问 Docker，不需要 runtime ID，也不持有整个 Worker 的 runtime.owner 锁；
+仍独占旧 journal 并持久递增观测序号，因此状态卷必须可写。未封闭、错误身份或重复持有
+同一 journal 均失败。新 Worker 继续使用自己的 journal 和 50052 端点，不能复用历史端口。
+
+Scheduler 启动时传入 `FREECHAT_RETIRED_EXECUTION_ROUTES` JSON。例如用实际身份变量生成：
+
+```bash
+export FREECHAT_RETIRED_EXECUTION_ROUTES="$(python3 -c '
+import json, os
+print(json.dumps({"routes": [{
+    "worker_id": "gpu-worker",
+    "generation": int(os.environ["RETIRED_GENERATION"]),
+    "engine_instance_id": os.environ["RETIRED_ENGINE"],
+    "address": "127.0.0.1:50054"
+}]}))
+')"
+```
+
+在现有 Scheduler 启动命令中加 `-e FREECHAT_RETIRED_EXECUTION_ROUTES`，保留相同 etcd 状态。
+该配置只来自操作员环境，不是客户端 hints；最多 256 条，每个身份和端点唯一，且仅允许 loopback。
+它与 contract-only/显式测试执行器配置互斥，不能静默忽略。
+查询以 worker/generation/engine 完整匹配，只接受原 command 的 terminal/quiescent/admission_closed
+回执。若历史地址与任何当前注册 Worker 的执行地址重合，直接拒绝，不回退到新引擎。
+配置不修改注册表、不参与 placement，也不重投推理请求。
+
+验收须先观察新 generation 成功执行且旧预占仍被保留，再启用历史回执；
+检查旧请求释放、当前新身份未改变、新请求继续执行、旧 journal 的迟到准入仍被拒绝。
+此时新实例首次准入早于旧实例释放是测试要求，分别审计两个 generation，
+另重建二者共同的未决预占峰值，不能简单相加两个单独峰值或假定无重叠。
+服务重启以持久 journal/etcd 为准，不删除历史日志来制造闭合。
+自动取证、发现/配置历史端点和原任务重试仍需后续实现，不宣称自动 failover。
 
 ## JetStream 中断与确认边界
 

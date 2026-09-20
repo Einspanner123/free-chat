@@ -1,15 +1,20 @@
 from __future__ import annotations
 
+import asyncio
 import fcntl
 import json
+import socket
 import sqlite3
+from contextlib import suppress
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
+import grpc
 import httpx
 import pytest
+from freechat.control.v1 import control_pb2, control_pb2_grpc
 from freechat_contracts.execution import ExecutionStatus
 from freechat_worker.execution import DurableExecutionDriver
 from freechat_worker.retirement import retire_journal, serve_retired
@@ -347,3 +352,62 @@ async def test_retired_rpc_validates_boundary_before_opening_state(
             token=token,
         )
     assert not list(tmp_path.iterdir())
+
+
+async def test_historical_rpc_coexists_with_replacement_owner_and_journal(tmp_path: Path) -> None:
+    gate = open_gate(tmp_path, create=True)
+    await gate.admit(command(), {})
+    gate.close()
+    retire(tmp_path, Inspector(tmp_path))
+    with socket.socket() as available:
+        available.bind(("127.0.0.1", 0))
+        port = available.getsockname()[1]
+    with (tmp_path / "worker" / "runtime.owner").open("a+b") as replacement_owner:
+        fcntl.flock(replacement_owner, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        replacement = DurableExecutionDriver(
+            tmp_path / "worker" / "2.sqlite",
+            Backend(),
+            worker_id="worker",
+            generation=2,
+            engine_instance_id="new-engine",
+            create=True,
+        )
+        task = asyncio.create_task(
+            serve_retired(
+                tmp_path,
+                worker_id="worker",
+                generation=1,
+                engine_instance_id="engine",
+                listen=f"127.0.0.1:{port}",
+                token="t" * 32,
+                exclusive_runtime=False,
+            )
+        )
+        try:
+            async with grpc.aio.insecure_channel(f"127.0.0.1:{port}") as channel:
+                async with asyncio.timeout(5):
+                    await channel.channel_ready()
+                stub = control_pb2_grpc.RequestExecutionServiceStub(channel)  # type: ignore[no-untyped-call]
+                result = await stub.Observe(
+                    control_pb2.RequestExecutionCommand(command_json=command().model_dump_json()),
+                    metadata=(("authorization", "Bearer " + "t" * 32),),
+                    timeout=2,
+                )
+                assert '"status":"aborted"' in result.receipt_json
+                new_command = command(worker_generation=2, engine_instance_id="new-engine")
+                with pytest.raises(grpc.aio.AioRpcError) as error:
+                    await stub.Observe(
+                        control_pb2.RequestExecutionCommand(
+                            command_json=new_command.model_dump_json()
+                        ),
+                        metadata=(("authorization", "Bearer " + "t" * 32),),
+                        timeout=2,
+                    )
+                assert error.value.code() == grpc.StatusCode.FAILED_PRECONDITION
+                await replacement.admit(new_command, {})
+                assert (await replacement.observe(new_command)).status == ExecutionStatus.RUNNING
+        finally:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
+            replacement.close()
