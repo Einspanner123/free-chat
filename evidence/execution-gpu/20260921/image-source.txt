@@ -1,0 +1,5 @@
+sha256:3624072eb481bcc67d897c3d41c9b6e1e429358792c5bd4846bdb0a0c79ceabe
+b01f16c2063bf16be7d3dd40a454114fd3b43dc36e421fe55d081caba79f8be1  /usr/local/lib/python3.12/dist-packages/vllm/v1/engine/core.py
+b0abf88f047c61f3b55b36ca8a3bc04b0a7184cb7a8bf46c88a03c8e5812ee4f  /opt/freechat/worker/src/freechat_worker/vllm_execution.py
+cbaf91892050a650aae6c8512d1e0c859be289bebf0747812f36b57ea7bbfa01  /opt/freechat/tools/validate_execution_gpu.py
+Sun Sep 20 17:18:41 UTC 2026

@@ -1,0 +1,142 @@
+INFO 09-20 17:13:01 [model.py:675] Resolved architecture: Qwen2ForCausalLM
+INFO 09-20 17:13:01 [model.py:1926] Using max model len 2048
+INFO 09-20 17:13:01 [scheduler.py:242] Chunked prefill is enabled with max_num_batched_tokens=2048.
+WARNING 09-20 17:13:01 [vllm.py:1213] Enforce eager set, disabling torch.compile and CUDAGraphs. This is equivalent to setting -cc.mode=none -cc.cudagraph_mode=none
+WARNING 09-20 17:13:01 [vllm.py:1270] Inductor compilation was disabled by user settings, optimizations settings that are only active during inductor compilation will be ignored.
+INFO 09-20 17:13:01 [kernel.py:306] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['vllm_c', 'native'], fused_add_rms_norm=['vllm_c', 'native'])
+INFO 09-20 17:13:01 [vllm.py:1449] Cudagraph is disabled under eager mode
+INFO 09-20 17:13:01 [compilation.py:329] Enabled custom fusions: norm_quant, act_quant
+(EngineCore pid=154) INFO 09-20 17:13:03 [core.py:121] Initializing a V1 LLM engine (v0.1.dev19622+g8e78a3c61) with config: model='/model', speculative_config=None, tokenizer='/model', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=2048, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=False, quantization=None, quantization_config=None, enforce_eager=True, enable_return_routed_experts=False, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False, jit_monitor_mode='warn', jit_monitor_verbose=False), seed=0, served_model_name=/model, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'mode': <CompilationMode.NONE: 0>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['all'], 'ir_enable_torch_wrap': False, 'splitting_ops': [], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_vision_items_per_batch': 0, 'encoder_cudagraph_max_frames_per_batch': None, 'compile_sizes': [], 'compile_ranges_endpoints': [2048], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.NONE: 0>, 'cudagraph_num_of_warmups': 0, 'cudagraph_capture_sizes': [], 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': True, 'fuse_act_quant': True, 'fuse_attn_quant': False, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False, 'enable_qk_norm_rope_fusion': False, 'fuse_rope_kvcache_cat_mla': False, 'fuse_act_padding': False, 'fuse_qk_norm_rope_kvcache': False}, 'max_cudagraph_capture_size': 0, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': False, 'static_all_moe_layers': []}, kernel_config=KernelConfig(ir_op_priority=IrOpPriorityConfig(rms_norm=['vllm_c', 'native'], fused_add_rms_norm=['vllm_c', 'native']), enable_flashinfer_autotune=True, enable_cutedsl_warmup=True, enable_jit_warmup=True, enable_bf16x3_router_gemm=False, moe_backend='auto', linear_backend='auto')
+(EngineCore pid=154) INFO 09-20 17:13:04 [parallel_state.py:1636] world_size=1 rank=0 local_rank=0 distributed_init_method=tcp://172.17.0.3:39157 backend=nccl
+(EngineCore pid=154) INFO 09-20 17:13:08 [parallel_state.py:1973] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, EP rank N/A, EPLB rank N/A
+(EngineCore pid=154) INFO 09-20 17:13:08 [gpu_worker.py:386] Using V2 Model Runner
+(EngineCore pid=154) INFO 09-20 17:13:09 [model_runner.py:329] Loading model from scratch...
+(EngineCore pid=154) INFO 09-20 17:13:17 [cuda.py:482] Using FLASH_ATTN attention backend out of potential backends: ['FLASH_ATTN', 'FLASHINFER', 'TRITON_ATTN', 'FLEX_ATTENTION'].
+(EngineCore pid=154) INFO 09-20 17:13:17 [flash_attn.py:825] Using FlashAttention version 2
+(EngineCore pid=154) INFO 09-20 17:13:17 [weight_utils.py:867] Filesystem type for checkpoints: FUSEBLK. Checkpoint size: 0.92 GiB. Available RAM: 20.21 GiB.
+(EngineCore pid=154) INFO 09-20 17:13:17 [weight_utils.py:890] Auto-prefetch is disabled because the filesystem (FUSEBLK) is not a recognized network FS (NFS/Lustre). If you want to force prefetching, start vLLM with --safetensors-load-strategy=prefetch.
+(EngineCore pid=154) Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+(EngineCore pid=154) Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:05<00:00,  5.01s/it]
+(EngineCore pid=154) Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:05<00:00,  5.01s/it]
+(EngineCore pid=154) 
+(EngineCore pid=154) INFO 09-20 17:13:22 [default_loader.py:430] Loading weights took 5.05 seconds
+(EngineCore pid=154) INFO 09-20 17:13:22 [model_runner.py:350] Model loading took 0.93 GiB and 13.400124 seconds
+(EngineCore pid=154) INFO 09-20 17:13:22 [topk_topp_sampler.py:62] Using FlashInfer for top-p & top-k sampling.
+(EngineCore pid=154) INFO 09-20 17:13:31 [gpu_worker.py:564] Available KV cache memory: 3.56 GiB
+(EngineCore pid=154) INFO 09-20 17:13:31 [kv_cache_utils.py:1882] GPU KV cache size: 310,640 tokens, Maximum concurrency for 2,048 tokens per request: 151.68x
+(EngineCore pid=154) INFO 09-20 17:13:32 [gpu_worker.py:790] Free memory on device (20.9/23.55 GiB) on startup. Desired GPU memory utilization is (0.2, 4.71 GiB). Actual usage is 1.08 GiB for consumed memory (weights + non-torch), 0.07 GiB for peak activation, and 0.0 GiB for CUDAGraph memory. Replace gpu_memory_utilization config with `--kv-cache-memory=3660000052` (3.41 GiB) to fit into requested memory, or `--kv-cache-memory=21047998464` (19.6 GiB) to fully utilize gpu memory. Current kv cache memory in use is 3.56 GiB.
+(EngineCore pid=154) INFO 09-20 17:13:37 [jit_monitor.py:79] Kernel JIT monitor activated; monitored JIT compilations during inference will use mode=warn.
+(EngineCore pid=154) INFO 09-20 17:13:38 [torch_utils.py:261] Reducing Torch threads from 12 to 1 for serving. Set OMP_NUM_THREADS in the external environment to override.
+(EngineCore pid=154) INFO 09-20 17:13:38 [core.py:351] init engine (profile, create kv cache, warmup model) took 15.58 s
+(EngineCore pid=154) INFO 09-20 17:13:38 [kernel.py:306] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['vllm_c', 'native'], fused_add_rms_norm=['vllm_c', 'native'])
+WARNING 09-20 17:13:39 [input_processor.py:292] Passing raw prompts to InputProcessor is deprecated and will be removed in v0.18. You should instead pass the outputs of Renderer.render_cmpl() or Renderer.render_chat().
+INFO 09-20 17:13:42 [core_client.py:686] [shutdown] MPClient: start timeout=default
+INFO 09-20 17:13:42 [core_client.py:688] [shutdown] MPClient: stopping engine manager
+INFO 09-20 17:13:42 [utils.py:612] [shutdown] Process manager: send sigterm to process EngineCore
+(EngineCore pid=154) INFO 09-20 17:13:42 [core.py:1354] [shutdown] EngineCore: trigger received signal=SIGTERM
+(EngineCore pid=154) INFO 09-20 17:13:42 [core.py:1490] [shutdown] EngineCore: start mode=abort timeout=0s
+(EngineCore pid=154) INFO 09-20 17:13:42 [core.py:1521] [shutdown] EngineCore: request processing complete; starting resource teardown
+(EngineCore pid=154) INFO 09-20 17:13:42 [core.py:1367] [shutdown] EngineCore: exiting busy loop
+INFO 09-20 17:13:43 [core_client.py:690] [shutdown] MPClient: engine manager stopped
+INFO 09-20 17:13:43 [core_client.py:691] [shutdown] MPClient: cleaning up background resources
+INFO 09-20 17:13:43 [core_client.py:693] [shutdown] MPClient: complete
+{
+  "scope": "REAL_GPU_EXECUTION_ADAPTER",
+  "gpu": "NVIDIA RTX A5000",
+  "torch": "2.13.0+cu130",
+  "model": "/model",
+  "results": [
+    {
+      "request": 0,
+      "cancel": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 1,
+      "cancel": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 2,
+      "cancel": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 3,
+      "cancel": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 4,
+      "cancel": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 5,
+      "cancel": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 6,
+      "cancel": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 7,
+      "cancel": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 8,
+      "cancel": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 9,
+      "cancel": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 10,
+      "cancel": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 11,
+      "cancel": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 12,
+      "cancel": true,
+      "tokens": 0,
+      "status": "aborted",
+      "releasable": true
+    }
+  ],
+  "full_gateway_scheduler_api_acceptance": false
+}

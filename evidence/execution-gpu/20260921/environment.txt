@@ -1,0 +1,8 @@
+Sun Sep 20 17:15:22 UTC 2026
+sha256:5527760b5854807b7c9d6c0544ea8f619a76c86b220a3f345b47823c6aa19288
+sha256:bd49024cd8f22b0a4fb92fb5d64608c7101cddeb37c7f4fe81829df1d92d1764
+fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe  /data/freechat/models/Qwen2.5-0.5B-Instruct/model.safetensors
+18e18afcaccafade98daf13a54092927904649e1dd4eba8299ab717d5d94ff45  /data/freechat/models/Qwen2.5-0.5B-Instruct/config.json
+uuid, name, driver_version, memory.total [MiB]
+GPU-712545e0-1701-6651-37f5-824cdb4368e9, NVIDIA RTX A5000, 580.173.02, 24564 MiB
+GPU-80a8c48d-a0a2-b3d5-829a-f5e4470b9bb0, NVIDIA RTX A4000, 580.173.02, 16376 MiB

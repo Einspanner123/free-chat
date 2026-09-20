@@ -1,0 +1,138 @@
+{
+  "scope": "REAL_GPU_EXECUTION_ADAPTER",
+  "gpu": "NVIDIA RTX A5000",
+  "torch": "2.13.0+cu130",
+  "model": "/model",
+  "results": [
+    {
+      "request": 0,
+      "cancel": false,
+      "midstream": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 1,
+      "cancel": false,
+      "midstream": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 2,
+      "cancel": false,
+      "midstream": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 3,
+      "cancel": false,
+      "midstream": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 4,
+      "cancel": false,
+      "midstream": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 5,
+      "cancel": false,
+      "midstream": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 6,
+      "cancel": false,
+      "midstream": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 7,
+      "cancel": false,
+      "midstream": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 8,
+      "cancel": false,
+      "midstream": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 9,
+      "cancel": false,
+      "midstream": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 10,
+      "cancel": false,
+      "midstream": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 11,
+      "cancel": false,
+      "midstream": false,
+      "tokens": 8,
+      "status": "completed",
+      "releasable": true
+    },
+    {
+      "request": 12,
+      "cancel": true,
+      "midstream": false,
+      "tokens": 0,
+      "status": "aborted",
+      "releasable": true
+    },
+    {
+      "request": 13,
+      "cancel": true,
+      "midstream": true,
+      "tokens": 1,
+      "status": "aborted",
+      "releasable": true
+    }
+  ],
+  "full_gateway_scheduler_api_acceptance": false,
+  "source_commit": "ed0dd63204b19d7f5946ddcb7f71e41327127076",
+  "fork_commit": "7bebebb5abbe5055d220b476bda863d78876b666",
+  "base_image_id": "sha256:5527760b5854807b7c9d6c0544ea8f619a76c86b220a3f345b47823c6aa19288",
+  "test_image_id": "sha256:3624072eb481bcc67d897c3d41c9b6e1e429358792c5bd4846bdb0a0c79ceabe",
+  "image_type": "development Python overlay; inherited version metadata names base fork, not release",
+  "model_sha256": "fdf756fa7fcbe7404d5c60e26bff1a0c8b8aa1f72ced49e7dd0210fe288fb7fe",
+  "raw_log": "gpu-final.log",
+  "image_source_hashes": "image-source.txt",
+  "scope_exclusions": [
+    "HTTP/Gateway/Scheduler end-to-end",
+    "Worker restart",
+    "TP/PP/DP multi-rank",
+    "KV/EC connectors",
+    "throughput/latency/HA",
+    "release-image acceptance"
+  ],
+  "clock_note": "Host UTC clocks differ; no cross-host timing claim is made."
+}
