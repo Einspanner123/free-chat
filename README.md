@@ -21,7 +21,8 @@ dependencies and the independent vLLM submodule are pinned in `uv.lock` and
 | Shared Scheduler | A5000/A4000 execute real concurrent requests under one Scheduler; per-GPU capacity and fenced release pass independent log audits. After an idle A4000 stops gracefully, new requests execute on A5000 |
 | Scheduler restart | On A5000 with real single-node etcd, killing Scheduler after first generated token retains the reservation; restart reconciles the same live Worker/engine and admits new work |
 | Lifecycle delivery | Real A5000 inference and durable events pass short and 150-second NATS outage tests; Scheduler recovers delivery and admits new GPU work without restarting. Publish/consumer acknowledgment boundaries remain at-least-once |
-| Complete deployment | Same-host API paths, one Scheduler-crash case and short message-bus outage are exercised; Worker/store faults, broader outage/consumer-recovery coverage, WebUI integration and cross-node deployment remain incomplete |
+| Worker restart | A5000 crash/restart rejects old-incarnation execution commands and admits new work, but the interrupted request retains its reservation: automatic old-runtime retirement is not implemented |
+| Complete deployment | Same-host API paths, Scheduler restart and short/sustained NATS outages are exercised; Worker-crash recovery, store faults, consumer recovery, WebUI integration and cross-node deployment remain incomplete |
 | Hardware expansion | A6000 validation is pending; 3×4 H100 is a future hardware target, not a verified deployment |
 
 The managed execution adapter currently accepts synchronous TP=PP=DP=1 text
@@ -136,7 +137,9 @@ performance claim follows from sequential capacity reuse.
 Stop the development loop when finished; state and logs remain available:
 
 ```bash
-docker stop freechat-gateway freechat-worker freechat-scheduler
+docker stop freechat-gateway
+docker stop freechat-worker
+docker stop freechat-scheduler
 ```
 
 ## One development route

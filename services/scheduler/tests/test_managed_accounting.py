@@ -7,7 +7,10 @@ from freechat_contracts.execution import ExecutionAction, ExecutionCommand
 from freechat_scheduler import Scheduler
 from freechat_scheduler.grpc_server import SchedulerGrpcService
 from freechat_scheduler.registry import InMemoryWorkerRegistry
-from freechat_scheduler.request_execution import RegisteredExecutionDriver
+from freechat_scheduler.request_execution import (
+    ExecutionObservationUnavailable,
+    RegisteredExecutionDriver,
+)
 from freechat_scheduler.request_ledger import RequestLedger
 from test_scheduler import add_worker, profile
 
@@ -29,8 +32,19 @@ def test_scheduler_owned_load_is_not_counted_twice() -> None:
     assert decision.worker_id == "a"  # max(2,2), not 2+2.
 
 
-@pytest.mark.parametrize("failure", ["missing", "generation", "engine", "remote"])
-async def test_registered_execution_never_retargets_old_or_remote_work(failure: str) -> None:
+@pytest.mark.parametrize(
+    "failure,reason",
+    [
+        ("missing", "worker_not_registered"),
+        ("generation", "worker_generation_changed"),
+        ("engine", "engine_instance_changed"),
+        ("endpoint", "execution_endpoint_missing"),
+        ("remote", None),
+    ],
+)
+async def test_registered_execution_never_retargets_old_or_remote_work(
+    failure: str, reason: str | None
+) -> None:
     registry = InMemoryWorkerRegistry()
     if failure != "missing":
         add_worker(registry, "a", node="ross")
@@ -40,7 +54,7 @@ async def test_registered_execution_never_retargets_old_or_remote_work(failure: 
                 update={
                     "execution_endpoint": "remote:1234"
                     if failure == "remote"
-                    else "127.0.0.1:1234",
+                    else (None if failure == "endpoint" else "127.0.0.1:1234"),
                 }
             ),
             item.telemetry,
@@ -54,8 +68,13 @@ async def test_registered_execution_never_retargets_old_or_remote_work(failure: 
         worker_generation=2 if failure == "generation" else 1,
         engine_instance_id="other" if failure == "engine" else "fixture-engine",
     )
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as raised:
         await RegisteredExecutionDriver(registry, "t" * 32).observe(command)
+    if reason is not None:
+        assert isinstance(raised.value, ExecutionObservationUnavailable)
+        assert raised.value.reason == reason
+    else:
+        assert not isinstance(raised.value, ExecutionObservationUnavailable)
 
 
 async def test_development_outbox_uses_service_logging_not_silent_ack(

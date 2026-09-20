@@ -198,6 +198,26 @@ etcd 故障、JetStream 重投、分区、跨节点或故障恢复成功率/RTO�
 网络缓慢时可通过 `--build-arg UV_HTTP_TIMEOUT=120` 设置有限下载超时；不得通过改动 lockfile
 或换不明依赖绕过下载失败。构建缓存不是实验结果目录，也不进入运行镜像。
 
+## Worker 崩溃与 incarnation 边界
+
+真实 Worker 崩溃测试与 Scheduler 重启测试必须分开。首 token 后仅终止测试 Worker，
+保留 Scheduler 和 etcd；检查客户端中断而非成功结束，并记录旧 decision、generation、
+engine instance 与未释放预占。随后启动同一 Worker，核对其新身份及新请求执行结果。
+向新执行端点发送旧身份命令必须被拒绝，不能把新实例的 unknown 回答当成旧任务终止。
+
+当前真实 A5000 测试确认旧请求停留在 cancel_requested，预占不会自动回收；
+这是已复现的恢复缺口，不是成功恢复。轮询日志使用以下固定诊断码，不输出原始异常文本：
+
+- `worker_not_registered`：注册表不存在该 Worker。
+- `worker_generation_changed`：当前 Worker 不属于旧 generation。
+- `engine_instance_changed`：generation 相同但执行引擎身份不同。
+- `execution_endpoint_missing`：当前身份缺少执行端点。
+
+这些原因都只表示无法向原执行主体取证，不能授权释放。不得删除 etcd/SQLite 状态、
+改写 generation 或伪造终态回执来通过测试。后续须接入实际进程管理器的终止确认，
+绑定旧 runtime 身份、关闭迟到准入，再幂等回收对应预占；任务失败/重试与容量回收分别验收。
+故障测试结束可以停机，保留未决状态和正常日志，不必为了等待未实现的恢复一直运行服务。
+
 ## JetStream 中断与确认边界
 
 持久控制状态测试环境可在同一 namespace 加入固定的 NATS 镜像：

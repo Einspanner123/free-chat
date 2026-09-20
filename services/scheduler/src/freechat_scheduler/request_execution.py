@@ -1,4 +1,4 @@
-"""Pull-based request reconciliation; loopback transport only, no inference engine driver."""
+"""Pull-based execution reconciliation against generation-bound loopback Workers."""
 
 from __future__ import annotations
 
@@ -20,6 +20,21 @@ from freechat_scheduler.group_runtime import LocalRuntimeEndpoint
 from freechat_scheduler.registry import InMemoryWorkerRegistry
 from freechat_scheduler.request_ledger import RequestLedger, RequestState, Reservation
 
+ObservationUnavailableReason = Literal[
+    "worker_not_registered",
+    "worker_generation_changed",
+    "engine_instance_changed",
+    "execution_endpoint_missing",
+]
+
+
+class ExecutionObservationUnavailable(ValueError):
+    """Safe reason code for a missing execution owner, not proof of termination."""
+
+    def __init__(self, reason: ObservationUnavailableReason) -> None:
+        self.reason = reason
+        super().__init__(reason)
+
 
 class RequestExecutionConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -34,7 +49,7 @@ class LocalGrpcExecutionDriver:
     async def observe(self, command: ExecutionCommand) -> ExecutionReceipt:
         endpoint = self.config.endpoints.get(command.worker_id)
         if endpoint is None:
-            raise ValueError("execution_endpoint_missing")
+            raise ExecutionObservationUnavailable("execution_endpoint_missing")
         async with grpc.aio.insecure_channel(endpoint.address) as channel:
             stub = control_pb2_grpc.RequestExecutionServiceStub(channel)  # type: ignore[no-untyped-call]
             result = await stub.Observe(
@@ -80,6 +95,8 @@ class RequestExecutionReconciler:
                             if receipt.command != command:
                                 raise ValueError("execution_response_command_mismatch")
                             await self.ledger.observe_execution(receipt)
+                    except ExecutionObservationUnavailable as error:
+                        errors[lease.decision.decision_id] = error.reason
                     except Exception as error:
                         errors[lease.decision.decision_id] = type(error).__name__
 
@@ -110,13 +127,14 @@ class RegisteredExecutionDriver:
             ),
             None,
         )
-        if (
-            worker is None
-            or worker.capabilities.generation != command.worker_generation
-            or worker.telemetry.engine_instance_id != command.engine_instance_id
-            or worker.capabilities.execution_endpoint is None
-        ):
-            raise ValueError("registered_execution_incarnation_unavailable")
+        if worker is None:
+            raise ExecutionObservationUnavailable("worker_not_registered")
+        if worker.capabilities.generation != command.worker_generation:
+            raise ExecutionObservationUnavailable("worker_generation_changed")
+        if worker.telemetry.engine_instance_id != command.engine_instance_id:
+            raise ExecutionObservationUnavailable("engine_instance_changed")
+        if worker.capabilities.execution_endpoint is None:
+            raise ExecutionObservationUnavailable("execution_endpoint_missing")
         endpoint = LocalRuntimeEndpoint(
             address=worker.capabilities.execution_endpoint,
             token=self.token,

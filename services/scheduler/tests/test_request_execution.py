@@ -17,12 +17,14 @@ from freechat_contracts.execution import (
 )
 from freechat_control_store import InMemoryStore
 from freechat_gateway.routing import GrpcSchedulerClient
-from freechat_scheduler import grpc_server
+from freechat_scheduler import Scheduler, grpc_server
 from freechat_scheduler.group_runtime import LocalRuntimeEndpoint
+from freechat_scheduler.registry import InMemoryWorkerRegistry
 from freechat_scheduler.request_execution import (
     ExecutionDriver,
     LocalGrpcExecutionDriver,
     LocalRequestExecutionService,
+    RegisteredExecutionDriver,
     RequestExecutionConfig,
     RequestExecutionReconciler,
 )
@@ -30,7 +32,8 @@ from freechat_scheduler.request_ledger import RequestLedger, RequestState
 from freechat_scheduler.scheduler import NoEligibleWorker
 from freechat_worker.execution import DurableExecutionDriver, EngineObservation
 from pydantic import SecretStr
-from test_request_ledger import FaultStore, request, reserve, setup
+from test_request_ledger import UNIT, FaultStore, request, reserve, setup
+from test_scheduler import add_worker
 
 
 def command(
@@ -219,6 +222,64 @@ async def test_cancel_and_expired_completion_reconcile_abort_not_query() -> None
         lease.state is not RequestState.RELEASED
         for lease in (await ledger.snapshot()).reservations.values()
     )
+
+
+@pytest.mark.parametrize(
+    "failure,reason",
+    [
+        ("generation", "worker_generation_changed"),
+        ("engine", "engine_instance_changed"),
+        ("endpoint", "execution_endpoint_missing"),
+    ],
+)
+async def test_missing_execution_owner_reports_reason_without_mutating_reservation(
+    failure: str, reason: str
+) -> None:
+    ledger, registry = RequestLedger(), InMemoryWorkerRegistry()
+    add_worker(registry, "worker-0", node="ross", free_vram_bytes=UNIT)
+    scheduler = Scheduler(registry)
+    route = await reserve(ledger, scheduler, request())
+    await ledger.release(
+        route.decision_id, route.worker_id, route.worker_generation, "tenant-a", cancelled=True
+    )
+    before = await ledger.snapshot()
+    worker = registry.snapshot()[1][0]
+    registry.upsert(
+        worker.capabilities.model_copy(
+            update={
+                "generation": route.worker_generation + int(failure == "generation"),
+                "execution_endpoint": None if failure == "endpoint" else "127.0.0.1:1",
+            }
+        ),
+        worker.telemetry.model_copy(
+            update={
+                "generation": route.worker_generation + int(failure == "generation"),
+                "engine_instance_id": "replacement"
+                if failure == "engine"
+                else route.engine_instance_id,
+            }
+        ),
+    )
+    runtime = RequestExecutionReconciler(ledger, RegisteredExecutionDriver(registry, "t" * 32))
+    for _ in range(2):
+        assert await runtime.tick() == {route.decision_id: reason}
+        assert await ledger.snapshot() == before
+    assert before.reservations[route.decision_id].state is RequestState.CANCEL_REQUESTED
+    with pytest.raises(NoEligibleWorker):
+        await reserve(ledger, scheduler, request("cannot-reuse-uncertain-capacity"))
+
+
+async def test_reconciliation_does_not_log_arbitrary_exception_text() -> None:
+    class UnavailableDriver:
+        async def observe(self, command: ExecutionCommand) -> ExecutionReceipt:
+            raise ValueError("secret://credential/prompt")
+
+    ledger, scheduler = RequestLedger(), setup()
+    route = await reserve(ledger, scheduler, request())
+    before = await ledger.snapshot()
+    errors = await RequestExecutionReconciler(ledger, UnavailableDriver()).tick()
+    assert errors == {route.decision_id: "ValueError"}
+    assert await ledger.snapshot() == before
 
 
 async def test_unbound_engine_and_mismatched_driver_response_fail_closed() -> None:
