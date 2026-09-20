@@ -19,7 +19,8 @@ dependencies and the independent vLLM submodule are pinned in `uv.lock` and
 | Gateway/Scheduler | Real same-host Qwen2.5-0.5B inference on A5000/A4000 through automatic registration, authenticated heartbeat, native preparation, reservations and Worker execution reconciliation |
 | Concurrent admission | Three 8-request contention rounds per GPU against an actual 128-block pool on A5000/A4000; capacity backpressure, re-admission and complete fenced release verified, with no pool oversubscription |
 | Shared Scheduler | A5000/A4000 execute real concurrent requests under one Scheduler; per-GPU capacity and fenced release pass independent log audits. After an idle A4000 stops gracefully, new requests execute on A5000 |
-| Complete deployment | Same-host single/multi-worker API paths are exercised; WebUI integration, persistent control-state recovery and cross-node deployment remain incomplete |
+| Scheduler restart | On A5000 with real single-node etcd, killing Scheduler after first generated token retains the reservation; restart reconciles the same live Worker/engine and admits new work |
+| Complete deployment | Same-host API paths and one Scheduler-crash recovery case are exercised; Worker/store/message-bus failures, WebUI integration and cross-node deployment remain incomplete |
 | Hardware expansion | A6000 validation is pending; 3×4 H100 is a future hardware target, not a verified deployment |
 
 The managed execution adapter currently accepts synchronous TP=PP=DP=1 text

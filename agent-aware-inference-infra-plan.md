@@ -30,7 +30,9 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
    A5000 + Qwen2.5-0.5B 真实权重已验证 12 次完成、提交后取消及首 token 后取消、重复准入拒绝；
    见既有 `evidence/execution-gpu/20260921/`。原生 HTTP 三协议、认证边界与 Worker launcher 已接通，
    A5000/A4000 已通过普通响应、SSE、生成中取消和重复准入验证；A6000 待完成。
-   同机 Gateway→Scheduler→Worker API 闭环已在两卡分别验证，重启恢复和跨节点仍待完成。
+   同机 Gateway→Scheduler→Worker API 闭环已在两卡分别验证；
+   A5000 + 真实单节点 etcd 已验证 Scheduler 崩溃后恢复到同一存活 Worker，
+   Worker/存储/消息总线故障及跨节点仍待完成。
 2. [~] **真实预算。** Worker 已通过上游具名 extension RPC 读取分配后的 KV layout，
    A5000/A4000 实测通过；报告 gross pool 并扣除 null block，不伪装成实时空闲预算。
    原生三协议预处理已给出准确 token 数，并在 GPU 提交前核对实际 prompt 与输出上限，
@@ -49,7 +51,10 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
    HTTP 完成到可信确认之间允许有界重试，不提前回收。日志核验可复跑且不生成结果目录。
    同一 Scheduler 的两卡三轮并发已验证，每轮每卡执行两个 800-token 请求；
    停止空闲 A4000 后新请求由 A5000 执行，健康/排空拒绝原因明确。
-   此证据不代表在途任务恢复；注册完成前的模型 HTTP 健康也不代表已进入调度器。
+   此双卡停止证据不代表在途任务恢复；注册完成前的模型 HTTP 健康也不代表已进入调度器。
+   另已完成 A5000 + 真实 etcd 的控制面故障切片：首 token 后 SIGKILL Scheduler，
+   GPU 继续生成，持久预占不丢失；重启后由原 generation/engine 的终态回执释放，
+   新请求成功且 3/3 已准入请求释放。不能推广成 Worker 崩溃恢复、HA 或 RTO 指标。
    WebUI 及以下故障/生命周期矩阵仍待完成：
    streaming、取消、断连、重复、迟到、重启；再贯通 Tool Wait/Resume、
    KV action、tracing、三协议和四 Harness。复用原生协议，不重新实现另一套 API。

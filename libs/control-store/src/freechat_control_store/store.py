@@ -110,10 +110,7 @@ class EtcdHttpStore:
             json={"key": _encode(key), "value": _encode(value)},
         )
         response.raise_for_status()
-        item = await self.get(key)
-        if item is None:
-            raise RuntimeError(f"etcd acknowledged put but key is absent: {key}")
-        return item
+        return _written_value(key, value, response.json())
 
     async def compare_and_put(self, key: str, expected_revision: int, value: bytes) -> KeyValue:
         compare_target = "CREATE" if expected_revision == 0 else "MOD"
@@ -130,19 +127,14 @@ class EtcdHttpStore:
                         ),
                     }
                 ],
-                "success": [
-                    {"request_put": {"key": _encode(key), "value": _encode(value)}}
-                ],
+                "success": [{"request_put": {"key": _encode(key), "value": _encode(value)}}],
                 "failure": [],
             },
         )
         response.raise_for_status()
         if not response.json().get("succeeded", False):
             raise CompareFailed(f"revision mismatch for {key}")
-        item = await self.get(key)
-        if item is None:
-            raise RuntimeError(f"etcd transaction succeeded but key is absent: {key}")
-        return item
+        return _written_value(key, value, response.json())
 
     async def list_prefix(self, prefix: str) -> tuple[KeyValue, ...]:
         start = prefix.encode()
@@ -179,7 +171,20 @@ class EtcdHttpStore:
         response.raise_for_status()
         if not response.json().get("succeeded", False):
             raise CompareFailed(f"revision mismatch for {key}")
-        return True
+        deleted = response.json()["responses"][0]["response_delete_range"].get("deleted", 0)
+        return int(deleted) > 0
+
+
+def _written_value(key: str, value: bytes, response: dict[str, object]) -> KeyValue:
+    # A later range read can observe another writer. The write response header
+    # identifies this committed transaction, including when another writer wins next.
+    header = response.get("header")
+    if not isinstance(header, dict):
+        raise ValueError("etcd write response has no revision header")
+    revision = int(header["revision"])
+    if revision <= 0:
+        raise ValueError("etcd write response has invalid revision")
+    return KeyValue(key=key, value=value, revision=revision)
 
 
 def _encode(value: str | bytes) -> str:

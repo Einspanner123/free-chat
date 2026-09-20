@@ -158,6 +158,42 @@ SSE 断连、非流式中断、建连失败使用有界、屏蔽外层 ASGI 取�
 cancel/completion intent 和唯一 release，release 的 execution receipt 必须 terminal、quiescent、
 admission_closed。HTTP 200 或顺序请求成功本身不是全部释放证据。
 
+## 同机持久控制状态与重启验证
+
+在独立测试环境使用 Compose 已固定的 etcd 镜像。先启动 etcd 作为稳定的网络 namespace 所属容器：
+
+```bash
+docker run -d --name freechat-etcd -p 127.0.0.1:8080:8080 \
+  -v freechat-etcd-state:/etcd-data \
+  quay.io/coreos/etcd:v3.6.5@sha256:3397341272b9e0a6f44d7e3fc7c321c6efe6cbe82ce866b9b01d0c704bfc5bf3 \
+  /usr/local/bin/etcd --name=local --data-dir=/etcd-data \
+  --listen-client-urls=http://127.0.0.1:2379 --advertise-client-urls=http://127.0.0.1:2379 \
+  --listen-peer-urls=http://127.0.0.1:2380 --initial-advertise-peer-urls=http://127.0.0.1:2380 \
+  --initial-cluster=local=http://127.0.0.1:2380
+docker exec freechat-etcd /usr/local/bin/etcdctl endpoint health
+```
+
+随后使用 README 的 Worker/Gateway/Scheduler 镜像、密钥与模型参数，但三个容器均指定
+`--network container:freechat-etcd`；删除 Worker 的 `-p`，端口只在 etcd namespace 所属容器发布。
+Scheduler 额外传入 `-e ETCD_ENDPOINT=http://127.0.0.1:2379`。不开放 etcd 到宿主机/外网。
+不要把有未决请求的内存控制面直接切换为空 etcd，这不是在线迁移流程。
+停机时 etcd 最后停止，不删除 volume；此单节点启动不提供 quorum/HA。
+
+故障验收必须有以下原始观测，全部输出到 stdout/服务日志，不创建结果目录：
+
+1. 真实 GPU 流式请求出现首个文本 token 后，读取 etcd 中的 RequestLedger：
+   记录 decision ID、Worker generation、engine instance、非 released 状态与预占字节。
+2. 仅对该测试 Scheduler 注入 SIGKILL，检查容器实际退出；保持 Gateway、Worker 和 etcd 存活。
+3. 继续消费流。即使 GPU 已完成，Scheduler 停机期间持久 ledger 仍不得自行释放预占。
+4. 启动同一个 Scheduler。检查恢复记录的身份未变化，执行回执为 terminal/quiescent/admission_closed，
+   然后才进入 released。验证新请求可准入，并等待其可信释放与 outbox 清空。
+5. 合并该容器重启前后的正常日志，运行既有 `--mode audit-log`，核对所有 route/release 与实际池上限。
+
+etcd client 必须使用写入响应的 commit revision，不能通过后续 GET 猜测本次写入结果；
+CAS 竞争测试应验证只有一个胜者，删除不存在的键返回 false。
+这条路径当前验证的是存活 Worker 上的 Scheduler 恢复，不代表重新执行任务、Worker 替换恢复、
+etcd 故障、JetStream 重投、分区、跨节点或故障恢复成功率/RTO。恢复矩阵仍按根计划继续。
+
 ## 开发服务停机
 
 停止测试发流并等待已准入请求的可信释放核验后，停止 Gateway、各 Worker，最后停止 Scheduler；

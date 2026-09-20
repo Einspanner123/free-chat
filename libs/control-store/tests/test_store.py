@@ -48,3 +48,42 @@ def test_prefix_listing_and_fenced_delete() -> None:
         assert await store.get(first.key) is None
 
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("cas", [False, True])
+async def test_write_returns_own_value_and_commit_revision_without_later_read(cas: bool) -> None:
+    calls = []
+
+    async def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.path)
+        if request.url.path == "/v3/kv/range":
+            # Another writer already replaced our committed value.
+            return httpx.Response(
+                200,
+                json={"kvs": [{"key": "aw==", "value": "b3RoZXI=", "mod_revision": "12"}]},
+            )
+        return httpx.Response(200, json={"header": {"revision": "11"}, "succeeded": True})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        store = EtcdHttpStore("http://etcd", client=client)
+        item = (
+            await store.compare_and_put("k", 10, b"ours") if cas else await store.put("k", b"ours")
+        )
+        assert item.value == b"ours" and item.revision == 11
+        assert calls == ["/v3/kv/txn" if cas else "/v3/kv/put"]
+
+
+@pytest.mark.parametrize("deleted", [0, 1])
+async def test_delete_reports_whether_matching_key_existed(deleted: int) -> None:
+    async def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "succeeded": True,
+                "responses": [{"response_delete_range": {"deleted": str(deleted)}}],
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        store = EtcdHttpStore("http://etcd", client=client)
+        assert await store.compare_and_delete("k", 0) is bool(deleted)
