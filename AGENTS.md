@@ -13,3 +13,6 @@
 - Record substantive merge conflicts and obtain the owner's decision before resolving them.
 - Keep one authoritative root plan; operational instructions are in docs/operations.md.
 - CPU tests cover partial contracts only; real execution and full acceptance require GPU tests.
+
+- Validation commands must print results to stdout and use normal service logs; never create new result directories.
+- Validated feature work must converge to main. Keep README aligned with the actual runnable entry point.

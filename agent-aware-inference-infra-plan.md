@@ -11,13 +11,15 @@
 
 源码仅在 ross `/home/linkst/workspace/projects/free-chat` 的 `main` 修改；
 独立引擎仓库由 `third_party/vllm` submodule 和 `versions.lock.yaml` 精确固定。
-workstation 只部署 ross 构建的不可变测试制品，不修改源码。
+workstation 只部署 ross 构建的测试制品，不修改源码。先完成 ross/workstation 的 A6000/A5000/A4000 验证，H100 实机由负责人随后部署测试。
 开发服务可按需停止；不再为普通开发增加常驻分支和生产切换流程。
 
 文档入口只有本计划、README、`docs/operations.md`（操作）、
 `docs/benchmark-metrics.md`（测量方法）和 `docs/claims-ledger.md`（证据）。
 过程说明、重复计划和已解决的归并记录不再保留在工作树；Git 历史可追溯。
-原始实验数据保留，不因整理文档而删除。本计划删除仍需最终验收和负责人确认。
+历史原始证据保留。新增一次性验证不得建立结果目录：结构化结果输出到命令行，运行观测进入正常服务日志。
+校准原始记录通过 JSON 日志携带名称、内容与 SHA-256，分析器直接读取流；profiler 可流式输出 trace。
+本计划删除仍需最终验收和负责人确认。
 
 ### 当前修复顺序
 
@@ -26,7 +28,9 @@ workstation 只部署 ross 构建的不可变测试制品，不修改源码。
    第一切片仅支持 TP=PP=DP=1、同步调度、文本、n=1、无 KV/EC 传输；
    不支持的模式显式拒绝，不假装覆盖所有子请求与流水线。
    A5000 + Qwen2.5-0.5B 真实权重已验证 12 次完成、提交后取消及首 token 后取消、重复准入拒绝；
-   见 `evidence/execution-gpu/20260921/`。HTTP 三协议入口与认证绑定、Worker launcher 仍待接通。
+   见既有 `evidence/execution-gpu/20260921/`。原生 HTTP 三协议、认证边界与 Worker launcher 已接通，
+   A5000/A4000 已通过普通响应、SSE、生成中取消和重复准入验证；A6000 待完成。
+   当前仍不代表 Gateway→Scheduler→Worker 全链路或重启恢复已经完成。
 2. [ ] **真实预算。** 从模型、tokenizer/template、cache allocator 和逐 rank 报告获得
    token 数、KV layout 与可准入预算；明确 reservation 是否已扣除，避免双扣。
 3. [ ] **统一启动路径。** Worker 启动→注册→持续 heartbeat→执行确认轮询；
@@ -574,32 +578,13 @@ Agent task 级：
 
 ---
 
-## 9. 证据目录与结果治理
+## 9. 验证日志与证据治理
 
-建议结构：
-
-```text
-benchmarks/
-  traces/
-  manifests/
-  workloads/
-  baselines/
-  analysis/
-  results/<date>/<commit>/<run-id>/
-experiments/
-  kernels/
-  parallelism/
-  cache-policy/
-docs/
-  architecture/
-  decisions/
-  runbooks/
-  claims-ledger.md
-```
-
-- benchmark 结果不得全部 gitignore；至少提交小型原始样例、manifest、分析输出和大文件获取方法。
-- 图表由仓库脚本从原始数据生成，不手工录入关键数值。
-- 每次 run 包含 stdout/stderr、resolved config、environment fingerprint、GPU topology、metrics 和失败样本。
+- 验证脚本只输出到命令行和正常服务日志，不创建结果目录或过程文档。
+- 原始观测以带哈希的结构化日志输出；分析器读取日志流，统计输出到 stdout。
+- 每次 run 输出 source/image identity、resolved config、environment fingerprint、GPU topology、metrics 和失败样本；记录不完整不得升级为已验证。
+- 已有历史原始证据保留，不覆盖、不冒充当前实现的结果。
+- 图表由仓库脚本从原始日志数据生成，不手工录入关键数值。
 - 只允许在 claims ledger 标记为 `VERIFIED` 的数字进入 README 或简历。
 - 设计候选标记 `PROPOSED`，实现未验收标记 `IMPLEMENTED_UNVERIFIED`，负结果标记 `REJECTED_BY_EVIDENCE`。
 

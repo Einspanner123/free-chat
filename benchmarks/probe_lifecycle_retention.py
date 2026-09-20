@@ -98,6 +98,10 @@ def _request(
 def _events_for_call(path: Path, call_id: str) -> list[dict[str, Any]]:
     events = []
     for line in path.read_text().splitlines():
+        if "FREECHAT_CACHE_EVENT " in line:
+            line = line.split("FREECHAT_CACHE_EVENT ", 1)[1]
+        elif not line.startswith("{"):
+            continue
         event = json.loads(line)
         metadata = event.get("metadata")
         if metadata is not None and metadata.get("call_id") == call_id:
@@ -121,7 +125,6 @@ def main() -> None:
     parser.add_argument("--server-url", default="http://127.0.0.1:8011")
     parser.add_argument("--model", default="qwen-mechanism")
     parser.add_argument("--cache-events", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--prefix-repetitions", type=int, default=100)
     parser.add_argument("--pressure-requests", type=int, default=4)
     parser.add_argument("--block-tokens", type=int, default=16)
@@ -189,8 +192,6 @@ def main() -> None:
             "block_tokens": args.block_tokens,
         },
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     print(json.dumps(result, indent=2, sort_keys=True))
 
 

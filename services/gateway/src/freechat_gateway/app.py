@@ -30,10 +30,13 @@ class GatewayConfig:
     default_worker_endpoint: str = "http://worker:8000"
     request_timeout_seconds: float = 600.0
     origin_node_id: str | None = None
+    worker_token: str | None = None
 
     def __post_init__(self) -> None:
         if len(self.cache_salt_secret) < 32:
             raise ValueError("cache_salt_secret must be at least 32 bytes")
+        if self.worker_token is not None and len(self.worker_token) < 32:
+            raise ValueError("worker_token must be at least 32 characters")
         if not self.api_keys:
             raise ValueError("at least one API key is required")
         if self.origin_node_id is not None and (
@@ -147,6 +150,8 @@ def create_app(
             worker_generation=decision.worker_generation,
             engine_instance_id=decision.engine_instance_id,
         )
+        if config.worker_token is not None:
+            upstream_headers["x-freechat-worker-token"] = config.worker_token
         body["cache_salt"] = cache_salt
         if decision.kv_transfer.applicable:
             body["kv_transfer_params"] = {

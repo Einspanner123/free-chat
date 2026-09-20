@@ -13,12 +13,11 @@ import httpx
 from freechat_contracts import WorkerCapabilities
 from freechat_worker.transfer_calibration import observe_transfer, summarize_transfers
 
-from benchmarks.calibrate_service import save
+from benchmarks.records import emit_record
 
 
 async def run(args: argparse.Namespace) -> None:
     caps = WorkerCapabilities.model_validate_json(args.capabilities.read_text())
-    args.output.mkdir(parents=True, exist_ok=False)
     model = caps.models[0].model_id
     artifacts = []
     summaries = []
@@ -68,8 +67,8 @@ async def run(args: argparse.Namespace) -> None:
                 resumed = await metrics()
                 stem = f"r{repetitions}-trial{trial}"
                 artifacts.append(
-                    save(
-                        args.output / f"{stem}-responses.json",
+                    emit_record(
+                        f"{stem}-responses.json",
                         json.dumps(
                             {
                                 "cache_salt": salt,
@@ -91,7 +90,7 @@ async def run(args: argparse.Namespace) -> None:
                     ("pressure", pressure),
                     ("resumed", resumed),
                 ):
-                    artifacts.append(save(args.output / f"{stem}-{phase}.prom", payload))
+                    artifacts.append(emit_record(f"{stem}-{phase}.prom", payload))
                 if trial < 0:
                     continue  # Initializes lazy counters; retained, never fitted.
                 stores.append(observe_transfer(before, stored, model, "store"))
@@ -107,7 +106,7 @@ async def run(args: argparse.Namespace) -> None:
                 "summaries": [summarize_transfers(stores), summarize_transfers(loads)],
             }
             summaries.append(record)
-        artifacts.append(save(args.output / "observations.json", json.dumps(summaries, indent=2)))
+        artifacts.append(emit_record("observations.json", json.dumps(summaries, indent=2)))
     manifest = {
         "observed_at": datetime.now(UTC).isoformat(),
         "engine_instance_id": args.engine_instance_id,
@@ -124,14 +123,13 @@ async def run(args: argparse.Namespace) -> None:
             "Not automatically installed into scheduler profiles.",
         ],
     }
-    save(args.output / "manifest.json", json.dumps(manifest, indent=2))
+    emit_record("manifest.json", json.dumps(manifest, indent=2))
     print(json.dumps(summaries, indent=2))
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--capabilities", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--engine-instance-id", required=True)
     parser.add_argument("--image-identity", required=True)
     parser.add_argument("--repetitions", type=int, nargs="+", default=[32, 128])

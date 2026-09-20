@@ -6,7 +6,6 @@ import json
 import re
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -339,14 +338,11 @@ def main() -> None:
     parser.add_argument("--pressure-repetitions", type=int, default=140)
     parser.add_argument("--pressure-requests", type=int, default=8)
     parser.add_argument("--timeout", type=float, default=120)
-    parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
     payload = asyncio.run(run(arguments))
-    arguments.output.parent.mkdir(parents=True, exist_ok=True)
-    arguments.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     if not all(payload["assertions"].values()):
         raise RuntimeError(f"probe assertions failed: {payload['assertions']}")
-    print(json.dumps(payload["assertions"], indent=2))
+    print(json.dumps(payload, indent=2))
 
 
 if __name__ == "__main__":

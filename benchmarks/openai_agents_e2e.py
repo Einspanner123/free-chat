@@ -177,11 +177,8 @@ async def async_main() -> None:
     parser.add_argument("--expected-resume-ms", type=int, default=500)
     parser.add_argument("--tool-output-characters", type=int, default=2_000)
     parser.add_argument("--timeout", type=float, default=120)
-    parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
     payload = await run(arguments)
-    arguments.output.parent.mkdir(parents=True, exist_ok=True)
-    arguments.output.write_text(json.dumps(payload, indent=2, default=str) + "\n")
     print(json.dumps(payload, indent=2, default=str))
 
 

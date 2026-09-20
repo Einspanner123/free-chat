@@ -7,7 +7,6 @@ import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any
 
 from tools.source_versions import expected_worker_versions
@@ -168,7 +167,6 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Fail-closed FreeChat worker image gate")
     parser.add_argument("image", help="immutable image reference to validate")
     parser.add_argument("--gpu", help="Docker GPU device index; omit only for CPU inspection")
-    parser.add_argument("--output", type=Path, help="optional JSON evidence path")
     arguments = parser.parse_args()
 
     try:
@@ -185,8 +183,6 @@ def main() -> None:
         raise SystemExit(2) from error
 
     encoded = json.dumps(report, indent=2, sort_keys=True)
-    if arguments.output is not None:
-        arguments.output.write_text(encoded + "\n")
     print(encoded)
     if not report["accepted"]:
         raise SystemExit(1)

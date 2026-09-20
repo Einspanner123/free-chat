@@ -4,6 +4,8 @@ import argparse
 import hashlib
 import json
 import random
+import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -43,22 +45,33 @@ def paired_p95(baseline: list[float], candidate: list[float]) -> dict[str, Any]:
 
 
 def analyze(root: Path) -> dict[str, Any]:
-    index = json.loads((root / "index.json").read_text())
+    return analyze_records(lambda name: (root / name).read_bytes())
+
+
+def analyze_records(read: Callable[[str], bytes]) -> dict[str, Any]:
+    index = json.loads(read("index.json"))
     groups: dict[str, dict[str, dict[bool, dict[str, Any]]]] = {}
     hashes = []
     for item in index:
-        path = root / item["name"] / "result.json"
-        record = json.loads(path.read_text())
+        name = item["name"] + "/result.json"
+        payload = read(name)
+        record = json.loads(payload)
         for artifact in record["artifacts"]:
             if (
-                hashlib.sha256((path.parent / artifact["path"]).read_bytes()).hexdigest()
+                hashlib.sha256(
+                    read(
+                        artifact["name"]
+                        if "name" in artifact
+                        else item["name"] + "/" + artifact["path"]
+                    )
+                ).hexdigest()
                 != artifact["sha256"]
             ):
                 raise ValueError("raw artifact hash mismatch")
         hashes.append(
             {
-                "path": str(path.relative_to(root)),
-                "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "name": name,
+                "sha256": hashlib.sha256(payload).hexdigest(),
             }
         )
         if item["warmup"]:
@@ -131,14 +144,26 @@ def analyze(root: Path) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("root", type=Path)
+    parser.add_argument(
+        "root", type=Path, nargs="?", help="historical directory; omit for JSONL stdin"
+    )
     args = parser.parse_args()
-    output = args.root / "analysis.json"
-    if output.exists():
-        raise ValueError("analysis exists; preserve prior result")
-    report = analyze(args.root)
-    output.write_text(json.dumps(report, indent=2) + "\n")
-    print(json.dumps(report["groups"], indent=2))
+    if args.root is not None:
+        report = analyze(args.root)
+    else:
+        records: dict[str, bytes] = {}
+        for line in sys.stdin:
+            record = json.loads(line)
+            if record.get("record_type") != "validation_artifact":
+                continue
+            payload = record["payload"].encode()
+            if hashlib.sha256(payload).hexdigest() != record["sha256"]:
+                raise ValueError("stream record hash mismatch")
+            if record["name"] in records:
+                raise ValueError("duplicate stream record")
+            records[record["name"]] = payload
+        report = analyze_records(records.__getitem__)
+    print(json.dumps(report, indent=2))
 
 
 if __name__ == "__main__":

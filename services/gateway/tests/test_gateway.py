@@ -501,6 +501,50 @@ async def test_runtime_bootstrap_accepts_explicit_scheduler(
     from freechat_gateway.main import build_app
 
     monkeypatch.setenv("FREECHAT_SCHEDULER_TARGET", "127.0.0.1:50051")
+    monkeypatch.setenv("FREECHAT_WORKER_TOKEN", "t" * 32)
     app = build_app()
     async with app.router.lifespan_context(app):
         assert isinstance(app, FastAPI)
+
+
+
+def test_worker_token_is_configured_not_client_supplied() -> None:
+    seen: list[httpx.Request] = []
+
+    def record(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return upstream(request)
+
+    app = create_app(
+        GatewayConfig(
+            api_keys={"tenant-a": "secret-key"},
+            cache_salt_secret=b"s" * 32,
+            worker_token="trusted-" * 4,
+        ),
+        transport=httpx.MockTransport(record),
+    )
+    with TestClient(app) as http:
+        response = http.post(
+            "/v1/chat/completions",
+            headers={
+                "authorization": "Bearer secret-key",
+                "x-freechat-worker-token": "attacker-token",
+                "x-freechat-internal-tenant": "attacker",
+            },
+            json={"model": "qwen", "messages": [{"role": "user", "content": "hello"}]},
+        )
+    assert response.status_code == 200
+    assert seen[0].headers["x-freechat-worker-token"] == "trusted-" * 4
+    assert seen[0].headers["x-freechat-internal-tenant"] == "tenant-a"
+
+
+@pytest.mark.parametrize("value", ["", "short"])
+def test_gateway_bootstrap_requires_worker_token(
+    monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    from freechat_gateway.main import build_app
+
+    monkeypatch.setenv("FREECHAT_SCHEDULER_TARGET", "127.0.0.1:50051")
+    monkeypatch.setenv("FREECHAT_WORKER_TOKEN", value)
+    with pytest.raises(ValueError, match="FREECHAT_WORKER_TOKEN"):
+        build_app()

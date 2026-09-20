@@ -497,12 +497,14 @@ name = "freechat-protocol"
 version = "0.1.0"
 source = { editable = "libs/protocol" }
 dependencies = [
+    { name = "freechat-contracts" },
     { name = "grpcio" },
     { name = "protobuf" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "freechat-contracts", editable = "libs/contracts" },
     { name = "grpcio", specifier = ">=1.74,<2" },
     { name = "protobuf", specifier = ">=6.31,<7" },
 ]
@@ -579,6 +581,7 @@ name = "freechat-worker"
 version = "0.1.0"
 source = { editable = "worker" }
 dependencies = [
+    { name = "fastapi" },
     { name = "freechat-contracts" },
     { name = "freechat-protocol" },
     { name = "grpcio" },
@@ -586,6 +589,7 @@ dependencies = [
     { name = "nvidia-ml-py" },
     { name = "prometheus-client" },
     { name = "pydantic" },
+    { name = "uvicorn" },
 ]
 
 [package.optional-dependencies]
@@ -597,6 +601,7 @@ gpu = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi", specifier = ">=0.116,<1" },
     { name = "freechat-contracts", editable = "libs/contracts" },
     { name = "freechat-protocol", editable = "libs/protocol" },
     { name = "grpcio", specifier = ">=1.74,<2" },
@@ -607,6 +612,7 @@ requires-dist = [
     { name = "torch", marker = "extra == 'gpu'", specifier = "==2.13.0" },
     { name = "transformers", marker = "extra == 'gpu'", specifier = "==5.16.1" },
     { name = "triton", marker = "extra == 'gpu'", specifier = "==3.7.1" },
+    { name = "uvicorn", specifier = ">=0.35,<1" },
 ]
 provides-extras = ["gpu"]
 

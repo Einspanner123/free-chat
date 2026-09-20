@@ -47,17 +47,49 @@ class VllmExecutionBackend:
     async def submit(self, engine_request_id: str, payload: Mapping[str, Any]) -> None:
         if engine_request_id in self._requests:
             raise ValueError("execution_duplicate_backend_submit")
-        if set(payload) != {"prompt", "sampling_params"}:
+        if set(payload) not in (
+            {"prompt", "sampling_params"},
+            {"prompt", "sampling_params", "options"},
+        ):
             raise ValueError("execution_payload_requires_prompt_and_sampling_params")
         params = payload["sampling_params"]
         prompt = payload["prompt"]
         if getattr(params, "n", None) != 1 or not isinstance(prompt, (str, dict)):
             raise ValueError("execution_adapter_requires_single_text_request")
-        if isinstance(prompt, dict) and set(prompt) != {"prompt_token_ids"}:
-            raise ValueError("execution_adapter_requires_text_tokens")
+        if isinstance(prompt, dict):
+            allowed = {
+                "type",
+                "prompt_token_ids",
+                "prompt",
+                "cache_salt",
+                "arrival_time",
+                "prompt_token_offsets",
+                "assistant_tokens_mask",
+            }
+            if (
+                "prompt_token_ids" not in prompt
+                or set(prompt) - allowed
+                or prompt.get("type", "token") != "token"
+            ):
+                raise ValueError("execution_adapter_requires_text_tokens")
+        options = payload.get("options", {})
+        if not isinstance(options, dict) or set(options) - {
+            "prompt_text",
+            "lora_request",
+            "tokenization_kwargs",
+            "trace_headers",
+            "priority",
+            "data_parallel_rank",
+            "session_id",
+            "reasoning_ended",
+            "reasoning_parser_kwargs",
+        }:
+            raise ValueError("execution_generate_options_invalid")
         # Install identity BEFORE awaiting preprocessing/engine submission.
         state = self._requests[engine_request_id] = _Submission()
-        state.collector = await self.engine.add_request(engine_request_id, prompt, params)
+        state.collector = await self.engine.add_request(
+            engine_request_id, prompt, params, **options
+        )
         state.submitted = True
 
     def _state(self, engine_request_id: str) -> _Submission:

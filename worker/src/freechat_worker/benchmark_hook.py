@@ -1,25 +1,17 @@
-"""Append vLLM cache lifecycle events to an audit JSONL file.
-
-This hook is intentionally benchmark-only. The serving benchmark loads it in
-the engine-core process through ``VLLM_AGENT_CACHE_HOOK`` so cache hits can be
-joined to request measurements without inferring them from latency.
-"""
+"""Send correlated vLLM cache lifecycle observations to the service logger."""
 
 from __future__ import annotations
 
-import fcntl
 import json
+import logging
 import os
 import time
-from pathlib import Path
 from typing import Any
 
+LOGGER = logging.getLogger("freechat.cache.events")
 
-class JsonlCacheEventHook:
-    def __init__(self, output_path: Path) -> None:
-        self._output_path = output_path
-        self._output_path.parent.mkdir(parents=True, exist_ok=True)
 
+class LoggingCacheEventHook:
     def on_cache_event(self, event: Any) -> None:
         metadata = getattr(event, "metadata", None)
         record = {
@@ -50,24 +42,8 @@ class JsonlCacheEventHook:
                 else None
             ),
         }
-        payload = (
-            json.dumps(record, sort_keys=True, separators=(",", ":")) + "\n"
-        ).encode()
-        descriptor = os.open(
-            self._output_path,
-            os.O_APPEND | os.O_CREAT | os.O_WRONLY,
-            0o600,
-        )
-        try:
-            fcntl.flock(descriptor, fcntl.LOCK_EX)
-            os.write(descriptor, payload)
-        finally:
-            fcntl.flock(descriptor, fcntl.LOCK_UN)
-            os.close(descriptor)
+        LOGGER.info("FREECHAT_CACHE_EVENT %s", json.dumps(record, sort_keys=True))
 
 
-def create_jsonl_cache_hook() -> JsonlCacheEventHook:
-    value = os.getenv("FREECHAT_CACHE_EVENT_JSONL")
-    if not value:
-        raise RuntimeError("FREECHAT_CACHE_EVENT_JSONL is required")
-    return JsonlCacheEventHook(Path(value))
+def create_cache_log_hook() -> LoggingCacheEventHook:
+    return LoggingCacheEventHook()

@@ -1,28 +1,25 @@
 # FreeChat 操作手册
 
-实施顺序和未完成项只看根目录 `agent-aware-inference-infra-plan.md`。
-本文仅提供运行/采集接口，不表示每个步骤已完成端到端验收。
+唯一实施顺序见根目录计划，当前入口见 README。验证只输出到 stdout 或正常服务日志，不创建结果目录。
+服务 journal、模型缓存和配置不是验证结果，按正常服务生命周期管理。
 
-## 当前执行后端 GPU 验证
+## Managed Worker
 
-源码在 ross 修改，测试镜像可在 GPU 主机从 ross 传入的构建上下文构建。
-`deploy/worker/Dockerfile.execution-test` 复用已有锁定镜像的二进制并覆盖本次 Python 源码，
-执行 `tools.validate_execution_gpu`：真实权重、多次完成、提交后/首 token 后取消和重复准入拒绝。
-只支持同步单 GPU、文本 n=1，无 disaggregated KV/EC；不是完整 HTTP serving launcher。
-运行时挂载模型只读，并记录基础/派生镜像 ID、父仓库/fork revision 及原始日志。
-不可将该开发镜像标为 release，或将这个 probe 标为整个系统测试通过。
+`freechat-worker` 使用原生 vLLM 三协议处理器，外层只负责认证、准入和执行关联。
+启动命令见 README；控制 RPC 当前只绑定同机 loopback，不宣称跨节点 mTLS 已完成。
+HTTP 除 `/health` 外要求 `x-freechat-worker-token`；Gateway 从服务配置提供该 token，
+不会转发客户端提供的同名身份。租户和执行身份由 Gateway/调度结果生成。
 
-GPU 主机构建后先用 `docker image inspect` 解析镜像 ID，再运行固定 ID：
+部署镜像使用 `deploy/worker/Dockerfile`。运行后在同一主机或容器内执行：
 
 ```bash
-docker run --rm --init --gpus device=0 --shm-size=2g \
-  -e HF_HUB_OFFLINE=1 -e TRANSFORMERS_OFFLINE=1 \
-  -v /data/freechat/models/Qwen2.5-0.5B-Instruct:/model:ro \
-  sha256:IMAGE_ID --model /model --repeats 12
+python -m tools.validate_native_http --model qwen
 ```
 
-Gateway 运行必须配置 `FREECHAT_SCHEDULER_TARGET`；缺失或空白直接拒绝启动。
-
+该命令覆盖原生三协议的普通响应、SSE、生成中取消、重复准入拒绝和未认证请求拒绝。
+它不代替尚未接通的完整 Gateway/Scheduler 启动与容量对账。
+缓存事件通过 `freechat_worker.benchmark_hook:create_cache_log_hook` 写入服务 logger，
+消息前缀 `FREECHAT_CACHE_EVENT`；不再创建独立 JSONL 文件。
 
 ## Worker container build and acceptance
 
@@ -68,8 +65,7 @@ GPU acceptance command succeeds against the digest reference.
 ```bash
 uv run python -m tools.validate_worker_image \
   registry.example/freechat-worker@sha256:REPLACE_ME \
-  --gpu 1 \
-  --output /data/freechat/profiles/worker-image.json
+  --gpu 1
 ```
 
 Acceptance requires all of the following in one run:
@@ -100,179 +96,16 @@ because no project registry is configured and the local tag has no repository
 digest. A registry push and a repeat of the same command against the resolved
 digest are still required; the local image ID is not a substitute.
 
-## Worker telemetry and calibration boundary
+## Telemetry、校准与 Harness 测试
 
-The collector uses the pinned engine's Prometheus endpoint and host GPU memory
-observation, then emits generation-fenced gRPC heartbeats. It supports one model
-and engine `0` per worker. It selects exact metric names and labels; unrelated
-multi-dimensional series are ignored, while ambiguous selected series fail.
+- `python -m freechat_worker.telemetry --help`：采集原生 Prometheus 队列、KV 使用率与传输计数，发送带 generation/engine identity 的 heartbeat。先注册同一 capability/generation。采集器目前不提供可信的 KV 空闲字节预算或完整 prefix inventory。
+- `python -m benchmarks.calibrate_service --help`：Prefill/Decode 服务时间校准；每份 profile 绑定模型、Worker generation、engine instance 与观测时间。
+- `python -m benchmarks.calibrate_transfer --help`：完整 block 的 Store/Load 测量，检查 token/字节一致性；传输服务率不等于端到端吞吐。
+- `python -m benchmarks.harness_offload_boundary --help`：独立 baseline Worker 上的 Harness 边界实验，不是已完成的 managed Gateway 路由验收。
+- `python -m benchmarks.analyze_offload_boundary`：从 stdin 读取上述 hash-linked JSONL；拒绝重复/损坏记录，结果输出到 stdout。可传入历史目录做只读分析。
+- `python -m benchmarks.profile_kv_quantize --help`：GPU profiler；`--chrome-trace` 将 trace 写到 stdout，摘要写 stderr，不生成结果目录。
 
-Run `python -m freechat_worker.telemetry --help` on the GPU host. Register the
-worker first and supply the same capabilities file and generation. The engine
-instance identifier must change on engine restart, along with worker generation.
-The collector stops on scrape failure or reset; existing telemetry ages out.
-Scheduler rejects samples older than 30 seconds or more than five seconds in
-the future. Heartbeats cannot replace newer observations or change engine
-instance within an existing generation. Internal transport authentication is
-still a separate deployment gate; these checks are consistency checks.
-
-### Available observations
-
-- Running and waiting request counts, plus physical free VRAM from nvidia-smi.
-- Engine KV usage ratio. The pinned BlockPool computes this as one minus free
-  blocks divided by total blocks excluding its null block. It does not expose
-  the identity/value of reusable cached prefixes. Consequently the collector
-  leaves KV capacity/free-byte and prefix inventory fields unknown.
-- Store/load bytes divided by accumulated operation duration, calculated from
-  consecutive scrapes in the same engine instance. This is transfer service
-  throughput, not end-to-end request speed or wall-clock PCIe saturation.
-- Windows without transfer observations emit no store estimate. A first scrape
-  establishes the baseline; missing counters are not silently treated as zero.
-
-### Remaining calibration work
-
-Prefill/decode throughput, KV layout-derived capacity and reusable block lineage
-are not yet calibrated by this collector. Existing numeric contract defaults
-are not measurements. Scheduler disables predictive offload for this source
-with `prefill_calibration_required`; route cost estimates still use contract
-defaults and must not be used in performance claims or heterogeneous-placement
-acceptance. The next change must replace those defaults with calibrated profiles
-and an explicit unavailable-cost fallback.
-
-### Live validation
-
-`benchmarks/telemetry_probe.py` connects real worker HTTP metrics to an isolated
-in-memory scheduler over gRPC. It sends a direct real-model request with explicit
-native offload enabled to produce a transfer measurement; this is not a policy
-performance experiment. Run it with a registered-model capabilities file and
-a unique evidence output directory. At least one prior transfer is required to
-initialize the native engine's lazily emitted counters.
-
-On 2026-09-08, A5000 validation `evidence/telemetry/20260908-run03/` accepted both
-heartbeats, observed a store-window service rate of approximately 11.112 GB/s,
-and returned `prefill_calibration_required` through the real gRPC route client.
-This one window provides no confidence interval and does not establish expected
-bandwidth for other shapes. The raw before/after metrics and hashes are retained.
-
-Run01 retained a failed parser probe (unrelated multi-label metrics); run02
-retained the first-counter initialization case. Run03 is the successful probe.
-No run is a Harness or end-to-end performance acceptance result.
-
-## Scoped inference service calibration
-
-The Scheduler consumes measured service profiles instead of interpreting telemetry's
-legacy default rates as measured inference costs. Profiles bind worker generation,
-engine instance, model capability, observation/expiry timestamps, image identity and
-an observation artifact hash. Matching requires the measured input/output scope and
-concurrency scope; stale, missing or mismatched profiles are unavailable estimates.
-If any eligible candidate lacks a usable estimate, cost-aware and lifecycle-aware
-routing explicitly fall back to least-load. The decision carries requested strategy,
-effective strategy, fallback reason and per-candidate estimate availability.
-
-Numeric zero fields in an unavailable candidate are serialization placeholders, not
-zero-latency predictions. Consumers must inspect `estimate_available`. Queue, network
-and eviction terms are not comprehensively calibrated by this work.
-
-### Real execution, 2026-09-08
-
-`evidence/calibration/20260908-run01/` contains raw before/after Prometheus snapshots,
-response usage, observations, scoped profiles, gRPC routing decisions and a SHA-256
-manifest. The run used workstation A5000 and Qwen2.5-0.5B-Instruct, with three measured
-serial requests per scope after warm-up. Both scopes generate exactly 16 tokens:
-
-| Input tokens | Prefill tokens / engine service second | Decode tokens / engine service second |
-| --- | ---: | ---: |
-| 254 | 31505.08 | 420.56 |
-| 926 | 54923.61 | 413.76 |
-
-These are pooled calibration rates, not task throughput, speedup, TTFT or an SLO.
-Decode counts output tokens minus the first token against the engine decode interval.
-The collector requires one completed request in every histogram, idle boundaries,
-unchanged preemption count, positive deltas, response/metric token agreement, and
-computed KV tokens equal to prompt tokens. Unique cache salts prevent prefix reuse.
-The actual image's metric definition excludes cached tokens from computed KV tokens.
-
-The probe validated profiles through real gRPC heartbeats and Gateway routing-client
-serialization against an isolated in-memory Scheduler. In-scope requests received a
-calibration ID. An out-of-scope request received least-load plus
-`candidate_cost_unavailable`. This does not validate the deployed persistent control
-plane. Profiles expire after one hour and are not portable across engine restarts.
-
-### Remaining gates
-
-- The image identity is a local image SHA, not a registry digest. The model/tokenizer
-  revision labels are not an independently verified complete artifact manifest.
-- Two exact input lengths with three samples each do not establish interpolation,
-  confidence intervals, concurrent batching or cached-prefix service costs.
-- Store/Load size-scoped calibration is absent. Predictive offload remains disabled
-  with `transfer_calibration_required`, even when inference calibration matches.
-- KV residency and eviction probability remain separate work; free VRAM and cache
-  usage do not establish prefix residency or future reuse.
-- Four-Harness paired task-level comparisons remain uncompleted. No resume benefit
-  percentage may be derived from these service rates.
-
-Continue with Store/Load calibration and residency evidence, then evaluate predictive
-offload using paired real Harness trials. The post-tool-wait fork interface remains
-deferred under the recorded A-before-B decision. Keep the implementation plan.
-
-## Native KV transfer calibration evidence
-
-The executable probe is `python -m benchmarks.calibrate_transfer`. It uses an
-already-running, dedicated single-model worker. The pressure recipe is specific to
-the A5000 probe container's 64 MiB KV pool, not general topology discovery.
-
-Each scope runs a warm-up cycle followed by three measured cycles:
-
-1. Submit a new salted target with native prompt offload enabled.
-2. Submit eight independently salted pressure requests with offload disabled.
-3. Resume the exact target with the same salt and offload disabled.
-4. Compare isolated request windows for Store/Load byte, operation and service-time
-   deltas. Require external prefix hit tokens in every accepted Load window.
-
-The observer rejects missing counters, counter regression/disappearance, non-idle
-boundaries, preemption, multiple completed requests, zero transfer amounts and
-non-integral accounting. This is a controlled experiment: boundary checks alone do
-not establish exclusive access against arbitrary concurrent clients.
-
-### Evidence
-
-`evidence/transfer-calibration/20260908-run01/` records two successful scopes, each
-with three Store and three Load observations after warm-up, on real A5000 inference:
-
-| Scope | Bytes per Store and Load | External hit tokens per resume |
-| --- | ---: | ---: |
-| 32 repetitions | 2,949,120 | 240 |
-| 128 repetitions | 11,206,656 | 912 |
-
-These values match 12,288 KV bytes/token for the configured Dense/GQA model. They
-are complete-block transfers, not all prompt tokens. Service-time ratios appear in
-the raw observations only as calibration data, not task throughput or speedup.
-
-The successful follow-up `evidence/transfer-calibration/20260908-run02/` also archives
-target/resume responses and its source hash, and
-requires equal target/resume prompt counts plus Load bytes equal to external hit
-tokens times the configured KV layout size. Each run has a separate output directory;
-raw earlier evidence is retained, never overwritten.
-
-### What this does not establish
-
-- No real Harness or baseline/candidate performance comparison was run here.
-- The two exact byte sizes do not justify interpolation, concurrent-copy cost or
-  a universal bandwidth value. Three samples do not establish a stable tail estimate.
-- The aggregate external-hit counter is not a per-block residency catalog. The
-  current KV controller policy and worker callback buffer do not supply a complete,
-  reconciled native CPU/GPU residency inventory. Dropped events must invalidate
-  certainty before any catalog is used for routing.
-- Image identity and engine instance are probe arguments; production attestation
-  and full model/tokenizer artifact identity remain separate gates.
-- These measurements are not automatically merged into Scheduler profiles. The
-  current request-size estimate uses total prompt tokens, while the native connector
-  transfers complete blocks. Calibrate the actual transfer plan and its direction,
-  size and generation before authorizing predictive offload from these samples.
-
-Next: implement the explicit block-aligned transfer-plan contract, connect native
-completion/residency signals with uncertainty handling, then run paired real Harness
-trials. The A-before-B decision and plan-retention requirement remain unchanged.
+这些校准程序需按其 CLI 指定实际模型、capability 和运行环境。不要把直接访问 baseline Worker 的结果当作 Gateway/Scheduler 收益。历史测量和 claim 边界仅在 Claims Ledger 维护，操作手册不保留逐次试验过程。
 
 ## Explicit future-reuse forecasts
 
@@ -321,10 +154,6 @@ edge contract and safe default, not completed live predictor integration.
 - Charge unused Store bytes and repeated Prefill from false negatives separately;
   a well-calibrated reuse probability does not itself establish an eviction probability.
 - Use held-out real Harness traces; never fit and validate on the same paired probe.
-
-Current evidence is CPU contract tests across all four adapters. No new GPU or
-end-to-end improvement claim is introduced by this change. The A implementation route
-and original implementation-plan retention requirements are unchanged.
 
 ## Harness adapter boundary
 
@@ -387,14 +216,7 @@ Cancelled states are sticky so delayed replay cannot resurrect a task.
 ### Evidence rule
 
 Unit or contract tests may verify identity preservation and transition logic.
-Only a real Harness process, real Gateway/worker request, archived trace and
+Only a real Harness process, real Gateway/worker request, service trace and
 protocol-matched failure matrix may satisfy `harness-integrations` in the
 Claims Ledger. No event-contract result is a latency, cache-hit or throughput
 claim.
-
-The 2026-09-07 OpenAI Agents run executed `read_file("README.md")` and recorded
-paired Active and Resume model requests followed by Terminal. The 0.5B model's
-final answer did not match the expected README heading, so this run validates
-the lifecycle path but explicitly fails the task-quality gate. The archived
-record is `evidence/harnesses/openai-agents-qwen05b-20260907.json`; it must not
-be used as performance or model-routing acceptance.

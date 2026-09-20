@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -22,10 +21,7 @@ from freechat_scheduler.scheduler import Scheduler
 from freechat_worker.calibration import ServiceObservation, fit_service_profile, observe_request
 from freechat_worker.telemetry import TelemetryCollector, heartbeat
 
-
-def save(path: Path, payload: str) -> dict[str, str]:
-    path.write_text(payload)
-    return {"path": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+from benchmarks.records import emit_record
 
 
 async def validate_routes(
@@ -92,9 +88,6 @@ async def validate_routes(
 
 async def run(args: argparse.Namespace) -> None:
     caps = WorkerCapabilities.model_validate_json(args.capabilities.read_text())
-    if args.output.exists():
-        raise ValueError("output exists; choose a unique run directory")
-    args.output.mkdir(parents=True)
     artifacts = []
     profiles = []
     async with httpx.AsyncClient(timeout=120, trust_env=False) as client:
@@ -139,8 +132,8 @@ async def run(args: argparse.Namespace) -> None:
                 await asyncio.sleep(1)
                 after = await metrics()
                 stem = f"r{repetitions}-trial{index}"
-                artifacts.append(save(args.output / f"{stem}-before.prom", before))
-                artifacts.append(save(args.output / f"{stem}-after.prom", after))
+                artifacts.append(emit_record(f"{stem}-before.prom", before))
+                artifacts.append(emit_record(f"{stem}-after.prom", after))
                 observation = observe_request(before, after, caps.models[0].model_id)
                 if observation.input_tokens != response["usage"]["prompt_tokens"]:
                     raise ValueError("response and engine prompt token counts disagree")
@@ -148,8 +141,8 @@ async def run(args: argparse.Namespace) -> None:
                     raise ValueError("response and engine output token counts disagree")
                 observations.append(observation)
                 records.append({"sample": observation.model_dump(), "response": response})
-            artifact = save(
-                args.output / f"r{repetitions}-observations.json",
+            artifact = emit_record(
+                f"r{repetitions}-observations.json",
                 json.dumps(records, indent=2) + "\n",
             )
             artifacts.append(artifact)
@@ -162,8 +155,8 @@ async def run(args: argparse.Namespace) -> None:
             )
             profiles.append(profile)
             artifacts.append(
-                save(
-                    args.output / f"r{repetitions}-profile.json",
+                emit_record(
+                    f"r{repetitions}-profile.json",
                     profile.model_dump_json(indent=2) + "\n",
                 )
             )
@@ -186,7 +179,7 @@ async def run(args: argparse.Namespace) -> None:
             await metrics(),
             int(stdout.decode().strip()) * 1024**2,
         )
-    artifacts.append(save(args.output / "routes.json", json.dumps(routes, indent=2) + "\n"))
+    artifacts.append(emit_record("routes.json", json.dumps(routes, indent=2) + "\n"))
     manifest = {
         "evidence_level": "MECHANISM_ONLY",
         "performance_claim_admissible": False,
@@ -202,7 +195,7 @@ async def run(args: argparse.Namespace) -> None:
             "Image identity is a local image ID, not a registry digest.",
         ],
     }
-    save(args.output / "manifest.json", json.dumps(manifest, indent=2) + "\n")
+    emit_record("manifest.json", json.dumps(manifest, indent=2) + "\n")
     print(json.dumps([profile.model_dump(mode="json") for profile in profiles], indent=2))
 
 
@@ -215,7 +208,6 @@ def main() -> None:
     parser.add_argument("--repetitions", type=int, nargs="+", default=[32, 128])
     parser.add_argument("--trials", type=int, default=3)
     parser.add_argument("--output-tokens", type=int, default=16)
-    parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     if args.trials < 3 or args.output_tokens < 2 or min(args.repetitions) < 1:
         parser.error("requires at least three trials, two output tokens and positive repetitions")

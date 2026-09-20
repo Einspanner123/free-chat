@@ -21,7 +21,7 @@ from langgraph.graph import END, START, StateGraph
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
-from benchmarks.calibrate_service import save
+from benchmarks.records import emit_record
 
 NAMES = {
     "vllm:request_prompt_tokens_count",
@@ -41,11 +41,11 @@ class GraphState(TypedDict, total=False):
 
 
 class ProbeTransport(httpx.AsyncBaseTransport):
-    def __init__(self, endpoint: str, model: str, output: Path, enabled: bool) -> None:
+    def __init__(self, endpoint: str, model: str, record_prefix: str, enabled: bool) -> None:
         self.transport = httpx.AsyncHTTPTransport(retries=0)
         self.monitor = httpx.AsyncClient(base_url=endpoint, trust_env=False, timeout=120)
         self.model = model
-        self.output = output
+        self.record_prefix = record_prefix
         self.enabled = enabled
         self.salt = str(uuid4())
         self.calls: list[dict[str, Any]] = []
@@ -99,7 +99,7 @@ class ProbeTransport(httpx.AsyncBaseTransport):
             ("request.json", json.dumps(body)),
             ("response.json", json.dumps(payload)),
         ):
-            self.artifacts.append(save(self.output / f"call{index}-{suffix}", raw))
+            self.artifacts.append(emit_record(f"{self.record_prefix}/call{index}-{suffix}", raw))
         self.calls.append(
             {
                 "request_ms": (finished - dispatch) * 1000,
@@ -135,10 +135,9 @@ class ProbeTransport(httpx.AsyncBaseTransport):
 
 
 async def trial(
-    args: argparse.Namespace, harness: str, scenario: str, enabled: bool, output: Path
+    args: argparse.Namespace, harness: str, scenario: str, enabled: bool, record_prefix: str
 ) -> dict[str, Any]:
-    output.mkdir(parents=True, exist_ok=False)
-    probe = ProbeTransport(args.endpoint, args.model, output, enabled)
+    probe = ProbeTransport(args.endpoint, args.model, record_prefix, enabled)
     client = AsyncOpenAI(
         api_key="local-probe",
         base_url=args.endpoint + "/v1",
@@ -265,21 +264,20 @@ async def trial(
         }
         if len(probe.calls) != 2 or tool_calls != ["read_heading"]:
             raise RuntimeError("incomplete two-call workflow")
-        save(output / "result.json", json.dumps(record, indent=2))
+        emit_record(f"{record_prefix}/result.json", json.dumps(record, indent=2))
         return record
     finally:
         await client.close()
 
 
 async def run(args: argparse.Namespace) -> None:
-    args.output.mkdir(parents=True, exist_ok=False)
     records = []
     for harness in args.harnesses:
         for scenario in args.scenarios:
             for repeat in range(-1, args.pairs):
                 for enabled in [False, True] if repeat % 2 == 0 else [True, False]:
                     name = f"{harness}-{scenario}-{repeat}-{int(enabled)}"
-                    record = await trial(args, harness, scenario, enabled, args.output / name)
+                    record = await trial(args, harness, scenario, enabled, name)
                     records.append(
                         {"name": name, "warmup": repeat < 0, "correct": record["correct"]}
                     )
@@ -293,7 +291,7 @@ async def run(args: argparse.Namespace) -> None:
                         ),
                         flush=True,
                     )
-    save(args.output / "index.json", json.dumps(records, indent=2))
+    emit_record("index.json", json.dumps(records, indent=2))
 
 
 def main() -> None:
@@ -301,7 +299,6 @@ def main() -> None:
     parser.add_argument("--endpoint", default="http://100.99.131.26:18001")
     parser.add_argument("--model", default="Qwen/Qwen2.5-0.5B-Instruct")
     parser.add_argument("--readme", type=Path, default=Path("README.md"))
-    parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--pairs", type=int, default=3)
     parser.add_argument(
         "--harnesses", nargs="+", choices=["agents", "langgraph"], default=["agents", "langgraph"]

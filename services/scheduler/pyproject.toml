@@ -28,4 +28,3 @@ freechat-trace-replay = { workspace = true }
 
 [project.scripts]
 freechat-scheduler = "freechat_scheduler.grpc_server:run"
-freechat-validate-control-plane = "freechat_scheduler.live_validation:run"

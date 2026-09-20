@@ -11,7 +11,6 @@ import json
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime, timedelta
 from itertools import combinations
-from pathlib import Path
 from typing import Any
 
 import grpc
@@ -200,16 +199,11 @@ async def validate_layout(tp: int) -> dict[str, Any]:
 
 async def main_async() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args()
-    if args.output.exists():
-        parser.error("output exists; preserve prior evidence")
+    parser.parse_args()
     result = {
         "scope": "local loopback, synthetic inventory, no model execution",
         "layouts": [await validate_layout(tp) for tp in (1, 2, 4)],
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(result, indent=2) + "\n")
     print(json.dumps(result, indent=2))
 
 

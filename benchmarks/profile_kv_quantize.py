@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
+import sys
 
 import torch  # type: ignore[import-not-found]
 from freechat_worker.kernels import quantize_kv, quantize_kv_reference
-from kv_quantize import query_gpu_state, require_exclusive_gpu  # type: ignore[import-not-found]
+
+from benchmarks.kv_quantize import query_gpu_state, require_exclusive_gpu
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--trace", type=Path, required=True)
-    parser.add_argument("--summary", type=Path, required=True)
+    parser.add_argument("--chrome-trace", action="store_true", help="stream raw trace to stdout")
     parser.add_argument("--elements", type=int, default=8 * 1024 * 1024)
     parser.add_argument("--group-size", type=int, default=128)
     parser.add_argument("--warmup", type=int, default=50)
@@ -34,9 +34,8 @@ def main() -> None:
         with torch.profiler.record_function("freechat::kv_quantize_triton"):
             quantize_kv(source, arguments.group_size, enable_triton=True)
         torch.cuda.synchronize()
-    arguments.trace.parent.mkdir(parents=True, exist_ok=True)
-    arguments.summary.parent.mkdir(parents=True, exist_ok=True)
-    profiler.export_chrome_trace(str(arguments.trace))
+    if arguments.chrome_trace:
+        profiler.export_chrome_trace("/dev/stdout")
     events = [
         {
             "name": event.key,
@@ -46,7 +45,7 @@ def main() -> None:
         }
         for event in profiler.key_averages()
     ]
-    arguments.summary.write_text(
+    print(
         json.dumps(
             {
                 "torch": torch.__version__,
@@ -58,9 +57,8 @@ def main() -> None:
                 "events": events,
             },
             indent=2,
-        )
-        + "\n",
-        encoding="utf-8",
+        ),
+        file=sys.stderr if arguments.chrome_trace else sys.stdout,
     )
 
 

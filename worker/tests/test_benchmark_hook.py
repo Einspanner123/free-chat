@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
-from pathlib import Path
 
-from freechat_worker.benchmark_hook import JsonlCacheEventHook
+import pytest
+from freechat_worker.benchmark_hook import LoggingCacheEventHook
 
 
 @dataclass(frozen=True)
@@ -33,13 +34,13 @@ class Event:
     metadata: Metadata | None = Metadata()
 
 
-def test_jsonl_hook_records_correlated_cache_evidence(tmp_path: Path) -> None:
-    output = tmp_path / "events.jsonl"
-    JsonlCacheEventHook(output).on_cache_event(Event())
-
-    record = json.loads(output.read_text())
+def test_cache_hook_records_correlated_evidence_in_service_log(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.INFO, logger="freechat.cache.events"):
+        LoggingCacheEventHook().on_cache_event(Event())
+    record = json.loads(caplog.records[-1].getMessage().split("FREECHAT_CACHE_EVENT ", 1)[1])
     assert record["event_type"] == "hit"
     assert record["block_ids"] == [[1, 2]]
     assert record["metadata"]["task_id"] == "task-a"
     assert record["metadata"]["lifecycle"] == "resume"
-    assert output.stat().st_mode & 0o777 == 0o600

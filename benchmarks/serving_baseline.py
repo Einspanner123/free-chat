@@ -9,7 +9,6 @@ import time
 import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any
 
 COUNTER_PATTERN = re.compile(r"^(?P<name>[^\s{]+)(?:\{(?P<labels>[^}]*)\})?\s+(?P<value>\S+)$")
@@ -294,12 +293,9 @@ def main() -> None:
     parser.add_argument("--max-tokens", type=int, default=16)
     parser.add_argument("--sample-interval", type=float, default=0.2)
     parser.add_argument("--timeout", type=float, default=120)
-    parser.add_argument("--output", type=Path, required=True)
     arguments = parser.parse_args()
     payload = run(arguments)
-    arguments.output.parent.mkdir(parents=True, exist_ok=True)
-    arguments.output.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(payload["run"], indent=2))
+    print(json.dumps(payload, indent=2))
 
 
 if __name__ == "__main__":

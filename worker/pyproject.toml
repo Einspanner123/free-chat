@@ -5,6 +5,8 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
   "freechat-contracts",
   "freechat-protocol",
+  "fastapi>=0.116,<1",
+  "uvicorn>=0.35,<1",
   "grpcio>=1.74,<2",
   "httpx>=0.28,<1",
   "nvidia-ml-py>=13.580,<14",
@@ -29,3 +31,6 @@ packages = ["src/freechat_worker"]
 [tool.uv.sources]
 freechat-contracts = { workspace = true }
 freechat-protocol = { workspace = true }
+
+[project.scripts]
+freechat-worker = "freechat_worker.serve:main"

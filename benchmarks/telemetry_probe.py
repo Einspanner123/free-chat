@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -20,11 +19,11 @@ from freechat_scheduler.registry import InMemoryWorkerRegistry
 from freechat_scheduler.scheduler import Scheduler
 from freechat_worker.telemetry import TelemetryCollector, heartbeat
 
+from benchmarks.records import emit_record
+
 
 async def run(args: argparse.Namespace) -> None:
     caps = WorkerCapabilities.model_validate_json(args.capabilities.read_text())
-    if args.output.exists():
-        raise ValueError("output directory already exists; use a unique run path")
     registry = InMemoryWorkerRegistry()
     await registry.register(
         caps,
@@ -51,7 +50,6 @@ async def run(args: argparse.Namespace) -> None:
     collector = TelemetryCollector(caps, args.engine_instance_id)
     records = []
     artifacts = []
-    args.output.mkdir(parents=True)
     try:
         async with httpx.AsyncClient(timeout=120, trust_env=False) as client:
             health = await client.get(f"{caps.endpoint}/health")
@@ -79,11 +77,7 @@ async def run(args: argparse.Namespace) -> None:
                     await asyncio.sleep(2)
                 metrics = await client.get(f"{caps.endpoint}/metrics")
                 metrics.raise_for_status()
-                path = args.output / f"{phase}.prom"
-                path.write_text(metrics.text)
-                artifacts.append(
-                    {"path": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-                )
+                artifacts.append(emit_record(f"{phase}.prom", metrics.text))
                 gpu = await asyncio.create_subprocess_exec(
                     "ssh",
                     args.gpu_host,
@@ -135,7 +129,6 @@ async def run(args: argparse.Namespace) -> None:
                     "No prefill calibration or Harness performance acceptance.",
                 ],
             }
-            (args.output / "result.json").write_text(json.dumps(result, indent=2) + "\n")
             assert records[-1]["status"] == "heartbeat_accepted"
             assert telemetry.cache_store_bytes_per_second is not None
             assert decision.kv_transfer.reason == "prefill_calibration_required"
@@ -151,7 +144,6 @@ def main() -> None:
     parser.add_argument("--capabilities", type=Path, required=True)
     parser.add_argument("--gpu-host", required=True)
     parser.add_argument("--engine-instance-id", required=True)
-    parser.add_argument("--output", type=Path, required=True)
     asyncio.run(run(parser.parse_args()))
 
 

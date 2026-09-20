@@ -23,10 +23,14 @@ def build_app() -> FastAPI:
     scheduler_target = os.environ.get("FREECHAT_SCHEDULER_TARGET", "").strip()
     if not scheduler_target:
         raise ValueError("FREECHAT_SCHEDULER_TARGET is required; static routing is test-only")
+    worker_token = os.environ.get("FREECHAT_WORKER_TOKEN", "")
+    if len(worker_token) < 32:
+        raise ValueError("FREECHAT_WORKER_TOKEN must contain at least 32 characters")
     scheduler = GrpcSchedulerClient(scheduler_target)
     return create_app(
         GatewayConfig(
             api_keys=_keys_from_environment(),
+            worker_token=worker_token,
             cache_salt_secret=secret,
             origin_node_id=os.environ.get("FREECHAT_ORIGIN_NODE_ID") or None,
             default_worker_endpoint=os.environ.get(
