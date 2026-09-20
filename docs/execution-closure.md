@@ -3,9 +3,11 @@
 ## Scope and source audit
 
 This is the first resource-group slice of the execution-closure plan, not completion
-of the entire Worker stage. Work is local only: no SSH, H100, real model launch or
-etcd/NATS cluster. The inspected mirror is not a complete upstream checkout. The
-following is a local integration audit, not a claim that upstream lacks a feature.
+of the entire Worker stage. Its original evidence used local CPU fixtures, without
+H100, real model launch or an etcd/NATS cluster. Since 2026-09-21 the complete pinned
+fork is available on ross at `third_party/vllm`; source availability is no longer a
+blocker. The following remains a local integration audit, not a claim that upstream
+lacks a feature. Current implementation order is section 0 of the root plan.
 The dependency and fork identities remain those in `versions.lock.yaml`.
 
 | Capability | Inspected local source | Decision |

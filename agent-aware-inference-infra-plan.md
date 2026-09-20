@@ -1,7 +1,7 @@
 # FreeChat Agent-Aware Inference Infrastructure 完整实施计划
 
 > 状态：ACTIVE / 上位实施与验收契约
-> 适用分支：`main` 及后续开发分支
+> 开发主线：ross `/home/linkst/workspace/projects/free-chat` 的 `main`；未明确要求时不另建开发分支或工作区
 > 核心定位：面向 Agent/Harness 工作负载、运行在 Python/Triton 与推理引擎交界处的异构 GPU 模型执行、KV 管理、并行规划与调度系统。
 > 删除规则：**只有本计划全部代码、测试、真实双机 GPU 验收和证据归档完成，并由项目负责人明确确认后，才允许独立提交删除。**
 
@@ -9,7 +9,65 @@
 
 ## 0. 文档治理
 
-### 2026-09-21：统一在 ross 开发
+### 2026-09-21：目标校正与唯一执行路线（当前优先级）
+
+负责人要求停止开发服务、收敛分支，并由两个独立 subagent 审查目标。
+本节覆盖下方历史阶段中的“仅本地、不得 SSH”和“不得停止服务”等旧授权描述；
+不改变原功能范围、诚实证据要求或计划删除门禁。当前只在 ross 开发与 CPU 验证，
+不因此授权 workstation 修改、H100 部署或 GPU 性能实验。
+
+**目标：用户通过 WebUI/API 发起真实推理，Scheduler 真实准入，Worker 经 vLLM
+确认完成/取消后释放容量，重复请求和重启后仍能继续服务。**
+先实现一模型、单 Worker、Chat Completions 的完整切片，再在同一条路径扩展；
+三协议、四 Harness、KV 优化、kernel 和 3×4 H100 目标不删除。
+
+两名审查者独立确认的代码事实：
+
+- `worker/execution.py` 的 `ExecutionBackend` 仅接口，持久准入 driver 只在测试实例化；
+  vLLM 尚未消费 Gateway 下发的完整执行身份。
+- `worker/telemetry.py` 未生成准入所需的逐 rank KV budget，Scheduler 会拒绝缺失预算。
+- 没有真实执行回执时，完成请求停在 `completion_pending`，不能持续回收容量。
+- Compose 缺 Worker 启动、注册、持续 heartbeat 和执行确认连接。
+- Gateway 缺 Scheduler 配置时静默使用 static 路由，存在绕过主路径的运行方式。
+
+按下列依赖顺序修复，复用现有 ledger、journal、vLLM 协议和控制 RPC，
+不再新增另一套账本、推理协议或常驻服务框架：
+
+1. [ ] **真实 Worker 入口与执行确认。** 在 `worker/src/freechat_worker/`、
+   `worker/pyproject.toml` 和 pinned fork 的现有 frontend/engine 接口补 runtime/backend。
+   将 request/decision/generation/engine incarnation 绑定到所有 engine child requests；
+   接通 admission、实际 submit、query、abort 和持久 journal。
+   CPU 测实际 adapter 的协议边界；真实引擎不可用则明确保留未验收状态。
+   不得把 HTTP EOF、abort 返回或 cache-free 当作 GPU 静止证明。
+2. [ ] **真实预算和输入计量。** 从模型配置、tokenizer/template、cache allocator 与各 rank
+   得到 token 数、KV layout、可用预算；修改 telemetry 与 Scheduler resource 对账入口。
+   明确可用预算是否已扣 reservation，避免重复扣减；未知值不编造。
+   验收满载拒绝、完成释放后重新准入、重复/迟到请求不二次占用。
+3. [ ] **一个明确启动路径。** 连接 Worker 启动→注册→heartbeat→执行确认轮询；
+   更新 Compose、Gateway `main.py` 和 Scheduler 启动配置。
+   实际运行显式使用 Scheduler；static/fake 仅显式测试模式。
+   loopback-only fixture RPC 不直接冒充跨容器 transport；先同机可信受控连接，
+   再为需要的容器地址补明确身份校验，不以全套 SPIFFE/HA 为单机闭环前提。
+4. [ ] **运行级测试与 Agent 闭环。** 先连续请求超过初始可容纳并发量，确认无永久 reservation；
+   覆盖 streaming、取消、断连、重复/迟到请求、Worker 重启与 etcd/NATS 本机真实进程故障。
+   再跑 Tool Wait→Resume→cache action→trace→WebUI，逐项扩展三协议与四 Harness。
+   fixture、真实依赖、真实引擎/GPU 分层报告，不以模拟替代端到端结果。
+5. [ ] **同一路线扩展与指标。** 接实际 KV residency，再比 round-robin、least-load、
+   session-sticky 与 lifecycle/cost 策略；成对报告任务 P95、重复 prefill、hit rate、
+   吞吐、利用率、恢复成功率与 RTO。保留负收益。3×4 H100 先做本地配置/模拟，
+   实机、kernel 端到端收益和 HA 后续按原门禁验收，不前置阻塞首个可运行切片。
+
+当前收敛记录：
+
+- [x] 已向原 Gateway 发送 SIGTERM，确认进程退出且 18080 不再监听；未停止无关 Hermes 容器。
+- [x] 原工作区与检查点 tree 完全一致后采用已有检查点 `c3054ff`，
+  `main` 快进至 `39df7a0`，未重写历史、丢弃文件或重复创建快照分支。
+- [x] 完整 vLLM submodule 已在原项目路径初始化，固定在 `8e78a3c613072632aa822c9aed2f698e76046219`。
+- [x] 原项目路径重跑 CPU：551 passed、2 dependency skips、10 GPU deselected；不代表推理闭环已完成。
+- 保留恢复归档、历史证据和原计划；临时归并工作区不再作为开发入口。
+- 暂停扩张治理专项；接下来的代码任务从上面第 1 项开始。
+
+### 2026-09-21：统一在 ross 开发（历史检查点）
 
 - 主工程和 vLLM fork 的源码修改统一在 ross；workstation 只用于明确授权的部署/测试，本地镜像不再继续开发。
 - 负责人已确认“使用本地已验证实现”：归并 RequestLedger/执行确认逻辑，保留校准与预测能力；重新生成 protobuf 并在 ross 进行 CPU 回归。
@@ -18,7 +76,7 @@
 - 此次操作不授权服务切换、容器重启或 GPU 实验；真实执行器与原验收门禁继续保留。
 
 
-### 2026-09-14 补充：3×4 H100 目标、本地验证阶段
+### 2026-09-14 补充：3×4 H100 目标、本地验证阶段（历史授权）
 
 - 目标资源为三个节点、每节点四张 H100；NVLink 暂仅按节点内能力理解，显存和互联矩阵尚未实测。
 - 当前授权只在本地实现和验证，不连接远程服务器、不部署或运行 GPU 实验。
@@ -32,7 +90,7 @@
 
 ### 本地审查问题整改
 
-- [x] 锁定 fork 源码恢复：2026-09-20 经负责人授权只读查找，在 workstation 的 `/home/linkst/workspace/freechat-vllm-authoritative` 找到精确提交 `8e78a3c613072632aa822c9aed2f698e76046219`，导出到独立本地目录，并通过 6,404 个 blob、tree、commit 和归档 SHA-256 校验。源码可用性冲突已解除；ross 裸仓库仍停在较早分支，来源地址元数据待整理，版本锁及远程引用未修改。此项不代表真实执行接线完成，详见 `docs/decisions/20260920-fork-source-provenance-conflict.md`。
+- [x] 锁定 fork 源码恢复：2026-09-20 经负责人授权只读查找，在 workstation 的 `/home/linkst/workspace/freechat-vllm-authoritative` 找到精确提交 `8e78a3c613072632aa822c9aed2f698e76046219`，导出到独立本地目录，并通过 6,404 个 blob、tree、commit 和归档 SHA-256 校验。源码可用性冲突已解除；2026-09-21 已将精确对象恢复到 ross 裸仓库，并用原项目内完整 submodule 与版本锁固定。此项不代表真实执行接线完成，详见 `docs/decisions/20260920-fork-source-provenance-conflict.md`。
 
 - [~] Worker 持久化准入门禁：SQLite 本地身份 journal、迟到/重复请求拒绝、提交不确定时禁止重投、取消意图和观测序号持久化已实现；已通过真实本地子进程异常退出、重开记录及 loopback gRPC→Scheduler 回收测试。完整 vLLM 三协议入口、真实后端执行确认和逐 rank 预算仍未接通，未默认启用；见 `docs/worker-admission.md`。
 

@@ -24,13 +24,10 @@ or update any running service as a side effect of a source synchronization.
 Original FreeChat HEAD: `709a7b0a000b2002b37d2ab9815167aa23bd4890`.
 Preserved Ross source/evidence checkpoint:
 `c3054ff080ebe3ecb6e4e3a0309f10d88fd7a26c` on
-`chore/ross-source-governance`. The original main worktree is untouched.
+`chore/ross-source-governance`. This checkpoint initially left the original main worktree untouched; the transition below is now complete.
 
-An isolated worktree under
-`/media/ross/8TB/linkst/freechat/consolidation-20260921-xr6ecd/governance`
-holds this branch during reconciliation. This is a temporary safety worktree,
-not an additional permanent development authority. Only after reconciliation
-will the canonical project working directory be switched in a separate safe step.
+The temporary `governance` worktree was used only for reconciliation. Its commits
+are now included in canonical `main`; it is retired, not a second development route.
 
 The sibling private recovery directory retains the original working-tree archive,
 Git diff, status, initial refs, protected configuration where present, and the
@@ -92,24 +89,35 @@ Ross regression: 551 passed, 2 dependency skips, 10 GPU tests deselected.
 Ruff passed; strict mypy passed for 118 files. Source-lock reader coverage is 100%;
 the checkout validator has 97% combined coverage in the CPU suite.
 
-## Canonical checkout transition is deferred
+## Canonical checkout transition completed
 
-A read-only pre-transition inventory found a Gateway process (PID 2407820 at the
-time of inspection) using the original project directory and two running containers
-mounting its parent projects directory. This is a snapshot, not a permanent PID
-identity. Do not switch that working directory under active consumers.
+The owner explicitly authorized stopping FreeChat and consolidating development.
+Gateway PID 2407820 was sent SIGTERM, exited, and port 18080 stopped listening.
+Unrelated Hermes containers were not stopped. No replacement service was launched.
 
-All new development is on the Ross governance branch/worktree described above.
-The original directory remains a frozen runtime source pending explicit maintenance
-authorization; workstation and the Mac snapshot are not development locations.
-No service/container/process was stopped, restarted or upgraded.
+The original working files matched the preserved archive, and the staged tree matched
+`c3054ff` exactly. Main adopted that existing checkpoint without changing its files,
+then fast-forwarded to `39df7a0`. The full pinned submodule was initialized there.
+No stash, duplicate snapshot branch, forced reset or historical rewrite was needed.
 
-## Remaining acceptance
+The only development checkout is now:
+`ross:/home/linkst/workspace/projects/free-chat`, branch `main`.
+The temporary governance worktree/branch is retired after verifying all its commits
+are in main; recovery archives and historical evidence remain. Frozen Mac and
+workstation copies are not editable sources. Do not create new worktrees/branches
+without an explicit request.
 
-- Record final commit identity and fresh-clone source-check evidence.
-- Obtain maintenance authorization before changing the original runtime-bound checkout.
-- Add the source-check command to the eventual trusted CI/release workflow.
-- Continue the real engine execution adapter and all original acceptance gates.
+This is a development service. Stop it when needed for authorized code changes;
+do not impose production rollout procedure on ordinary local development.
+Do not stop unrelated services or fabricate acceptance evidence.
 
-The unresolved image digest still blocks release; no GPU, runtime upgrade,
-performance result, external publication or HA acceptance is implied.
+## Next work
+
+Follow the ordered runnable-inference repair checklist in section 0 of
+`agent-aware-inference-infra-plan.md`. Both independent reviewers identified
+missing real Worker execution integration, budget telemetry and runtime bootstrap
+as the immediate blockers. Do not expand source-governance tooling first.
+
+The image digest, external CI and physical GPU/HA/performance acceptance remain
+open. They are not evidence that ordinary development must stop, and are not
+prerequisites for implementing and CPU-testing the first runtime slice.

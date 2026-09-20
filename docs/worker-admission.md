@@ -5,8 +5,9 @@
 `worker/src/freechat_worker/execution.py` implements `DurableExecutionDriver`, usable
 through the existing `LocalRequestExecutionService` driver interface. It is **not** a
 vLLM adapter, HTTP server, engine launcher or automatically enabled Worker runtime.
-The local fork mirror lacks the full engine/frontend implementation; three-protocol
-request admission and EngineCore cancellation/completion are still integration gates.
+The complete pinned fork is now available on ross at `third_party/vllm`.
+Three-protocol request admission and EngineCore cancellation/completion are still
+integration gates, not missing-source blockers. Follow section 0 of the root plan.
 
 The implementation reuses standard-library SQLite (WAL, synchronous FULL) for a
 small Worker-local identity journal. It does not add a control-plane database or store
@@ -90,7 +91,7 @@ code; engine observations in those tests remain deterministic CPU fixtures.
 
 Required before enabling the default Worker path:
 
-1. Restore/inspect the complete pinned fork locally and attach trusted ingress for
+1. Use the restored complete pinned fork on ross and attach trusted ingress for
    Chat Completions, Responses and Anthropic Messages. Bind every engine-created child
    ID to the immutable route; reject retries and bypass ingress consistently.
 2. Implement `ExecutionBackend` using actual engine acceptance, abort and completion

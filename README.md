@@ -37,7 +37,12 @@ uv run ruff check .
 uv run mypy libs services worker
 ```
 
-Development takes place only on ross. Initialize the engine with
+Development takes place only on ross, on `main` in
+`/home/linkst/workspace/projects/free-chat`. The temporary consolidation route is closed.
+The next deliverable is one runnable Gateway/Scheduler/Worker/vLLM request loop;
+see the ordered repair checklist in section 0 of the root plan. The current Compose
+control services do not yet bootstrap a complete inference deployment.
+Initialize the engine with
 `git submodule update --init --recursive`; do not use `--remote` for builds.
 Run `uv run python -m tools.check_source_checkout` before recording source evidence.
 Use `--check-remote` to verify retrieval of the pinned fork tree.
