@@ -64,8 +64,16 @@ class DurableLifecycleEmitter:
             existing = await self._store.get(key)
             if existing is None:
                 return
+            persisted = _OutboxRecord.model_validate_json(existing.value)
+            # Retries may reconstruct the envelope with a later enqueue time.
+            # Its first durable timestamp and bytes remain authoritative.
+            if persisted.harness_id != harness_id or persisted.event.model_dump(
+                exclude={"occurred_at"}
+            ) != event.model_dump(exclude={"occurred_at"}):
+                raise ValueError("lifecycle_event_id_conflict") from None
+            record = persisted
             item = existing
-        await self._publisher.publish(event, harness_id)
+        await self._publisher.publish(record.event, record.harness_id)
         await self._store.compare_and_delete(key, item.revision)
 
     async def replay(self) -> int:

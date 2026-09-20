@@ -90,3 +90,63 @@ def test_durable_outbox_replays_after_publish_failure() -> None:
         assert recovered_stream.calls[0][2]["Nats-Msg-Id"] == event.event_id
 
     asyncio.run(scenario())
+
+
+async def test_retry_publishes_original_durable_envelope() -> None:
+    from datetime import timedelta
+
+    store = InMemoryStore()
+    event = EventEnvelope(
+        event_type="active",
+        tenant_id="tenant-a",
+        aggregate_id="task",
+        aggregate_generation=1,
+        payload={},
+    )
+    stream = FakeJetStream()
+
+    class FailOnce(FakeJetStream):
+        async def publish(self, *args: Any, **kwargs: Any) -> Any:
+            raise RuntimeError("publish failed")
+
+    with pytest.raises(RuntimeError):
+        await DurableLifecycleEmitter(store, LifecyclePublisher(FailOnce())).emit(event, "agent")
+    retry = event.model_copy(update={"occurred_at": event.occurred_at + timedelta(seconds=5)})
+    await DurableLifecycleEmitter(store, LifecyclePublisher(stream)).emit(retry, "agent")
+    assert stream.calls[0][1] == event.model_dump_json().encode()
+    assert await store.list_prefix("/freechat/outbox/") == ()
+
+
+@pytest.mark.parametrize("changed", ["payload", "tenant_id", "aggregate_generation", "harness"])
+async def test_conflicting_event_identity_never_overwrites_or_acknowledges_pending(
+    changed: str,
+) -> None:
+    store = InMemoryStore()
+    event = EventEnvelope(
+        event_type="active",
+        tenant_id="tenant-a",
+        aggregate_id="task",
+        aggregate_generation=1,
+        payload={},
+    )
+
+    class FailOnce(FakeJetStream):
+        async def publish(self, *args: Any, **kwargs: Any) -> Any:
+            raise RuntimeError("publish failed")
+
+    with pytest.raises(RuntimeError):
+        await DurableLifecycleEmitter(store, LifecyclePublisher(FailOnce())).emit(event, "agent")
+    before = await store.list_prefix("/freechat/outbox/")
+    update: dict[str, Any] = {
+        "payload": {"different": True},
+        "tenant_id": "tenant-b",
+        "aggregate_generation": 2,
+    }
+    retry = event if changed == "harness" else event.model_copy(update={changed: update[changed]})
+    stream = FakeJetStream()
+    with pytest.raises(ValueError, match="lifecycle_event_id_conflict"):
+        await DurableLifecycleEmitter(store, LifecyclePublisher(stream)).emit(
+            retry, "other" if changed == "harness" else "agent"
+        )
+    assert stream.calls == []
+    assert await store.list_prefix("/freechat/outbox/") == before

@@ -11,7 +11,9 @@ COPY libs ./libs
 COPY services ./services
 COPY worker ./worker
 COPY tools/validate_native_http.py tools/validate_inference_loop.py ./tools/
-RUN uv sync --frozen --all-packages --no-dev
+ARG UV_HTTP_TIMEOUT=120
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    UV_HTTP_TIMEOUT=${UV_HTTP_TIMEOUT} uv sync --frozen --all-packages --no-dev
 
 USER 65532:65532
 EXPOSE 8080

@@ -194,6 +194,42 @@ CAS 竞争测试应验证只有一个胜者，删除不存在的键返回 false�
 这条路径当前验证的是存活 Worker 上的 Scheduler 恢复，不代表重新执行任务、Worker 替换恢复、
 etcd 故障、JetStream 重投、分区、跨节点或故障恢复成功率/RTO。恢复矩阵仍按根计划继续。
 
+控制面镜像构建使用 BuildKit 管理的 uv 下载缓存，并保持 `uv sync --frozen`。
+网络缓慢时可通过 `--build-arg UV_HTTP_TIMEOUT=120` 设置有限下载超时；不得通过改动 lockfile
+或换不明依赖绕过下载失败。构建缓存不是实验结果目录，也不进入运行镜像。
+
+## JetStream 中断与确认边界
+
+持久控制状态测试环境可在同一 namespace 加入固定的 NATS 镜像：
+
+```bash
+docker run -d --name freechat-nats --network container:freechat-etcd \
+  -v freechat-nats-state:/data \
+  nats:2.14.6-alpine@sha256:ad7a43eb7e3337c3c38ce5d784d1461791f95f730f252d2b25eee699752a0ca3 \
+  --jetstream --store_dir=/data --http_port=8222 --addr=127.0.0.1
+```
+
+Scheduler 启动时再传 `-e NATS_URL=nats://127.0.0.1:4222`，不与另一 Scheduler 并行占用同一控制端口。
+此模式事件进入 `FREECHAT_LIFECYCLE`，不能再只凭日志 fallback 判断事件已送达。
+请求预占、RequestLedger.pending 和 publisher outbox 是不同状态；GPU 完成并获得可信回执后
+可以释放请求容量，但发布未确认的事件仍须保留，不把消息故障误记为 GPU 执行失败。
+
+短时中断验收：
+
+1. 真实流式生成首 token 后，仅终止测试 NATS，保持 Scheduler、Worker 和 etcd 存活。
+2. 检查 GPU 的生成结果及终态回执；记录对应 decision 的待发 event ID/type，
+   要求包括 release 事件，并确认 publisher outbox 仍存在。
+3. 启动同一 NATS、保留其 volume。等待两层待发记录清空，从 JetStream 读取原事件 ID，
+   核对 route、completion 与 release 及 Worker 回执身份。
+4. 分别测试服务端已接收但发布确认丢失，以及消费者未 ACK：前者重用原 event ID，
+   后者必须观察同一 stream sequence 的重投，再 ACK 后检查 pending ack 清空。
+
+待发事件以首次持久化的内容和时间戳为准。重试可以重建 enqueue 时间，但同一 event ID
+不得更改 tenant、harness、aggregate、generation、payload 等语义字段；冲突拒绝并保留原记录。
+当前 JetStream duplicate window 为 120 秒，窗口内发布去重不等于永久去重或分布式 exactly-once；
+消费者仍必须处理重复。消费端持久幂等、超窗口/长时间断网、quorum 和分区不属于这一切片的验收。
+所有探针输出到 stdout，事件保存在正常服务的 etcd/JetStream 数据卷，不建立测试结果目录。
+
 ## 开发服务停机
 
 停止测试发流并等待已准入请求的可信释放核验后，停止 Gateway、各 Worker，最后停止 Scheduler；

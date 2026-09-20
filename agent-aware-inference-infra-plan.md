@@ -32,7 +32,7 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
    A5000/A4000 已通过普通响应、SSE、生成中取消和重复准入验证；A6000 待完成。
    同机 Gateway→Scheduler→Worker API 闭环已在两卡分别验证；
    A5000 + 真实单节点 etcd 已验证 Scheduler 崩溃后恢复到同一存活 Worker，
-   Worker/存储/消息总线故障及跨节点仍待完成。
+   Worker/存储及完整消息总线故障矩阵、跨节点仍待完成。
 2. [~] **真实预算。** Worker 已通过上游具名 extension RPC 读取分配后的 KV layout，
    A5000/A4000 实测通过；报告 gross pool 并扣除 null block，不伪装成实时空闲预算。
    原生三协议预处理已给出准确 token 数，并在 GPU 提交前核对实际 prompt 与输出上限，
@@ -55,6 +55,10 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
    另已完成 A5000 + 真实 etcd 的控制面故障切片：首 token 后 SIGKILL Scheduler，
    GPU 继续生成，持久预占不丢失；重启后由原 generation/engine 的终态回执释放，
    新请求成功且 3/3 已准入请求释放。不能推广成 Worker 崩溃恢复、HA 或 RTO 指标。
+   真实 NATS 短时中断已在 A5000 上验证：GPU 生成完成并由可信回执释放，
+   待发 route/completion/release 事件保留到 JetStream 恢复，两个切片共 4/4 请求释放。
+   发布确认丢失重试、消费未 ACK 重投及冲突事件保留通过；仅覆盖 120 秒去重窗口内，
+   不表示消费端持久幂等、长时间断网、永久零重复或分布式 exactly-once。
    WebUI 及以下故障/生命周期矩阵仍待完成：
    streaming、取消、断连、重复、迟到、重启；再贯通 Tool Wait/Resume、
    KV action、tracing、三协议和四 Harness。复用原生协议，不重新实现另一套 API。
