@@ -1,19 +1,48 @@
 import asyncio
 import json
+import time
 
 import grpc
 import httpx
 import pytest
 from freechat.control.v1 import control_pb2_grpc
 from freechat_contracts import AgentHints
+from freechat_contracts.preparation import PreparedAdmission, TokenBudget, body_digest
 from freechat_gateway import GatewayConfig, create_app
 from freechat_gateway.routing import GrpcSchedulerClient
 from freechat_scheduler.grpc_server import LeaseBook, SchedulerGrpcService
+from freechat_scheduler.preparation import NativePreparer
 from freechat_scheduler.registry import InMemoryWorkerRegistry
 from freechat_scheduler.resources import required_kv_bytes_per_rank
 from freechat_scheduler.scheduler import NoEligibleWorker, Scheduler
 from test_request_ledger import confirm_execution
 from test_scheduler import MODEL, add_worker, profile
+
+
+def contract_preparer() -> NativePreparer:
+    """Deterministic renderer fixture, not tokenizer or GPU evidence."""
+
+    def handler(message: httpx.Request) -> httpx.Response:
+        payload = json.loads(message.content)
+        body = payload["request"]
+        result = PreparedAdmission(
+            preparation_id="a" * 64,
+            worker_id="worker",
+            generation=1,
+            engine_instance_id="fixture-engine",
+            budget=TokenBudget(
+                tenant_id=message.headers["x-freechat-internal-tenant"],
+                protocol=payload["protocol"],
+                body_sha256=body_digest(body),
+                prompt_sha256="b" * 64,
+                input_tokens=1,
+                output_tokens=body["max_tokens"],
+                expires_at=time.time() + 60,
+            ),
+        )
+        return httpx.Response(200, json=result.model_dump())
+
+    return NativePreparer("t" * 32, transport=httpx.MockTransport(handler))
 
 
 @pytest.mark.parametrize("tp", [1, 2, 4])
@@ -108,7 +137,7 @@ def test_gateway_origin_configuration_rejects_ambiguous_identity(origin: str) ->
 async def test_http_gateway_grpc_scheduler_preserve_trusted_locality_and_enforce_memory() -> None:
     registry = InMemoryWorkerRegistry()
     add_worker(registry, "worker", node="ross")
-    service = SchedulerGrpcService(Scheduler(registry), LeaseBook())
+    service = SchedulerGrpcService(Scheduler(registry), LeaseBook(), preparer=contract_preparer())
     server = grpc.aio.server()
     control_pb2_grpc.add_SchedulerServiceServicer_to_server(service, server)  # type: ignore[no-untyped-call]
     port = server.add_insecure_port("127.0.0.1:0")
@@ -116,6 +145,8 @@ async def test_http_gateway_grpc_scheduler_preserve_trusted_locality_and_enforce
     forwarded: list[dict[str, object]] = []
 
     def worker(request: httpx.Request) -> httpx.Response:
+        assert request.headers["x-freechat-internal-preparation"] == "a" * 64
+        assert int(request.headers["x-freechat-internal-reserved-kv-bytes"]) == 48 * 16384
         forwarded.append(json.loads(request.content))
         return httpx.Response(200, json={"id": "synthetic"})
 
@@ -190,7 +221,7 @@ async def test_two_http_calls_compete_for_one_reservation_then_capacity_returns(
     ledger = LeaseBook()
     server = grpc.aio.server()
     control_pb2_grpc.add_SchedulerServiceServicer_to_server(  # type: ignore[no-untyped-call]
-        SchedulerGrpcService(Scheduler(registry), ledger),
+        SchedulerGrpcService(Scheduler(registry), ledger, preparer=contract_preparer()),
         server,
     )
     port = server.add_insecure_port("127.0.0.1:0")

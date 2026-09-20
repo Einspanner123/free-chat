@@ -384,7 +384,7 @@ async def test_default_serve_uses_configured_group_view(
     monkeypatch.delenv("NATS_URL", raising=False)
     monkeypatch.setattr(grpc_server, "InMemoryStore", lambda: controller.store)
     address = f"127.0.0.1:{unused_tcp_port}"
-    task = asyncio.create_task(grpc_server.serve(address))
+    task = asyncio.create_task(grpc_server.serve(address, contract_only=True))
     client = GrpcSchedulerClient(address)
     try:
         async with grpc.aio.insecure_channel(address) as channel:

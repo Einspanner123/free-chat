@@ -507,7 +507,6 @@ async def test_runtime_bootstrap_accepts_explicit_scheduler(
         assert isinstance(app, FastAPI)
 
 
-
 def test_worker_token_is_configured_not_client_supplied() -> None:
     seen: list[httpx.Request] = []
 
@@ -548,3 +547,24 @@ def test_gateway_bootstrap_requires_worker_token(
     monkeypatch.setenv("FREECHAT_WORKER_TOKEN", value)
     with pytest.raises(ValueError, match="FREECHAT_WORKER_TOKEN"):
         build_app()
+
+
+@pytest.mark.parametrize("model", [None, 42, [], {}, ""])
+def test_invalid_model_is_rejected_before_native_preparation(model: object) -> None:
+    with client() as session:
+        response = session.post(
+            "/v1/chat/completions",
+            headers={"authorization": "Bearer secret-key"},
+            json={"model": model, "messages": []},
+        )
+        assert response.status_code == 422
+
+
+def test_gateway_bounds_body_before_preparation() -> None:
+    with client() as session:
+        response = session.post(
+            "/v1/responses",
+            headers={"authorization": "Bearer secret-key"},
+            json={"model": "qwen", "input": "x" * (4 * 1024 * 1024)},
+        )
+        assert response.status_code == 413

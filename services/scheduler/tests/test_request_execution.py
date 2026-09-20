@@ -389,7 +389,7 @@ async def test_default_scheduler_maintenance_releases_only_after_worker_proof(
     monkeypatch.setattr(grpc_server, "InMemoryStore", lambda: store)
     monkeypatch.setattr(grpc_server, "InMemoryWorkerRegistry", lambda: scheduler._registry)
     address = f"127.0.0.1:{unused_tcp_port}"
-    task = asyncio.create_task(grpc_server.serve(address))
+    task = asyncio.create_task(grpc_server.serve(address, contract_only=True))
     client, ledger = GrpcSchedulerClient(address), RequestLedger(store)
     try:
         async with grpc.aio.insecure_channel(address) as channel:

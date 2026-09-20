@@ -235,6 +235,18 @@ class AdmissionMiddleware:
                 headers["x-freechat-internal-preparation"],
                 headers["x-freechat-internal-tenant"], path, payload,
             )
+            if budget is not None and self.capacity is not None:
+                total_tokens = budget.input_tokens + budget.output_tokens
+                blocks = (
+                    total_tokens + self.capacity.block_size_tokens - 1
+                ) // self.capacity.block_size_tokens
+                required = blocks * self.capacity.block_bytes
+                if (
+                    total_tokens > self.capacity.max_context_tokens
+                    or required > self.capacity.usable_bytes
+                    or int(headers["x-freechat-internal-reserved-kv-bytes"]) != required
+                ):
+                    raise ValueError("reservation_does_not_match_measured_kv_budget")
             command = ExecutionCommand(
                 worker_id=self.driver.identity[0],
                 action=ExecutionAction.QUERY,

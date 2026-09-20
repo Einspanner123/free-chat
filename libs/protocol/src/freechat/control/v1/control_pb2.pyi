@@ -90,7 +90,7 @@ class AgentHints(_message.Message):
     def __init__(self, task_id: _Optional[str] = ..., session_id: _Optional[str] = ..., agent_id: _Optional[str] = ..., parent_agent_id: _Optional[str] = ..., branch_id: _Optional[str] = ..., parent_branch_id: _Optional[str] = ..., turn_id: _Optional[str] = ..., call_id: _Optional[str] = ..., lifecycle: _Optional[str] = ..., prefix_scope: _Optional[str] = ..., reuse_class: _Optional[str] = ..., expected_reuse_probability: _Optional[float] = ..., expected_resume_ms: _Optional[int] = ..., ttl_ms: _Optional[int] = ..., priority: _Optional[int] = ..., deadline_ms: _Optional[int] = ..., expected_output_tokens: _Optional[int] = ..., privacy_domain: _Optional[str] = ..., allow_preemption: _Optional[bool] = ..., allow_kv_offload: _Optional[bool] = ..., allow_remote_worker: _Optional[bool] = ..., confidence: _Optional[float] = ..., source: _Optional[str] = ..., harness_id: _Optional[str] = ..., harness_version: _Optional[str] = ..., metadata: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class RouteRequest(_message.Message):
-    __slots__ = ("context", "hints", "model", "input_tokens", "output_tokens", "cache_key", "streaming", "local_node_id")
+    __slots__ = ("context", "hints", "model", "input_tokens", "output_tokens", "cache_key", "streaming", "local_node_id", "native_protocol", "native_request_json")
     CONTEXT_FIELD_NUMBER: _ClassVar[int]
     HINTS_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
@@ -99,6 +99,8 @@ class RouteRequest(_message.Message):
     CACHE_KEY_FIELD_NUMBER: _ClassVar[int]
     STREAMING_FIELD_NUMBER: _ClassVar[int]
     LOCAL_NODE_ID_FIELD_NUMBER: _ClassVar[int]
+    NATIVE_PROTOCOL_FIELD_NUMBER: _ClassVar[int]
+    NATIVE_REQUEST_JSON_FIELD_NUMBER: _ClassVar[int]
     context: RequestContext
     hints: AgentHints
     model: str
@@ -107,7 +109,9 @@ class RouteRequest(_message.Message):
     cache_key: str
     streaming: bool
     local_node_id: str
-    def __init__(self, context: _Optional[_Union[RequestContext, _Mapping]] = ..., hints: _Optional[_Union[AgentHints, _Mapping]] = ..., model: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_key: _Optional[str] = ..., streaming: _Optional[bool] = ..., local_node_id: _Optional[str] = ...) -> None: ...
+    native_protocol: str
+    native_request_json: str
+    def __init__(self, context: _Optional[_Union[RequestContext, _Mapping]] = ..., hints: _Optional[_Union[AgentHints, _Mapping]] = ..., model: _Optional[str] = ..., input_tokens: _Optional[int] = ..., output_tokens: _Optional[int] = ..., cache_key: _Optional[str] = ..., streaming: _Optional[bool] = ..., local_node_id: _Optional[str] = ..., native_protocol: _Optional[str] = ..., native_request_json: _Optional[str] = ...) -> None: ...
 
 class CostBreakdown(_message.Message):
     __slots__ = ("queue_ms", "prefill_ms", "decode_ms", "cache_ms", "network_ms", "cold_start_ms", "deadline_risk", "eviction_externality", "total", "affinity_credit_ms", "estimate_available", "calibration_id", "unavailable_reason")
@@ -140,7 +144,7 @@ class CostBreakdown(_message.Message):
     def __init__(self, queue_ms: _Optional[float] = ..., prefill_ms: _Optional[float] = ..., decode_ms: _Optional[float] = ..., cache_ms: _Optional[float] = ..., network_ms: _Optional[float] = ..., cold_start_ms: _Optional[float] = ..., deadline_risk: _Optional[float] = ..., eviction_externality: _Optional[float] = ..., total: _Optional[float] = ..., affinity_credit_ms: _Optional[float] = ..., estimate_available: _Optional[bool] = ..., calibration_id: _Optional[str] = ..., unavailable_reason: _Optional[str] = ...) -> None: ...
 
 class RouteDecision(_message.Message):
-    __slots__ = ("decision_id", "worker_id", "endpoint", "worker_generation", "cost", "rejected_candidates", "lease_ttl_ms", "topology_generation", "strategy", "kv_transfer", "requested_strategy", "fallback_reason", "reserved_kv_bytes_per_rank", "engine_instance_id")
+    __slots__ = ("decision_id", "worker_id", "endpoint", "worker_generation", "cost", "rejected_candidates", "lease_ttl_ms", "topology_generation", "strategy", "kv_transfer", "requested_strategy", "fallback_reason", "reserved_kv_bytes_per_rank", "engine_instance_id", "preparation_json")
     DECISION_ID_FIELD_NUMBER: _ClassVar[int]
     WORKER_ID_FIELD_NUMBER: _ClassVar[int]
     ENDPOINT_FIELD_NUMBER: _ClassVar[int]
@@ -155,6 +159,7 @@ class RouteDecision(_message.Message):
     FALLBACK_REASON_FIELD_NUMBER: _ClassVar[int]
     RESERVED_KV_BYTES_PER_RANK_FIELD_NUMBER: _ClassVar[int]
     ENGINE_INSTANCE_ID_FIELD_NUMBER: _ClassVar[int]
+    PREPARATION_JSON_FIELD_NUMBER: _ClassVar[int]
     decision_id: str
     worker_id: str
     endpoint: str
@@ -169,7 +174,8 @@ class RouteDecision(_message.Message):
     fallback_reason: str
     reserved_kv_bytes_per_rank: int
     engine_instance_id: str
-    def __init__(self, decision_id: _Optional[str] = ..., worker_id: _Optional[str] = ..., endpoint: _Optional[str] = ..., worker_generation: _Optional[int] = ..., cost: _Optional[_Union[CostBreakdown, _Mapping]] = ..., rejected_candidates: _Optional[_Iterable[str]] = ..., lease_ttl_ms: _Optional[int] = ..., topology_generation: _Optional[int] = ..., strategy: _Optional[str] = ..., kv_transfer: _Optional[_Union[PredictiveOffloadDirective, _Mapping]] = ..., requested_strategy: _Optional[str] = ..., fallback_reason: _Optional[str] = ..., reserved_kv_bytes_per_rank: _Optional[int] = ..., engine_instance_id: _Optional[str] = ...) -> None: ...
+    preparation_json: str
+    def __init__(self, decision_id: _Optional[str] = ..., worker_id: _Optional[str] = ..., endpoint: _Optional[str] = ..., worker_generation: _Optional[int] = ..., cost: _Optional[_Union[CostBreakdown, _Mapping]] = ..., rejected_candidates: _Optional[_Iterable[str]] = ..., lease_ttl_ms: _Optional[int] = ..., topology_generation: _Optional[int] = ..., strategy: _Optional[str] = ..., kv_transfer: _Optional[_Union[PredictiveOffloadDirective, _Mapping]] = ..., requested_strategy: _Optional[str] = ..., fallback_reason: _Optional[str] = ..., reserved_kv_bytes_per_rank: _Optional[int] = ..., engine_instance_id: _Optional[str] = ..., preparation_json: _Optional[str] = ...) -> None: ...
 
 class PredictiveOffloadDirective(_message.Message):
     __slots__ = ("enabled", "max_offload_tokens", "estimated_kv_bytes", "predicted_reuse_probability", "predicted_eviction_probability", "estimated_recompute_ms", "estimated_store_ms", "estimated_restore_ms", "expected_net_benefit_ms", "reason", "applicable")

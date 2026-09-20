@@ -13,6 +13,7 @@ from freechat_contracts import (
     WorkerCapabilities,
     WorkerTelemetry,
 )
+from freechat_contracts.preparation import PreparedAdmission
 from freechat_gateway.routing import GrpcSchedulerClient
 from freechat_scheduler.grpc_server import LeaseBook, SchedulerGrpcService, WorkerGrpcService
 from freechat_scheduler.registry import InMemoryWorkerRegistry
@@ -26,10 +27,14 @@ class RecordingScheduler(Scheduler):
         self.received: list[RequestProfile] = []
 
     def route(
-        self, request: RequestProfile, *, reserved: dict[str, tuple[int, int]] | None = None
+        self,
+        request: RequestProfile,
+        *,
+        reserved: dict[str, tuple[int, int]] | None = None,
+        prepared: dict[str, PreparedAdmission] | None = None,
     ) -> RouteDecision:
         self.received.append(request)
-        return super().route(request, reserved=reserved)
+        return super().route(request, reserved=reserved, prepared=prepared)
 
 
 def test_worker_registration_and_route_over_grpc() -> None:

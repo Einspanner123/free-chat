@@ -46,6 +46,7 @@ services:
     command: ["freechat-scheduler"]
     environment:
       FREECHAT_SCHEDULER_LISTEN: 0.0.0.0:50051
+      FREECHAT_WORKER_TOKEN: ${FREECHAT_WORKER_TOKEN:?set trusted Worker token}
       ETCD_ENDPOINT: http://etcd:2379
       NATS_URL: nats://nats:4222
     expose: ["50051"]

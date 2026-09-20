@@ -17,7 +17,7 @@ from freechat_contracts import AgentHints, RequestProfile, RouteDecision, scoped
 
 from freechat_gateway.auth import APIKeyAuthenticator, AuthContext
 from freechat_gateway.console import ConsoleReadModel, EmptyConsoleReadModel
-from freechat_gateway.hints import estimate_input_tokens, extract_agent_hints
+from freechat_gateway.hints import extract_agent_hints
 from freechat_gateway.routing import SchedulerClient, StaticSchedulerClient
 
 LOGGER = logging.getLogger(__name__)
@@ -101,7 +101,12 @@ def create_app(
     ) -> Response:
         auth = _authenticate(authenticator, authorization, x_api_key)
         try:
-            body = await request.json()
+            raw = bytearray()
+            async for chunk in request.stream():
+                raw.extend(chunk)
+                if len(raw) > 4 * 1024 * 1024:
+                    raise HTTPException(status_code=413, detail="request body too large")
+            body = json.loads(raw)
         except (json.JSONDecodeError, UnicodeDecodeError) as error:
             raise HTTPException(status_code=400, detail="invalid JSON body") from error
         if not isinstance(body, dict):
@@ -114,17 +119,24 @@ def create_app(
 
         hints = extract_agent_hints(request, body)
         request_id = request.headers.get("x-request-id", str(uuid4()))
-        model_id = str(body.get("model", ""))
-        if not model_id:
+        model_id = body.get("model")
+        if not isinstance(model_id, str) or not model_id:
             raise HTTPException(status_code=422, detail="model is required")
-        output_tokens = int(body.get("max_tokens") or body.get("max_output_tokens") or 512)
         cache_salt = scoped_cache_salt(config.cache_salt_secret, auth.tenant_id, hints)
+        body["cache_salt"] = cache_salt
+        body.pop("agent_lifecycle", None)
+        native_body = json.dumps(body, ensure_ascii=False)
+        if len(native_body.encode()) > 4 * 1024 * 1024:
+            raise HTTPException(status_code=413, detail="prepared request body too large")
         profile = RequestProfile(
             request_id=request_id,
             tenant_id=auth.tenant_id,
             model_id=model_id,
-            input_tokens=estimate_input_tokens(body),
-            output_tokens=output_tokens,
+            # Unknown until the selected native engine renders the complete request.
+            input_tokens=0,
+            output_tokens=1,
+            native_protocol=path,
+            native_request_json=native_body,
             cache_key=request.headers.get("x-freechat-cache-key"),
             hints=hints,
             local_node_id=config.origin_node_id,
@@ -152,7 +164,13 @@ def create_app(
         )
         if config.worker_token is not None:
             upstream_headers["x-freechat-worker-token"] = config.worker_token
-        body["cache_salt"] = cache_salt
+        if decision.preparation is not None:
+            upstream_headers["x-freechat-internal-preparation"] = (
+                decision.preparation.preparation_id
+            )
+            upstream_headers["x-freechat-internal-reserved-kv-bytes"] = str(
+                decision.reserved_kv_bytes_per_rank
+            )
         if decision.kv_transfer.applicable:
             body["kv_transfer_params"] = {
                 "max_offload_tokens": decision.kv_transfer.max_offload_tokens

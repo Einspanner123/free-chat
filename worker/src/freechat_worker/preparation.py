@@ -3,52 +3,18 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import importlib
-import json
 import secrets
 import time
 from collections.abc import Awaitable, Callable
 from copy import deepcopy
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from freechat_contracts.preparation import TokenBudget as TokenBudget
+from freechat_contracts.preparation import body_digest as body_digest
+from freechat_contracts.preparation import digest as digest
 
 PATHS = {"/v1/chat/completions", "/v1/responses", "/v1/messages"}
-
-
-def digest(value: Any) -> str:
-    return hashlib.sha256(
-        json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
-    ).hexdigest()
-
-
-def body_digest(body: dict[str, Any]) -> str:
-    # Scheduling metadata is supplied after preparation and never rendered as text.
-    return digest({key: value for key, value in body.items() if key != "agent_lifecycle"})
-
-
-class TokenBudget(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    tenant_id: str = Field(min_length=1)
-    protocol: str
-    body_sha256: str
-    prompt_sha256: str
-    input_tokens: int = Field(gt=0)
-    output_tokens: int = Field(gt=0)
-    expires_at: float
-
-    def check_execution(self, prompt: Any, sampling_params: Any, now: float) -> None:
-        if (
-            now >= self.expires_at
-            or not isinstance(prompt, dict)
-            or digest(prompt.get("prompt_token_ids")) != self.prompt_sha256
-            or getattr(sampling_params, "n", None) != 1
-            or getattr(sampling_params, "max_tokens", 0) < 1
-            or sampling_params.max_tokens > self.output_tokens
-        ):
-            raise ValueError("execution_does_not_match_prepared_budget")
 
 
 Renderer = Callable[[str, dict[str, Any]], Awaitable[tuple[list[int], int]]]

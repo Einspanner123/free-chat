@@ -27,6 +27,7 @@ from freechat_trace_replay import EventEnvelope
 from freechat_trace_replay.bus import DurableLifecycleEmitter, connect_lifecycle_stream
 
 from freechat_scheduler.group_reconciler import GroupRuntimeConfig, configured_reconciler
+from freechat_scheduler.preparation import NativePreparer
 from freechat_scheduler.registry import InMemoryWorkerRegistry, PersistentWorkerRegistry
 from freechat_scheduler.request_execution import (
     LocalGrpcExecutionDriver,
@@ -47,20 +48,31 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
         leases: LeaseBook,
         emitter: DurableLifecycleEmitter | None = None,
         execution: RequestExecutionReconciler | None = None,
+        preparer: NativePreparer | None = None,
     ) -> None:
         self._scheduler, self._leases, self._emitter = scheduler, leases, emitter
         self._flush_lock = asyncio.Lock()
         self._execution = execution
+        self._preparer = preparer
 
     async def Route(
         self, request: control_pb2.RouteRequest, context: Any
     ) -> control_pb2.RouteDecision:
         try:
             profile = _request_profile(request)
+            prepared = None
+            if self._preparer is not None:
+                prepared = await self._preparer.prepare(
+                    profile, self._scheduler.preparation_candidates(profile)
+                )
+            elif profile.native_protocol is not None:
+                raise ValueError("native_preparer_not_configured")
             decision = await self._leases.reserve(
                 profile,
                 request.context.idempotency_key or profile.request_id,
-                lambda reserved: self._scheduler.route(profile, reserved=reserved),
+                lambda reserved: self._scheduler.route(
+                    profile, reserved=reserved, prepared=prepared
+                ),
             )
         except (ValueError, NoEligibleWorker) as error:
             await context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
@@ -240,6 +252,8 @@ def _request_profile(request: control_pb2.RouteRequest) -> RequestProfile:
         request_id=request.context.request_id,
         tenant_id=request.context.tenant_id,
         model_id=request.model,
+        native_protocol=request.native_protocol or None,
+        native_request_json=request.native_request_json or None,
         input_tokens=request.input_tokens,
         output_tokens=request.output_tokens,
         cache_key=request.cache_key or None,
@@ -291,6 +305,9 @@ def _decision_message(decision: RouteDecision) -> control_pb2.RouteDecision:
         endpoint=decision.endpoint,
         worker_generation=decision.worker_generation,
         engine_instance_id=decision.engine_instance_id,
+        preparation_json=(
+            "" if decision.preparation is None else decision.preparation.model_dump_json()
+        ),
         cost=control_pb2.CostBreakdown(
             queue_ms=cost.queue_ms,
             prefill_ms=cost.prefill_ms,
@@ -332,7 +349,10 @@ def _decision_message(decision: RouteDecision) -> control_pb2.RouteDecision:
     )
 
 
-async def serve(address: str) -> None:
+async def serve(address: str, *, contract_only: bool = False) -> None:
+    preparer = (
+        None if contract_only else NativePreparer(os.environ.get("FREECHAT_WORKER_TOKEN", ""))
+    )
     endpoint = os.environ.get("ETCD_ENDPOINT")
     store: KeyValueStore
     etcd: EtcdHttpStore | None = None
@@ -378,6 +398,7 @@ async def serve(address: str) -> None:
         leases,
         emitter,
         execution,
+        preparer,
     )
     control_pb2_grpc.add_SchedulerServiceServicer_to_server(  # type: ignore[no-untyped-call]
         scheduler_service,

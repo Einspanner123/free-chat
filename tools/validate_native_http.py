@@ -96,6 +96,12 @@ async def validate(url: str, control: str, model: str, token: str) -> None:
                     prepared.raise_for_status()
                     preparation = prepared.json()
                     headers["x-freechat-internal-preparation"] = preparation["preparation_id"]
+                    budget = preparation["budget"]
+                    total_tokens = budget["input_tokens"] + budget["output_tokens"]
+                    headers["x-freechat-internal-reserved-kv-bytes"] = str(
+                        (total_tokens + capacity.block_size_tokens - 1)
+                        // capacity.block_size_tokens * capacity.block_bytes
+                    )
                     seen = False
                     if mode == "json":
                         response = await client.post(endpoint, headers=headers, json=body)

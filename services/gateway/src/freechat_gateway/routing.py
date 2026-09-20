@@ -12,6 +12,7 @@ from freechat_contracts import (
     RequestProfile,
     RouteDecision,
 )
+from freechat_contracts.preparation import PreparedAdmission
 
 
 class SchedulerClient(Protocol):
@@ -28,7 +29,7 @@ class SchedulerClient(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class StaticSchedulerClient:
-    """Compose bootstrap only; production uses generated Scheduler gRPC client."""
+    """CPU contract fixture only; the service entry point requires gRPC."""
 
     worker_id: str
     endpoint: str
@@ -122,6 +123,8 @@ class GrpcSchedulerClient:
                     metadata=hints.metadata,
                 ),
                 model=request.model_id,
+                native_protocol=request.native_protocol or "",
+                native_request_json=request.native_request_json or "",
                 input_tokens=request.input_tokens,
                 output_tokens=request.output_tokens,
                 cache_key=request.cache_key or "",
@@ -162,6 +165,10 @@ class GrpcSchedulerClient:
             fallback_reason=response.fallback_reason or None,
             lease_ttl_ms=response.lease_ttl_ms,
             reserved_kv_bytes_per_rank=response.reserved_kv_bytes_per_rank,
+            preparation=(
+                PreparedAdmission.model_validate_json(response.preparation_json)
+                if response.preparation_json else None
+            ),
             kv_transfer=PredictiveOffloadDirective(
                 applicable=response.kv_transfer.applicable,
                 enabled=response.kv_transfer.enabled,

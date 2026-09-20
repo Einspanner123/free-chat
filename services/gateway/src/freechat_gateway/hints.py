@@ -35,23 +35,3 @@ def extract_agent_hints(request: Request, body: dict[str, Any]) -> AgentHints:
         source=HintSource.INFERRED,
         confidence=0.25,
     )
-
-
-def estimate_input_tokens(body: dict[str, Any]) -> int:
-    """Conservative admission estimate; worker tokenizer remains authoritative."""
-    pieces: list[str] = []
-    messages = body.get("messages")
-    if isinstance(messages, list):
-        for message in messages:
-            if isinstance(message, dict):
-                pieces.append(str(message.get("content", "")))
-    input_value = body.get("input")
-    if input_value is not None:
-        pieces.append(str(input_value))
-    system_value = body.get("system")
-    if system_value is not None:
-        pieces.append(str(system_value))
-    tools = body.get("tools")
-    if tools is not None:
-        pieces.append(str(tools))
-    return max(1, sum(len(piece) for piece in pieces) // 2)

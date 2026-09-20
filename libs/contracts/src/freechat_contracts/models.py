@@ -7,6 +7,8 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from freechat_contracts.preparation import PreparedAdmission, body_digest
+
 
 class Lifecycle(StrEnum):
     SPAWN = "spawn"
@@ -272,6 +274,32 @@ class RequestProfile(BaseModel):
     cache_key: str | None = None
     local_node_id: str | None = Field(default=None, min_length=1)
     hints: AgentHints
+    native_protocol: str | None = None
+    # Transient transport payload: excluded from ledger fingerprints, events and repr.
+    native_request_json: str | None = Field(default=None, exclude=True, repr=False)
+    native_body_sha256: str | None = None
+
+    @model_validator(mode="after")
+    def bind_native_body(self) -> RequestProfile:
+        import json
+
+        if self.native_request_json is None:
+            if self.native_protocol is not None or self.native_body_sha256 is not None:
+                raise ValueError("native payload required")
+            return self
+        if (
+            self.native_protocol not in {"/v1/chat/completions", "/v1/responses", "/v1/messages"}
+            or len(self.native_request_json.encode()) > 4 * 1024 * 1024
+        ):
+            raise ValueError("invalid native protocol or payload size")
+        body = json.loads(self.native_request_json)
+        if not isinstance(body, dict) or body.get("model") != self.model_id:
+            raise ValueError("native request model mismatch")
+        fingerprint = body_digest(body)
+        if self.native_body_sha256 not in {None, fingerprint}:
+            raise ValueError("native body fingerprint mismatch")
+        object.__setattr__(self, "native_body_sha256", fingerprint)
+        return self
 
 
 class CandidateCost(BaseModel):
@@ -338,6 +366,7 @@ class RouteDecision(BaseModel):
     fallback_reason: str | None = None
     lease_ttl_ms: int = Field(default=30_000, ge=1_000)
     reserved_kv_bytes_per_rank: int = Field(default=0, ge=0)
+    preparation: PreparedAdmission | None = None
     engine_instance_id: str | None = Field(default=None, min_length=1)
     kv_transfer: PredictiveOffloadDirective = Field(
         default_factory=lambda: PredictiveOffloadDirective(reason="not_evaluated")

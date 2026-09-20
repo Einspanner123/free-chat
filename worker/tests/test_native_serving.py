@@ -202,7 +202,8 @@ async def test_native_generation_without_http_admission_is_rejected(runtime: Any
 
 @pytest.mark.parametrize("rendered", [[1], [2]])
 async def test_preparation_is_required_and_actual_prompt_is_checked_before_gpu(
-    runtime: Any, rendered: list[int],
+    runtime: Any,
+    rendered: list[int],
 ) -> None:
     from freechat_worker.preparation import PreparationService
 
@@ -219,15 +220,16 @@ async def test_preparation_is_required_and_actual_prompt_is_checked_before_gpu(
         denied = await client.post("/v1/chat/completions", json={}, headers=headers())
         assert denied.status_code == 409 and not engine.submissions
         prepared = await client.post(
-            "/freechat/prepare", headers=headers(),
+            "/freechat/prepare",
+            headers=headers(),
             json={"protocol": "/v1/chat/completions", "request": {}},
         )
         assert prepared.status_code == 200
-        supplied = headers(
-            **{"x-freechat-internal-preparation": prepared.json()["preparation_id"]}
-        )
+        supplied = headers(**{"x-freechat-internal-preparation": prepared.json()["preparation_id"]})
         changed = await client.post(
-            "/v1/chat/completions", json={"max_tokens": 9}, headers=supplied,
+            "/v1/chat/completions",
+            json={"max_tokens": 9},
+            headers=supplied,
         )
         assert changed.status_code == 409 and not engine.submissions
         if rendered == [1]:
@@ -237,4 +239,46 @@ async def test_preparation_is_required_and_actual_prompt_is_checked_before_gpu(
             with pytest.raises(ValueError, match="prepared_budget"):
                 await client.post("/v1/chat/completions", json={}, headers=supplied)
             assert not engine.submissions
+        assert (await driver.observe(command())).releasable
+
+
+@pytest.mark.parametrize("reserved", [None, "0", "-1", "127", "129", "not-an-int"])
+async def test_prepared_worker_rejects_wrong_reservation_before_admission(
+    runtime: Any,
+    reserved: str | None,
+) -> None:
+    from freechat_worker.capacity import EngineCapacity
+    from freechat_worker.preparation import PreparationService
+
+    engine, _, driver, app = runtime
+
+    async def render(protocol: str, body: dict[str, Any]) -> tuple[list[int], int]:
+        return [1], 4
+
+    app.preparer = PreparationService(render)
+    app.capacity = EngineCapacity(
+        num_blocks=100,
+        block_size_tokens=16,
+        block_bytes=128,
+        allocated_bytes=12800,
+        max_context_tokens=2048,
+        gpu_name="fixture",
+        total_vram_bytes=20000,
+        compute_capability="8.6",
+    )
+    key, _ = await app.preparer.prepare("tenant", "/v1/chat/completions", {})
+    supplied = headers(**{"x-freechat-internal-preparation": key})
+    if reserved is not None:
+        supplied["x-freechat-internal-reserved-kv-bytes"] = reserved
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app), base_url="http://worker"
+    ) as client:
+        rejected = await client.post("/v1/chat/completions", json={}, headers=supplied)
+        assert rejected.status_code == 409
+        assert not engine.submissions
+        # The rejected identity was not journaled; correct budget can still be admitted.
+        supplied["x-freechat-internal-reserved-kv-bytes"] = "128"
+        app.app.state.native_calls = 1
+        accepted = await client.post("/v1/chat/completions", json={}, headers=supplied)
+        assert accepted.status_code == 200
         assert (await driver.observe(command())).releasable

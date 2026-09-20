@@ -102,7 +102,9 @@ Managed Worker 的推理入口要求 `x-freechat-internal-preparation`。先向�
 `POST /freechat/prepare` 提交 `{"protocol":"/v1/responses","request":原生请求对象}`，
 并提供由 Gateway 认证身份产生的 `x-freechat-internal-tenant`。响应包含 preparation ID、
 原生渲染后的 input/output token 预算以及 Worker generation/engine identity。
-随后提交同一原生请求体和 execution identity；只有调度生成的 `agent_lifecycle` 元数据
+随后提交同一原生请求体、execution identity 和 `x-freechat-internal-reserved-kv-bytes`；
+Worker 用实际 block geometry 检查预占字节恰好覆盖 input/output token，且不超过物理池与上下文。
+只有调度生成的 `agent_lifecycle` 元数据
 允许在准备后添加。预算只在同一 Worker incarnation 内有效，默认 60 秒、最多 4096 条。
 
 处理器复用 vLLM 的请求校验、模板渲染和输出 token 上限计算，不复制模板或估计字符数。
@@ -110,9 +112,18 @@ Managed Worker 的推理入口要求 `x-freechat-internal-preparation`。先向�
 实际 prompt token 指纹和采样上限；不一致、过期或额外内部模型调用均明确拒绝。
 当前 native built-in tool loop 仍需逐调用准入，不等于外部 Harness 的多轮工具调用已禁用。
 
-`tools.validate_native_http` 自动执行准备，再核对真实 JSON response usage，并验证
-SSE、取消与重复拒绝。它尚未经过 Scheduler 的资源预占；Gateway 的字符数估计仍待替换，
-不能把准备成功当作已有资源租约。
+`tools.validate_native_http` 自动执行准备，按实测 block geometry 提供测试预算，核对真实
+JSON response usage，并验证 SSE、取消与重复拒绝。这是直接 Worker 验证，不声称获得了 Scheduler 租约。
+
+Gateway 已移除字符数预算；它通过 gRPC 暂态传送经过身份处理的原生请求。
+Scheduler 先过滤模型、健康度和远端使用权限，再向各候选 Worker 请求原生预处理，
+分别计算成本和逐 rank 预占；CAS 重试时重查 generation、engine identity、请求绑定与有效期。
+prepare 不可用时拒绝，不退回字符估算。原生请求不进入 ledger/event/repr，持久化指纹与预算元数据。
+默认 Scheduler 入口必须配置 `FREECHAT_WORKER_TOKEN`；`contract_only=True` 仅用于显式 CPU fixture。
+当前 managed 路径无 KV connector，因此 offload 指令明确标为未启用，不在准备后改写请求。
+
+节点时钟必须同步，过期/未来 telemetry 不可绕过。自动注册、持续 heartbeat、gross budget 与
+活动请求预占不重复计数仍待接通，不能将这些 CPU 集成测试和单 Worker GPU 测试合称为全链路验收。
 
 ## KV 容量报告
 

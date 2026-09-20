@@ -13,11 +13,11 @@ dependencies and the independent vLLM submodule are pinned in `uv.lock` and
 | Layer | Current validation |
 |---|---|
 | Managed vLLM Worker | Real Qwen2.5-0.5B weights on workstation A5000/A4000: Chat Completions, Responses and Anthropic Messages, each with JSON, SSE and cancellation after generated text; duplicate admission rejected |
-| Token preparation | Native three-protocol rendering on A5000/A4000 agrees with response usage; request/body/tenant expiry and actual engine-input checks precede execution. Scheduler integration remains unfinished |
+| Token preparation | Native three-protocol rendering on A5000/A4000 agrees with response usage; request/body/tenant expiry, actual engine-input and block-rounded reservation checks precede execution |
 | KV geometry | Allocator-reported block counts and per-block bytes verified on A5000/A4000; excludes the null block and reports gross capacity separately from Scheduler reservations |
 | Execution boundary | Durable route identity aggregates native engine calls; only EngineCore removal plus CUDA synchronization permits a terminal receipt |
-| Gateway/Scheduler | CPU contract and loopback gRPC tests; Gateway requires an explicit Scheduler and trusted Worker token |
-| Complete deployment | Worker registration/heartbeat, measured KV admission budget and full Gateway→Scheduler→Worker bootstrap remain incomplete |
+| Gateway/Scheduler | Native preparation is connected to per-worker resource reservations through gRPC; CPU integration contracts pass. Automatic GPU bootstrap is not yet accepted |
+| Complete deployment | Worker registration/heartbeat, gross-budget accounting and full Gateway→Scheduler→Worker GPU bootstrap remain incomplete |
 | Hardware expansion | A6000 validation is pending; 3×4 H100 is a future hardware target, not a verified deployment |
 
 The managed execution adapter currently accepts synchronous TP=PP=DP=1 text
@@ -29,7 +29,7 @@ of the final plan. There is no claimed Agent-task latency or throughput gain.
 
 Use the pinned fork container built as described in `docs/operations.md`.
 Keep `FREECHAT_WORKER_TOKEN` in your environment/secret manager (at least 32
-characters); never commit it. The same token is configured on the Gateway.
+characters); never commit it. The same token is configured on the Gateway and Scheduler.
 Build the managed image from this checkout, then resolve its image ID:
 
 ```bash

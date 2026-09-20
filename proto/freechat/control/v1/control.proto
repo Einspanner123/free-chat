@@ -52,6 +52,8 @@ message RouteRequest {
   string cache_key = 6;
   bool streaming = 7;
   optional string local_node_id = 8;
+  string native_protocol = 9;
+  string native_request_json = 10;
 }
 
 message CostBreakdown {
@@ -85,6 +87,7 @@ message RouteDecision {
   string fallback_reason = 12;
   uint64 reserved_kv_bytes_per_rank = 13;
   optional string engine_instance_id = 14;
+  string preparation_json = 15;
 }
 
 message PredictiveOffloadDirective {

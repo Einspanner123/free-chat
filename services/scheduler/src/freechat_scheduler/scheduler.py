@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -13,6 +14,7 @@ from freechat_contracts import (
     RequestProfile,
     RouteDecision,
 )
+from freechat_contracts.preparation import PreparedAdmission
 
 from freechat_scheduler.calibration import matching_calibration
 from freechat_scheduler.forecasts import forecast_rejection
@@ -63,12 +65,24 @@ class Scheduler:
         self._strategy = strategy
         self._round_robin_index = 0
 
+    def preparation_candidates(self, request: RequestProfile) -> tuple[WorkerSnapshot, ...]:
+        """Apply locality/health/model gates before disclosing a prompt to workers."""
+        _, workers = self._registry.snapshot()
+        probe = request.model_copy(update={"input_tokens": 0, "output_tokens": 1})
+        group_view = self._group_snapshot() if self._group_snapshot is not None else None
+        return tuple(
+            worker for worker in workers if not self._hard_filter(probe, worker, group_view)
+        )
+
     def route(
         self,
         request: RequestProfile,
         *,
         reserved: dict[str, tuple[int, int]] | None = None,
+        prepared: dict[str, PreparedAdmission] | None = None,
     ) -> RouteDecision:
+        if request.native_protocol is not None and prepared is None:
+            raise ValueError("native_preparation_required")
         topology_generation, workers = self._registry.snapshot()
         if reserved:
             workers = tuple(
@@ -95,8 +109,31 @@ class Scheduler:
         group_view = self._group_snapshot() if self._group_snapshot is not None else None
         rejected: dict[str, tuple[str, ...]] = {}
         eligible: list[WorkerSnapshot] = []
+        profiles: dict[str, RequestProfile] = {}
         for worker in workers:
-            reasons = self._hard_filter(request, worker, group_view)
+            worker_id = worker.capabilities.worker_id
+            profile = request
+            if prepared is not None:
+                item = prepared.get(worker_id)
+                if (
+                    item is None
+                    or item.worker_id != worker_id
+                    or item.generation != worker.capabilities.generation
+                    or item.engine_instance_id != worker.telemetry.engine_instance_id
+                    or item.budget.tenant_id != request.tenant_id
+                    or item.budget.protocol != request.native_protocol
+                    or item.budget.body_sha256 != request.native_body_sha256
+                    or item.budget.expires_at <= time.time()
+                ):
+                    rejected[worker_id] = ("native_preparation_missing_expired_or_mismatched",)
+                    continue
+                profile = request.model_copy(update={
+                    "input_tokens": item.budget.input_tokens,
+                    "output_tokens": item.budget.output_tokens,
+                    "estimated_kv_bytes": 0,
+                })
+            profiles[worker_id] = profile
+            reasons = self._hard_filter(profile, worker, group_view)
             if reasons:
                 rejected[worker.capabilities.worker_id] = tuple(reasons)
             else:
@@ -107,7 +144,7 @@ class Scheduler:
 
         cost_by_worker = {
             worker.capabilities.worker_id: self._cost(
-                request,
+                profiles[worker.capabilities.worker_id],
                 worker,
                 include_lifecycle=self._strategy is RoutingStrategy.LIFECYCLE_AWARE,
             )
@@ -141,9 +178,13 @@ class Scheduler:
             strategy=RoutingStrategy.LEAST_LOAD if fallback else self._strategy,
             requested_strategy=self._strategy,
             fallback_reason="candidate_cost_unavailable" if fallback else None,
-            kv_transfer=self._predictive_offload(request, selected_worker),
+            preparation=None if prepared is None else prepared[worker_caps.worker_id],
+            kv_transfer=(
+                self._predictive_offload(request, selected_worker) if prepared is None
+                else PredictiveOffloadDirective(reason="managed_native_transfer_not_enabled")
+            ),
             reserved_kv_bytes_per_rank=required_kv_bytes_per_rank(
-                request,
+                profiles[worker_caps.worker_id],
                 next(model for model in worker_caps.models if model.model_id == request.model_id),
             )
             or 0,
