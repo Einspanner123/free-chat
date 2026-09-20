@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim@sha256:e5b65587bce7de595f299855d7385fe7fca39b8a74baa261ba1b7147afa78e58
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim@sha256:e5b65587bce7de595f299855d7385fe7fca39b8a74baa261ba1b7147afa78e58 AS workspace
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -15,6 +15,16 @@ ARG UV_HTTP_TIMEOUT=120
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     UV_HTTP_TIMEOUT=${UV_HTTP_TIMEOUT} uv sync --frozen --all-packages --no-dev
 
+FROM workspace AS harness
+COPY benchmarks ./benchmarks
+COPY README.md ./
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
+    UV_HTTP_TIMEOUT=${UV_HTTP_TIMEOUT} uv sync --frozen --all-packages --no-dev \
+    --extra openai-agents --extra langgraph
+USER 65532:65532
+CMD ["python", "-m", "benchmarks.openai_agents_e2e", "--help"]
+
+FROM workspace AS control
 USER 65532:65532
 EXPOSE 8080
 CMD ["freechat-gateway"]

@@ -8,7 +8,7 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any, cast
 
-from agents import Agent, Model, ModelSettings, Runner, function_tool
+from agents import Agent, Model, ModelSettings, RunConfig, Runner, function_tool
 from agents.models.openai_chatcompletions import OpenAIChatCompletionsModel
 from freechat_harness_adapters import HarnessCall
 from freechat_harness_adapters.openai_agents import OpenAIAgentsLifecycle
@@ -107,23 +107,22 @@ async def run(arguments: argparse.Namespace) -> dict[str, Any]:
         expected_resume_ms=arguments.expected_resume_ms,
     )
     tool_paths: list[str] = []
+    readme: Path = arguments.repository / "README.md"
+    if readme.is_symlink():
+        raise ValueError("benchmark README must not be a symlink")
+    with readme.open(encoding="utf-8") as source:
+        tool_contents = source.read(arguments.tool_output_characters)
     expected_heading = next(
-        line.strip()
-        for line in (arguments.repository / "README.md").read_text(encoding="utf-8").splitlines()
-        if line.startswith("#")
+        line.strip() for line in tool_contents.splitlines() if line.startswith("#")
     )
 
     @function_tool
     def read_file(path: str) -> str:
-        """Read a UTF-8 repository file after constraining it to the repository root."""
-        requested = (arguments.repository / path).resolve()
-        repository = arguments.repository.resolve()
-        if not requested.is_relative_to(repository):
-            raise ValueError("path escapes repository root")
+        """Read README.md, the only file exposed by this benchmark."""
+        if path != "README.md":
+            raise ValueError("only README.md is available")
         tool_paths.append(path)
-        return str(
-            requested.read_text(encoding="utf-8")[: arguments.tool_output_characters]
-        )
+        return tool_contents
 
     agent = Agent(
         name="coder",
@@ -137,7 +136,17 @@ async def run(arguments: argparse.Namespace) -> dict[str, Any]:
     )
     started_ns = time.perf_counter_ns()
     try:
-        result = await Runner.run(agent, "Inspect README.md.", hooks=lifecycle.hooks())
+        async with asyncio.timeout(arguments.timeout):
+            result = await Runner.run(
+                agent,
+                "Inspect README.md.",
+                hooks=lifecycle.hooks(),
+                max_turns=arguments.max_turns,
+                run_config=RunConfig(tracing_disabled=True, trace_include_sensitive_data=False),
+            )
+    except BaseException:
+        lifecycle.cancel()
+        raise
     finally:
         await client.close()
     finished_ns = time.perf_counter_ns()
@@ -145,13 +154,19 @@ async def run(arguments: argparse.Namespace) -> dict[str, Any]:
         call["extra_body"].get("freechat", {}).get("agent_hints", {}).get("lifecycle")
         for call in delegate.calls
     ]
-    if lifecycles[:2] != ["active", "resume"]:
-        raise RuntimeError(f"expected active/resume model calls, observed {lifecycles}")
-    if tool_paths != ["README.md"]:
-        raise RuntimeError(f"expected one README.md tool call, observed {tool_paths}")
     final_output = str(result.final_output)
+    checks = {
+        "active_resume": lifecycles == ["active", "resume"],
+        "one_readme_tool": tool_paths == ["README.md"],
+        "answer_matches_expected": final_output.strip() == expected_heading,
+        "terminal": lifecycle.current.lifecycle == "terminal",
+    }
     return {
         "schema": 1,
+        "accepted": all(checks.values()),
+        "checks": checks,
+        "scope": "real-sdk-model-requests; no standalone tool-wait control event",
+        "sdk_cloud_tracing": False,
         "task_id": arguments.task_id,
         "session_id": arguments.session_id,
         "gateway": arguments.gateway,
@@ -177,9 +192,16 @@ async def async_main() -> None:
     parser.add_argument("--expected-resume-ms", type=int, default=500)
     parser.add_argument("--tool-output-characters", type=int, default=2_000)
     parser.add_argument("--timeout", type=float, default=120)
+    parser.add_argument("--max-turns", type=int, default=4)
     arguments = parser.parse_args()
+    if arguments.timeout <= 0 or arguments.max_turns <= 0:
+        parser.error("timeout and max-turns must be positive")
+    if not 1 <= arguments.tool_output_characters <= 65_536:
+        parser.error("tool-output-characters must be between 1 and 65536")
     payload = await run(arguments)
     print(json.dumps(payload, indent=2, default=str))
+    if not payload["accepted"]:
+        raise SystemExit(1)
 
 
 def main() -> None:

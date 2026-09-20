@@ -70,6 +70,11 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
    A4000 已验证新实例先注册并执行后，独立历史回执端点仍可回收已封闭旧实例的预占，
    不改写当前注册；新旧共 4/4 请求确认释放。历史服务不挂 Docker socket。
    此项仍由操作员配置/触发；自动终止取证、协调及原任务恢复未完成。
+   OpenAI Agents SDK 0.22.0 已在 A5000/A4000 经真实 Gateway 执行 README function tool，
+   每卡 Active/Resume 两次推理均收到完成回执并释放；模型多输出说明，严格答案检查失败。
+   验收器已修正为质量失败退出 1；SDK 并行工具全部完成前保持等待，取消/终态不可复活。
+   此桥接尚未发送独立 Tool Wait 控制事件，也未驱动真实 KV retain/offload；
+   下一步接通认证生命周期入口及 KV action 观测，再运行真实 Harness 取消/失败矩阵。
    WebUI 及以下故障/生命周期矩阵仍待完成：
    streaming、取消、断连、重复、迟到、重启；再贯通 Tool Wait/Resume、
    KV action、tracing、三协议和四 Harness。复用原生协议，不重新实现另一套 API。

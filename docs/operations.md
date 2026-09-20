@@ -3,6 +3,22 @@
 唯一实施顺序见根目录计划，当前入口见 README。验证只输出到 stdout 或正常服务日志，不创建结果目录。
 服务 journal、模型缓存和配置不是验证结果，按正常服务生命周期管理。
 
+## Compose control stack
+
+`deploy/compose/compose.yaml` is a control-service development stack, not the
+accepted GPU inference bootstrap. Configure `deploy/compose/.env` from its
+example without overwriting existing secrets, then run:
+
+```bash
+docker compose --env-file deploy/compose/.env -f deploy/compose/compose.yaml up --build
+```
+
+A running WebUI or control container does not prove a registered GPU Worker.
+For the tested inference path use README's same-host managed Worker/Gateway/
+Scheduler launch. The current private loopback RPC boundary must not be bypassed
+by inventing a cross-container endpoint; Compose/WebUI integration and cross-node
+transport remain pending. There is no separate Compose operations manual.
+
 ## Managed Worker
 
 `freechat-worker` 使用原生 vLLM 三协议处理器，外层只负责认证、准入和执行关联。
@@ -125,7 +141,8 @@ prepare 不可用时拒绝，不退回字符估算。原生请求不进入 ledge
 节点时钟必须同步，过期/未来 telemetry 不可绕过。默认 Worker 通过 `--scheduler-target` 和
 `--node-id` 启用自动注册、持续 heartbeat；注册地址、HTTP 和执行 RPC 目前只接受同机 loopback。
 Gateway/Scheduler/Worker 在同一个网络 namespace 中运行，不通过放开 peer 校验冒充跨节点部署。
-同机 API 推理闭环已在 A5000/A4000 分别运行；多 Worker、跨节点和重启恢复仍待验收。
+同机 API 推理闭环、同一 Scheduler 双 Worker 路由及限定的重启恢复切片已在 A5000/A4000 运行；
+跨节点与完整故障矩阵仍待验收，准确范围见 Claims Ledger。
 
 ## KV 容量报告
 
@@ -517,7 +534,7 @@ and the Scheduler retains final resource authority.
 
 | Harness | Implemented boundary | Verified scope | Remaining acceptance |
 |---|---|---|---|
-| OpenAI Agents SDK | Run hooks plus model decorator | Real `Runner.run()` tool call traversed the Gateway and Qwen2.5-0.5B Worker; the second model request carried Resume identity | Cancellation/failure replay, task-quality gate and benchmark matrix |
+| OpenAI Agents SDK | Run hooks plus model decorator, identified parallel function tools, terminal/cancel fence | Real SDK + Qwen2.5-0.5B on A5000/A4000: README function tool, Active/Resume model requests and confirmed capacity release | Both strict answer checks fail; standalone Tool Wait transport, KV actions, real cancellation/failure replay and benchmark matrix remain |
 | LangGraph | Runnable/checkpoint context bridge | Real interrupt and `Command(resume=...)` preserve task, thread and checkpoint identity | Gateway, real model, branching/failure replay and benchmark matrix |
 | OpenCode | Native session-event state machine | ToolPart pending/running/completed/error, parallel calls, replay regression and cross-session rejection | Live plugin/SSE run, model request interception, cancellation/failure replay and benchmark matrix |
 | OpenHands | SDK event state machine | Action/Observation/error pairing, parallel calls and late-event replay protection | Live SDK callback, model request interception, cancellation/failure replay and benchmark matrix |
@@ -527,6 +544,46 @@ dictionaries at the transport boundary and do not import private framework
 internals. This makes recorded trace replay deterministic and keeps framework
 upgrades from entering the Scheduler contract. It does not substitute for live
 Harness acceptance.
+
+### OpenAI Agents SDK GPU check
+
+Use the SDK Runner; do not replace it with a custom Agent loop. The pinned
+Worker must include `--enable-auto-tool-choice --tool-call-parser hermes` for
+this Qwen function-tool scenario. Restart the development Worker to change
+these arguments. Wait for both native HTTP readiness and Scheduler registration.
+
+The optional Harness image adds locked SDK extras without adding them to the
+default control image:
+
+```bash
+docker build --target harness -f deploy/images/control.Dockerfile \
+  -t freechat-harness:development .
+docker run --name freechat-agents-check --network container:freechat-worker \
+  --entrypoint /bin/sh -e FREECHAT_VALIDATION_API_KEY freechat-harness:development \
+  -c 'exec python -m benchmarks.openai_agents_e2e \
+    --gateway http://127.0.0.1:8080 --api-key "$FREECHAT_VALIDATION_API_KEY" \
+    --model qwen --repository /app --task-id readme-task --session-id readme-session \
+    --tool-output-characters 256 --max-turns 4 --timeout 120'
+```
+
+Inspect the image ID and normal container logs. Output is JSON on stdout;
+no result directory is created. Success requires exactly one README tool call,
+exactly Active/Resume model calls, terminal state and an exact heading answer.
+An extra explanation is a task-quality failure, not a passing answer; CLI exits 1.
+The whole Runner is time/turn bounded and SDK cloud tracing is disabled.
+Only the bounded README content is exposed, not arbitrary repository files.
+
+Create one bridge per run. Identified parallel function tools remain waiting
+until every started call finishes; duplicates do not reopen completed calls.
+Callbacks without tool_call_id fail explicitly. Terminal/cancelled runs cannot
+resume without reset. The outer Runner owner must cancel the bridge on exceptions;
+the provided benchmark does this, but local cancellation alone is not a Worker
+abort acknowledgment.
+
+**Current transport boundary:** Tool Wait is local adapter state, not an independently
+delivered Gateway/control-plane event. Active/Resume hints travel with model
+requests. A passing request trace would not prove Tool Wait-driven retention,
+offload/prefetch, durable lifecycle delivery or task performance. Those remain gates.
 
 ### OpenCode bridge
 

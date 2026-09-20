@@ -16,8 +16,10 @@ class OpenAIAgentsLifecycle:
     Create one instance per SDK run; sharing an instance across concurrent runs
     is intentionally unsupported because SDK hooks can execute in copied async
     contexts. Tool completion marks the next LLM request as ``resume``;
-    tool start records ``tool_wait`` for the lifecycle/control path without
-    pretending that a completed model request knew which tool would execute.
+    tool start records local ``tool_wait`` state. This bridge sends hints on
+    model requests, not standalone lifecycle events to the control plane.
+    Exact parallel tracking requires function-tool contexts with tool_call_id;
+    unidentifiable tool callbacks fail closed instead of inventing a resume.
     """
 
     def __init__(self, call: HarnessCall, *, expected_resume_ms: int = 30_000) -> None:
@@ -27,6 +29,8 @@ class OpenAIAgentsLifecycle:
         self._expected_resume_ms = expected_resume_ms
         self._current = call
         self._turn = 0
+        self._pending_tools: set[str] = set()
+        self._finished_tools: set[str] = set()
 
     @property
     def current(self) -> HarnessCall:
@@ -38,7 +42,18 @@ class OpenAIAgentsLifecycle:
     def wrap_model(self, model: Model) -> OpenAIAgentsLifecycleModel:
         return OpenAIAgentsLifecycleModel(model, self)
 
+    @property
+    def pending_tools(self) -> frozenset[str]:
+        return frozenset(self._pending_tools)
+
+    def _require_open(self) -> None:
+        if self._current.lifecycle in {Lifecycle.TERMINAL, Lifecycle.CANCELLED}:
+            raise RuntimeError("run is closed; reset before reuse")
+
     def begin_agent(self, agent_name: str | None) -> None:
+        self._require_open()
+        if self._pending_tools:
+            raise RuntimeError("cannot change agent while tools are pending")
         current = self._current
         agent_id = agent_name or current.agent_id
         self._current = replace(
@@ -50,12 +65,13 @@ class OpenAIAgentsLifecycle:
         )
 
     def before_llm(self) -> None:
+        self._require_open()
+        if self._pending_tools:
+            raise RuntimeError("cannot invoke model while tools are pending")
         current = self._current
         self._turn += 1
         turn = self._turn
-        lifecycle = (
-            Lifecycle.RESUME if current.lifecycle is Lifecycle.RESUME else Lifecycle.ACTIVE
-        )
+        lifecycle = Lifecycle.RESUME if current.lifecycle is Lifecycle.RESUME else Lifecycle.ACTIVE
         self._current = replace(
             current,
             turn_id=str(turn),
@@ -67,8 +83,14 @@ class OpenAIAgentsLifecycle:
         )
 
     def tool_wait(self, tool_call_id: str | None) -> None:
+        self._require_open()
+        if not tool_call_id:
+            raise ValueError("function-tool lifecycle requires tool_call_id")
+        if tool_call_id in self._finished_tools or tool_call_id in self._pending_tools:
+            return
+        self._pending_tools.add(tool_call_id)
         current = self._current
-        call_id = tool_call_id or current.call_id
+        call_id = tool_call_id
         self._current = replace(
             current,
             call_id=call_id,
@@ -77,8 +99,19 @@ class OpenAIAgentsLifecycle:
         )
 
     def resume(self, tool_call_id: str | None) -> None:
+        self._require_open()
+        if not tool_call_id:
+            raise ValueError("function-tool lifecycle requires tool_call_id")
+        if tool_call_id in self._finished_tools:
+            return
+        if tool_call_id not in self._pending_tools:
+            raise ValueError("tool completion has no matching start")
+        self._pending_tools.remove(tool_call_id)
+        self._finished_tools.add(tool_call_id)
+        if self._pending_tools:
+            return
         current = self._current
-        call_id = tool_call_id or current.call_id
+        call_id = tool_call_id
         self._current = replace(
             current,
             call_id=call_id,
@@ -87,6 +120,10 @@ class OpenAIAgentsLifecycle:
         )
 
     def terminal(self) -> None:
+        if self._current.lifecycle in {Lifecycle.TERMINAL, Lifecycle.CANCELLED}:
+            return
+        if self._pending_tools:
+            raise RuntimeError("cannot finish run while tools are pending")
         self._current = replace(
             self._current,
             lifecycle=Lifecycle.TERMINAL,
@@ -94,6 +131,9 @@ class OpenAIAgentsLifecycle:
         )
 
     def cancel(self) -> None:
+        if self._current.lifecycle in {Lifecycle.TERMINAL, Lifecycle.CANCELLED}:
+            return
+        self._pending_tools.clear()
         self._current = replace(
             self._current,
             lifecycle=Lifecycle.CANCELLED,
@@ -103,6 +143,8 @@ class OpenAIAgentsLifecycle:
     def reset(self) -> None:
         self._current = self._initial
         self._turn = 0
+        self._pending_tools.clear()
+        self._finished_tools.clear()
 
 
 class OpenAIAgentsRunHooks(RunHooks[Any]):

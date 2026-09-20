@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
-from agents import Agent, Model, ModelSettings, Runner, function_tool
+from agents import Agent, Model, ModelSettings, RunConfig, Runner, function_tool
 from agents.items import ModelResponse
 from agents.models.interface import ModelTracing
 from agents.testing import ScriptedModel, assistant_message, function_call
@@ -180,7 +181,12 @@ async def test_real_sdk_runner_carries_tool_resume_to_second_model_call() -> Non
         model=lifecycle.wrap_model(delegate),
     )
 
-    result = await Runner.run(agent, "read README.md", hooks=lifecycle.hooks())
+    result = await Runner.run(
+        agent,
+        "read README.md",
+        hooks=lifecycle.hooks(),
+        run_config=RunConfig(tracing_disabled=True),
+    )
 
     assert result.final_output == "done"
     assert len(delegate.calls) == 2
@@ -192,3 +198,126 @@ async def test_real_sdk_runner_carries_tool_resume_to_second_model_call() -> Non
     assert second["freechat"]["agent_hints"]["lifecycle"] == "resume"
     assert second["freechat"]["agent_hints"]["expected_resume_ms"] == 500
     assert lifecycle.current.lifecycle is Lifecycle.TERMINAL
+
+
+def bridge() -> OpenAIAgentsLifecycle:
+    return OpenAIAgentsLifecycle(HarnessCall(task_id="t", session_id="s", agent_id="a"))
+
+
+def test_parallel_tools_require_every_completion_and_ignore_duplicates() -> None:
+    lifecycle = bridge()
+    lifecycle.before_llm()
+    lifecycle.tool_wait("first")
+    lifecycle.tool_wait("second")
+    lifecycle.tool_wait("first")
+    lifecycle.resume("first")
+    assert lifecycle.current.lifecycle is Lifecycle.TOOL_WAIT
+    assert lifecycle.pending_tools == frozenset({"second"})
+    with pytest.raises(RuntimeError, match="pending"):
+        lifecycle.before_llm()
+    with pytest.raises(RuntimeError, match="pending"):
+        lifecycle.begin_agent("another")
+    with pytest.raises(RuntimeError, match="pending"):
+        lifecycle.terminal()
+    lifecycle.resume("first")
+    lifecycle.tool_wait("first")
+    assert lifecycle.pending_tools == frozenset({"second"})
+    lifecycle.resume("second")
+    assert lifecycle.current.lifecycle.value == "resume"
+    lifecycle.before_llm()
+    assert lifecycle.current.turn_id == "2"
+
+
+@pytest.mark.parametrize("tool_id", [None, ""])
+def test_unidentifiable_tool_callbacks_fail_closed(tool_id: str | None) -> None:
+    lifecycle = bridge()
+    with pytest.raises(ValueError, match="tool_call_id"):
+        lifecycle.tool_wait(tool_id)
+    with pytest.raises(ValueError, match="tool_call_id"):
+        lifecycle.resume(tool_id)
+    assert lifecycle.current.lifecycle is Lifecycle.ACTIVE
+
+
+def test_unmatched_completion_does_not_invent_resume() -> None:
+    lifecycle = bridge()
+    lifecycle.tool_wait("pending")
+    with pytest.raises(ValueError, match="matching start"):
+        lifecycle.resume("unknown")
+    assert lifecycle.current.lifecycle is Lifecycle.TOOL_WAIT
+    assert lifecycle.pending_tools == frozenset({"pending"})
+
+
+@pytest.mark.parametrize("cancelled", [False, True])
+def test_closed_run_cannot_be_resurrected(cancelled: bool) -> None:
+    lifecycle = bridge()
+    lifecycle.before_llm()
+    if cancelled:
+        lifecycle.tool_wait("pending")
+        lifecycle.cancel()
+    else:
+        lifecycle.terminal()
+    expected = Lifecycle.CANCELLED if cancelled else Lifecycle.TERMINAL
+    lifecycle.terminal()
+    lifecycle.cancel()
+    assert lifecycle.current.lifecycle is expected
+    for operation in (
+        lifecycle.before_llm,
+        lambda: lifecycle.begin_agent("another"),
+        lambda: lifecycle.tool_wait("pending"),
+        lambda: lifecycle.resume("pending"),
+    ):
+        with pytest.raises(RuntimeError, match="closed"):
+            operation()
+        assert lifecycle.current.lifecycle is expected
+    lifecycle.reset()
+    lifecycle.before_llm()
+    assert lifecycle.current.turn_id == "1"
+    assert not lifecycle.pending_tools
+
+
+@pytest.mark.asyncio
+async def test_real_sdk_parallel_function_tools_wait_for_last_completion() -> None:
+    lifecycle = bridge()
+    both_started = asyncio.Event()
+    first_finished = asyncio.Event()
+    observed_pending: list[frozenset[str]] = []
+    observed_state: list[Lifecycle] = []
+
+    @function_tool
+    async def parallel_tool(name: str) -> str:
+        if name == "first":
+            await both_started.wait()
+            first_finished.set()
+        else:
+            observed_pending.append(lifecycle.pending_tools)
+            both_started.set()
+            await first_finished.wait()
+            # Let the first SDK on_tool_end callback finish before asserting.
+            await asyncio.sleep(0)
+            observed_state.append(lifecycle.current.lifecycle)
+        return name
+
+    delegate = ScriptedModel(
+        [
+            [
+                function_call("parallel_tool", {"name": "first"}, call_id="one"),
+                function_call("parallel_tool", {"name": "second"}, call_id="two"),
+            ],
+            [assistant_message("done")],
+        ]
+    )
+    agent = Agent(name="a", tools=[parallel_tool], model=lifecycle.wrap_model(delegate))
+    async with asyncio.timeout(5):
+        result = await Runner.run(
+            agent,
+            "run both",
+            hooks=lifecycle.hooks(),
+            run_config=RunConfig(tracing_disabled=True),
+        )
+    assert result.final_output == "done"
+    assert observed_pending == [frozenset({"one", "two"})]
+    assert observed_state == [Lifecycle.TOOL_WAIT]
+    assert not lifecycle.pending_tools
+    assert lifecycle.current.lifecycle is Lifecycle.TERMINAL
+    settings = cast(dict[str, Any], delegate.calls[1].model_settings.extra_body)
+    assert settings["freechat"]["agent_hints"]["lifecycle"] == "resume"
