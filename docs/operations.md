@@ -741,10 +741,39 @@ without importing the GPU runtime. Its file-level coverage does not cover
 `kv_cache_manager.py`, EngineCore, CUDA subprocesses or the whole upstream fork.
 Never add this percentage to the parent workspace's denominator.
 
-Calibration probe limitation: `benchmarks.calibrate_service` and
-`benchmarks.telemetry_probe` still construct routing telemetry without allocator
-admission capacity. The current Scheduler rejects those routes; calibration also
-needs a trustworthy local node identity. The CPU tests assert that rejection and
-absence of a final success report. They do not validate successful probe routing.
-Use the managed inference loop for current routing acceptance; repair these probes
-with observed capacity before treating them as a live calibration entry point.
+Calibration and telemetry probes now require the authenticated managed runtime,
+not a standalone vLLM endpoint. They compare full capabilities, engine identity,
+freshness (0–10 seconds) and physical KV geometry. Free GPU memory is diagnostic
+only; the admission budget is the actual pool minus its null block. Each direct
+request uses native preparation, a unique identity and a completed/quiescent/
+admission-closed execution receipt. Busy, replaced or changed-capacity runtimes
+fail closed; an HTTP failure triggers a bounded abort attempt and ends the probe.
+
+Run in the Worker's network namespace, with the corresponding
+`FREECHAT_WORKER_TOKEN`, control dependencies and access to `nvidia-smi`.
+The input capability file and engine ID must come from the same authenticated
+`GET /freechat/runtime` response. This endpoint reports configured capabilities;
+it does not itself prove successful Scheduler registration. Keep the Worker
+exclusive to the serial probe; do not submit concurrent managed or direct work.
+
+```bash
+python -m benchmarks.calibrate_service --capabilities /tmp/capabilities.json \
+  --engine-instance-id ENGINE_ID --image-identity IMAGE_AND_SOURCE_ID \
+  --repetitions 8 16 --trials 3 --output-tokens 16
+python -m benchmarks.telemetry_probe --capabilities /tmp/capabilities.json \
+  --engine-instance-id ENGINE_ID
+```
+
+Omit `--gpu-host` for local GPU observation; supply it only when SSH is configured
+to query that same physical GPU. Bare PyTorch UUIDs are normalized for nvidia-smi,
+not replaced by a guessed device index. Never pass the worker token on the CLI.
+For frozen source mounts, the unprivileged client must be able to traverse the
+artifact root, and its working directory/import path must select that artifact
+rather than a package baked into the image. Compare loaded source hashes.
+
+Each private gRPC routing case gets an independent ledger and never dispatches
+the corresponding hypothetical request. No synthetic release receipt is used.
+Transfer rates may be unknown: this probe never enables offload merely to make
+a counter nonzero. Raw metrics, observations and manifests are hash-linked stdout
+records; retain normal container logs. These probes are not Gateway/Harness,
+multi-node, live-policy calibration or end-to-end performance acceptance.

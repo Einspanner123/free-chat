@@ -354,3 +354,24 @@ async def test_cache_control_rejects_unsupported_route_without_engine_update(
     with pytest.raises(ValueError):
         await WorkerCacheLifecycleDriver(gate, backend).apply(intent)
     assert engine.submissions == [] and engine.aborts == []
+
+
+async def test_runtime_reports_fresh_registered_capabilities(runtime: Any) -> None:
+    from datetime import UTC, datetime
+
+    from test_telemetry import collector
+
+    _, _, _, wrapped = runtime
+    caps = collector().capabilities
+    wrapped.capabilities = caps
+    before = datetime.now(UTC)
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=wrapped), base_url="http://worker"
+    ) as client:
+        unauthorized = await client.get("/freechat/runtime")
+        assert unauthorized.status_code == 401
+        response = await client.get("/freechat/runtime", headers=headers())
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["capabilities"] == caps.model_dump(mode="json")
+    assert before <= datetime.fromisoformat(payload["observed_at"]) <= datetime.now(UTC)

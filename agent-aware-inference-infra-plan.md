@@ -31,6 +31,17 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
 4. **重构。** 测试通过后整理命名、职责和重复逻辑，不额外扩大功能；重新运行受影响回归与对应覆盖门禁，最终提交前执行适用的完整测试集合。
 5. **验收。** 交付说明列出功能边界、有效红的失败原因、绿与重构后的命令/结果及未完成验证。测试证据使用命令行与正常日志，状态只更新现有计划/Claims Ledger，不新增过程文档。CPU 绿不代表 GPU 验收；缺硬件时保留真实测试和未验收状态，不以 mock 冒充完成。
 
+### 当前增量：校准/遥测探针的可信运行观测
+
+当前状态：本增量已完成红—绿—重构与 CPU 回归；A5000/A4000 的孤立真实 GPU 探针通过。
+下一增量回到生命周期控制链 GPU 端到端验收，不能把探针结果扩展成调度收益。
+
+- 范围：单节点、单模型、TP=PP=DP=1、串行且独占的 managed Worker 校准；沿用认证 runtime、原生 prepare 和执行回执，不扩展调度算法或 KV offload。
+- 观测契约：runtime 返回当前注册 capabilities、engine identity、观测时间及 allocator geometry；与操作者固定的 capabilities/engine 全量匹配，拒绝缺失、超过 10 秒或来自未来的观测，以及 geometry/身份变化。预算仅为扣除 null block 后的实际池容量，不来自空闲显存。
+- 测试先行：先验证有效观测可完成服务校准与遥测路由；覆盖缺预算、旧 generation、错误引擎/模型/节点/GPU、过期时间、未认证、prepare 不匹配及池不足。服务校准前后检查身份，禁止跨引擎拼接样本。
+- 执行边界：每个直接测量请求先原生 prepare，检查预算，再携带唯一身份执行并等待可信终态回执。孤立调度检查不实际派发；每个独立 case 使用独立账本，不能以 HTTP release 意图冒充容量已经回收。
+- 验收：CPU HTTP fixture/loopback gRPC 只证明契约；真实 GPU 校准和遥测仍需同镜像、同模型、同引擎的串行实测。没有自然发生的 transfer 窗口时保留未知，不强制开启 offload，不生成性能收益。
+
 ### 当前修复顺序
 
 1. [~] **真实执行与预算。** 已接入 vLLM AsyncLLM、原生三协议预处理、
@@ -75,9 +86,10 @@ WebUI 全部 TS/TSX 的语句、分支、函数、行分别至少 80%。未导�
 不排除启动入口或 GPU kernel；测试代码与生成 protobuf 不计入。fork 纯 hooks 单独统计，
 不能替代完整引擎或 GPU 验收。统一命令为 `bash tools/test_cpu.sh` 与前端 `npm run test:coverage`。
 
-本轮补测确认 `calibrate_service.py`、`telemetry_probe.py` 的路由探针缺少当前准入所需的
-allocator 预算；服务校准请求还缺节点来源。修复应接入可信容量与节点身份，不能用空闲显存
-替代 KV 预算或放松硬过滤。该能力仍待实现，精确拒绝回归不计为成功路由验收。
+校准/遥测探针已接入认证 runtime、当前 capabilities/engine/节点与真实 allocator 预算，
+复用原生 prepare 与执行回执，并逐次检查身份、容量和空闲边界；诊断显存支持本地查询。
+CPU 的 43 项新增测试及完整覆盖门禁已通过；GPU 结果与源码哈希以 Claims Ledger 为准。
+这只是孤立串行探针，不代表 Gateway 全链路、自动策略校准、任务质量或性能收益。
 
 CPU 只检查局部逻辑、类型和契约。真实模型、GPU 执行/取消、并行、
 kernel 与端到端性能必须在 GPU 上测；不能以 CPU 通过代替。

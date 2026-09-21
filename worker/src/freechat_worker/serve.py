@@ -102,12 +102,27 @@ async def serve(args: Any) -> None:
                 tasks = await proxy.get_supported_tasks()
                 app = api.build_app(args, tasks, engine.model_config)
                 await api.init_app_state(proxy, app.state, args, tasks)
+                caps = None
+                if registration_config is not None:
+                    revision = await asyncio.to_thread(
+                        artifact_identity, Path(engine.model_config.model)
+                    )
+                    caps = capabilities(
+                        registration_config,
+                        capacity,
+                        engine.model_config,
+                        worker_id=args.worker_id,
+                        generation=args.worker_generation,
+                        revision=revision,
+                    )
+
                 wrapped = AdmissionMiddleware(
                     app,
                     driver=driver,
                     backend=backend,
                     token=token,
                     capacity=capacity,
+                    capabilities=caps,
                     preparer=PreparationService(NativeRenderer(app.state)),
                 )
                 await control.start()
@@ -129,17 +144,7 @@ async def serve(args: Any) -> None:
                     )
                 )
                 if registration_config is not None:
-                    revision = await asyncio.to_thread(
-                        artifact_identity, Path(engine.model_config.model)
-                    )
-                    caps = capabilities(
-                        registration_config,
-                        capacity,
-                        engine.model_config,
-                        worker_id=args.worker_id,
-                        generation=args.worker_generation,
-                        revision=revision,
-                    )
+                    assert caps is not None
                     registration = RegistrationLoop(
                         registration_config,
                         caps,

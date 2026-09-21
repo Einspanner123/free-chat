@@ -5,92 +5,80 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-import grpc
 import httpx
-from freechat.control.v1 import control_pb2_grpc
 from freechat_contracts import AgentHints, CostCalibration, RequestProfile, WorkerCapabilities
-from freechat_gateway.routing import GrpcSchedulerClient
-from freechat_scheduler.grpc_server import LeaseBook, SchedulerGrpcService, WorkerGrpcService
-from freechat_scheduler.registry import InMemoryWorkerRegistry
-from freechat_scheduler.scheduler import Scheduler
 from freechat_worker.calibration import ServiceObservation, fit_service_profile, observe_request
-from freechat_worker.telemetry import TelemetryCollector, heartbeat
+from freechat_worker.telemetry import TelemetryCollector
 
+from benchmarks.probe_runtime import ProbeSession, RuntimeObservation, observe_free_vram, route_once
 from benchmarks.records import emit_record
 
 
 async def validate_routes(
     caps: WorkerCapabilities,
     profiles: tuple[CostCalibration, ...],
-    engine_id: str,
+    observation: RuntimeObservation,
     metrics: str,
     free_vram_bytes: int,
 ) -> list[dict[str, Any]]:
-    telemetry = TelemetryCollector(caps, engine_id, profiles).collect(
-        metrics,
-        free_vram_bytes=free_vram_bytes,
-        observed_at=datetime.now(UTC),
-    )
-    registry = InMemoryWorkerRegistry()
-    await registry.register(caps, telemetry)
-    server = grpc.aio.server()
-    control_pb2_grpc.add_SchedulerServiceServicer_to_server(  # type: ignore[no-untyped-call]
-        SchedulerGrpcService(Scheduler(registry), LeaseBook()),
-        server,
-    )
-    control_pb2_grpc.add_WorkerControlServiceServicer_to_server(  # type: ignore[no-untyped-call]
-        WorkerGrpcService(registry),
-        server,
-    )
-    port = server.add_insecure_port("127.0.0.1:0")
-    await server.start()
-    channel = grpc.aio.insecure_channel(f"127.0.0.1:{port}")
-    client = GrpcSchedulerClient(f"127.0.0.1:{port}")
-    worker = control_pb2_grpc.WorkerControlServiceStub(channel)  # type: ignore[no-untyped-call]
-    results = []
-    try:
-        assert await heartbeat(worker, telemetry) == "heartbeat_accepted"
-        for profile in profiles:
-            request = RequestProfile(
-                tenant_id="calibration-probe",
-                model_id=profile.model.model_id,
-                input_tokens=profile.input_tokens_min,
-                output_tokens=profile.output_tokens_min,
-                hints=AgentHints(harness_id="calibration", task_id="task", agent_id="agent"),
-            )
-            decision = await client.route(request)
-            await client.release(request, decision)
-            assert decision.selected.estimate_available
-            assert decision.selected.calibration_id == profile.calibration_id
-            assert decision.strategy == "lifecycle-aware"
-            assert decision.kv_transfer.reason == "transfer_calibration_required"
-            results.append({"case": "in-scope", "decision": decision.model_dump(mode="json")})
-        request = request.model_copy(
-            update={"input_tokens": max(item.input_tokens_max for item in profiles) + 100}
+    if not profiles:
+        raise ValueError("service_profiles_required")
+    telemetry = observation.budgeted(
+        TelemetryCollector(caps, observation.engine_instance_id, profiles).collect(
+            metrics,
+            free_vram_bytes=free_vram_bytes,
+            observed_at=datetime.now(UTC),
         )
-        decision = await client.route(request)
-        await client.release(request, decision)
-        assert not decision.selected.estimate_available
-        assert decision.strategy == "least-load"
-        assert decision.fallback_reason == "candidate_cost_unavailable"
-        results.append({"case": "out-of-scope", "decision": decision.model_dump(mode="json")})
-        return results
-    finally:
-        await client.aclose()
-        await channel.close()
-        await server.stop(None)
+    )
+    results = []
+    for profile in profiles:
+        request = RequestProfile(
+            tenant_id="calibration-probe",
+            local_node_id=caps.node_id,
+            model_id=profile.model.model_id,
+            input_tokens=profile.input_tokens_min,
+            output_tokens=profile.output_tokens_min,
+            hints=AgentHints(harness_id="calibration", task_id="task", agent_id="agent"),
+        )
+        decision = await route_once(caps, telemetry, request)
+        assert decision.selected.estimate_available
+        assert decision.selected.calibration_id == profile.calibration_id
+        assert decision.strategy == "lifecycle-aware"
+        assert not decision.kv_transfer.enabled
+        results.append({"case": "in-scope", "decision": decision.model_dump(mode="json")})
+    request = request.model_copy(
+        update={
+            "request_id": str(uuid4()),
+            "input_tokens": max(item.input_tokens_max for item in profiles) + 100,
+        }
+    )
+    decision = await route_once(caps, telemetry, request)
+    assert not decision.selected.estimate_available
+    assert decision.strategy == "least-load"
+    assert decision.fallback_reason == "candidate_cost_unavailable"
+    results.append({"case": "out-of-scope", "decision": decision.model_dump(mode="json")})
+    return results
 
 
 async def run(args: argparse.Namespace) -> None:
     caps = WorkerCapabilities.model_validate_json(args.capabilities.read_text())
     artifacts = []
     profiles = []
-    async with httpx.AsyncClient(timeout=120, trust_env=False) as client:
+    token = os.environ.get("FREECHAT_WORKER_TOKEN", "")
+    if len(token) < 32:
+        raise ValueError("FREECHAT_WORKER_TOKEN requires at least 32 characters")
+    session = ProbeSession(caps, args.engine_instance_id, token)
+    async with httpx.AsyncClient(
+        timeout=120,
+        trust_env=False,
+        headers={"x-freechat-worker-token": token},
+    ) as client:
 
         async def metrics() -> str:
             response = await client.get(f"{caps.endpoint}/metrics")
@@ -98,9 +86,9 @@ async def run(args: argparse.Namespace) -> None:
             return response.text
 
         async def infer(repetitions: int) -> dict[str, Any]:
-            response = await client.post(
-                f"{caps.endpoint}/v1/chat/completions",
-                json={
+            return await session.infer(
+                client,
+                {
                     "model": caps.models[0].model_id,
                     "messages": [
                         {
@@ -115,11 +103,10 @@ async def run(args: argparse.Namespace) -> None:
                     "kv_transfer_params": {"max_offload_tokens": 0},
                 },
             )
-            response.raise_for_status()
-            return dict(response.json())
 
         health = await client.get(f"{caps.endpoint}/health")
         health.raise_for_status()
+        initial = await session.observe(client)
         for repetitions in args.repetitions:
             # Warm kernels and initialize lazily emitted histograms; never fit this sample.
             await infer(repetitions)
@@ -160,24 +147,12 @@ async def run(args: argparse.Namespace) -> None:
                     profile.model_dump_json(indent=2) + "\n",
                 )
             )
-        process = await asyncio.create_subprocess_exec(
-            "ssh",
-            args.gpu_host,
-            "nvidia-smi",
-            f"--id={caps.gpu_id}",
-            "--query-gpu=memory.free",
-            "--format=csv,noheader,nounits",
-            stdout=asyncio.subprocess.PIPE,
-        )
-        stdout, _ = await process.communicate()
-        if process.returncode:
-            raise RuntimeError("GPU observation failed")
         routes = await validate_routes(
             caps,
             tuple(profiles),
-            args.engine_instance_id,
+            await session.observe(client),
             await metrics(),
-            int(stdout.decode().strip()) * 1024**2,
+            await observe_free_vram(caps, args.gpu_host),
         )
     artifacts.append(emit_record("routes.json", json.dumps(routes, indent=2) + "\n"))
     manifest = {
@@ -185,6 +160,7 @@ async def run(args: argparse.Namespace) -> None:
         "performance_claim_admissible": False,
         "observed_at": datetime.now(UTC).isoformat(),
         "capabilities": caps.model_dump(mode="json"),
+        "runtime_observation": initial.model_dump(mode="json"),
         "engine_instance_id": args.engine_instance_id,
         "image_identity": args.image_identity,
         "artifacts": artifacts,
@@ -204,7 +180,7 @@ def main() -> None:
     parser.add_argument("--capabilities", type=Path, required=True)
     parser.add_argument("--engine-instance-id", required=True)
     parser.add_argument("--image-identity", required=True)
-    parser.add_argument("--gpu-host", required=True)
+    parser.add_argument("--gpu-host", help="Optional SSH host; default queries local nvidia-smi")
     parser.add_argument("--repetitions", type=int, nargs="+", default=[32, 128])
     parser.add_argument("--trials", type=int, default=3)
     parser.add_argument("--output-tokens", type=int, default=16)

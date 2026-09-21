@@ -6,6 +6,8 @@ import argparse
 import asyncio
 import json
 import sys
+import time
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
@@ -15,7 +17,10 @@ import grpc
 import httpx
 import pytest
 import respx
+from freechat.control.v1 import control_pb2, control_pb2_grpc
 from freechat_contracts import AgentHints, ModelCapability, RequestProfile, WorkerCapabilities
+from freechat_contracts.execution import ExecutionCommand, ExecutionReceipt, ExecutionStatus
+from freechat_contracts.preparation import body_digest
 from freechat_scheduler.registry import InMemoryWorkerRegistry
 from freechat_scheduler.scheduler import Scheduler
 from freechat_worker.calibration import HISTOGRAMS, ServiceObservation, fit_service_profile
@@ -30,6 +35,7 @@ def capabilities(tmp_path: Path) -> Path:
         worker_id="fixture-worker",
         generation=1,
         endpoint="http://probe.invalid:8000",
+        execution_endpoint="127.0.0.1:50052",
         node_id="fixture-node",
         gpu_id="0",
         gpu_name="fixture-not-gpu-evidence",
@@ -46,7 +52,7 @@ def capabilities(tmp_path: Path) -> Path:
                 attention="gqa",
                 max_context_tokens=4096,
                 dtype="half",
-                supports_kv_offload=True,
+                supports_kv_offload=False,
                 kv_bytes_per_token=256,
                 kv_admission_bytes_per_token_per_rank=256,
                 kv_block_size_tokens=16,
@@ -81,10 +87,17 @@ class ObservationFixture:
         self.mismatch: str | None = None
         self.transfer_bytes = 4096
         self.inference_status = 200
+        self.runtime: dict[str, Any] = {}
+        self.request_headers: list[dict[str, str]] = []
+        self.prepare_fault: str | None = None
+        self.executions: list[ExecutionCommand] = []
+        self.receipt_status = ExecutionStatus.COMPLETED
+        self.running = 0
 
     def infer(self, request: httpx.Request) -> httpx.Response:
         payload = json.loads(request.content)
         self.requests.append(payload)
+        self.request_headers.append(dict(request.headers))
         salt = payload.get("cache_salt", "")
         resumed = salt in self.stored_salts
         if payload["kv_transfer_params"]["max_offload_tokens"]:
@@ -101,11 +114,39 @@ class ObservationFixture:
             json={"usage": {"prompt_tokens": prompt, "completion_tokens": completion}},
         )
 
+    def prepare(self, request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        result = {
+            "preparation_id": "a" * 64,
+            "worker_id": self.runtime["worker_id"],
+            "generation": self.runtime["generation"],
+            "engine_instance_id": self.runtime["engine_instance_id"],
+            "budget": {
+                "tenant_id": request.headers["x-freechat-internal-tenant"],
+                "protocol": payload["protocol"],
+                "body_sha256": body_digest(payload["request"]),
+                "prompt_sha256": "b" * 64,
+                "input_tokens": 100,
+                "output_tokens": payload["request"]["max_tokens"],
+                "expires_at": time.time() + 60,
+            },
+        }
+        if self.prepare_fault in {"identity", "hash"}:
+            if self.prepare_fault == "identity":
+                result["engine_instance_id"] = "replacement"
+            else:
+                result["budget"]["body_sha256"] = "c" * 64
+        elif self.prepare_fault == "capacity":
+            result["budget"]["input_tokens"] = 4096
+        elif self.prepare_fault == "expired":
+            result["budget"]["expires_at"] = time.time() - 1
+        return httpx.Response(200, json=result)
+
     def metrics(self, request: httpx.Request) -> httpx.Response:
         del request
         count = len(self.requests)
         values: dict[str, float] = {
-            "num_requests_running": 0,
+            "num_requests_running": self.running,
             "num_requests_waiting": 0,
             "num_preemptions_total": 0,
             "kv_cache_usage_perc": 0.25,
@@ -128,17 +169,73 @@ class ObservationFixture:
 
 
 @pytest.fixture
-def observations(monkeypatch: pytest.MonkeyPatch) -> Any:
+async def observations(monkeypatch: pytest.MonkeyPatch, capabilities: Path) -> Any:
     engine = ObservationFixture()
+    monkeypatch.setenv("FREECHAT_WORKER_TOKEN", "fixture-token-" * 4)
+    caps = WorkerCapabilities.model_validate_json(capabilities.read_text())
+
+    class ReceiptService(control_pb2_grpc.RequestExecutionServiceServicer):
+        async def Observe(self, message: Any, context: Any) -> Any:
+            assert (
+                "authorization",
+                "Bearer " + "fixture-token-" * 4,
+            ) in context.invocation_metadata()
+            command = ExecutionCommand.model_validate_json(message.command_json)
+            engine.executions.append(command)
+            receipt = ExecutionReceipt(
+                command=command,
+                observation_sequence=1,
+                observed_at=datetime.now(UTC),
+                status=engine.receipt_status,
+                quiescent=True,
+                admission_closed=True,
+            )
+            return control_pb2.RequestExecutionReceipt(receipt_json=receipt.model_dump_json())
+
+    server = grpc.aio.server()
+    control_pb2_grpc.add_RequestExecutionServiceServicer_to_server(  # type: ignore[no-untyped-call]
+        ReceiptService(),
+        server,
+    )
+    port = server.add_insecure_port("127.0.0.1:0")
+    await server.start()
+    caps = caps.model_copy(update={"execution_endpoint": f"127.0.0.1:{port}"})
+    capabilities.write_text(caps.model_dump_json())
+    engine.runtime = {
+        "worker_id": caps.worker_id,
+        "generation": caps.generation,
+        "engine_instance_id": "fixture-engine",
+        "capabilities": caps.model_dump(mode="json"),
+        "capacity": {
+            "num_blocks": 256,
+            "block_size_tokens": 16,
+            "block_bytes": 4096,
+            "allocated_bytes": 256 * 4096,
+            "max_context_tokens": 4096,
+            "gpu_name": caps.gpu_name,
+            "gpu_uuid": caps.gpu_id,
+            "total_vram_bytes": caps.total_vram_bytes,
+            "compute_capability": caps.compute_capability,
+        },
+    }
     process = SimpleNamespace(returncode=0, communicate=AsyncMock(return_value=(b"4096\n", b"")))
     subprocess = AsyncMock(return_value=process)
     monkeypatch.setattr(asyncio, "create_subprocess_exec", subprocess)
     monkeypatch.setattr(asyncio, "sleep", AsyncMock())
     with respx.mock(assert_all_called=False) as router:
         router.get("http://probe.invalid:8000/health").respond(200)
+        router.get("http://probe.invalid:8000/freechat/runtime").mock(
+            side_effect=lambda _: httpx.Response(
+                200, json={"observed_at": datetime.now(UTC).isoformat(), **engine.runtime}
+            )
+        )
+        router.post("http://probe.invalid:8000/freechat/prepare").mock(side_effect=engine.prepare)
         router.get("http://probe.invalid:8000/metrics").mock(side_effect=engine.metrics)
         router.post("http://probe.invalid:8000/v1/chat/completions").mock(side_effect=engine.infer)
-        yield engine, process, subprocess, router
+        try:
+            yield engine, process, subprocess, router
+        finally:
+            await server.stop(None)
 
 
 def artifacts(output: str) -> dict[str, Any]:
@@ -150,18 +247,20 @@ def artifacts(output: str) -> dict[str, Any]:
     return records
 
 
-async def test_service_probe_missing_allocator_budget_fails_closed(
+async def test_service_probe_uses_measured_budget_and_locality(
     capabilities: Path, observations: Any, capsys: pytest.CaptureFixture[str]
 ) -> None:
     engine, _, subprocess, _ = observations
-    # This probe predates allocator-backed admission. Metrics and free VRAM
-    # cannot authorize a route; retain this rejection until real capacity is wired.
-    with pytest.raises(grpc.aio.AioRpcError) as error:
-        await calibrate_service.run(arguments(capabilities))
-    assert error.value.code() is grpc.StatusCode.FAILED_PRECONDITION
-    assert "no worker satisfies" in (error.value.details() or "")
+    await calibrate_service.run(arguments(capabilities))
     records = artifacts(capsys.readouterr().out)
-    assert "manifest.json" not in records and "routes.json" not in records
+    manifest = json.loads(records["manifest.json"]["payload"])
+    routes = json.loads(records["routes.json"]["payload"])
+    assert manifest["performance_claim_admissible"] is False
+    assert [item["case"] for item in routes] == ["in-scope", "out-of-scope"]
+    assert routes[0]["decision"]["selected"]["estimate_available"]
+    assert routes[0]["decision"]["strategy"] == "lifecycle-aware"
+    assert routes[1]["decision"]["fallback_reason"] == "candidate_cost_unavailable"
+    assert routes[0]["decision"]["reserved_kv_bytes_per_rank"] == 32768
     profile = json.loads(records["r1-profile.json"]["payload"])
     assert profile["sample_count"] == 3
     assert profile["prefill_tokens_per_second"] == pytest.approx(10_000)
@@ -257,19 +356,19 @@ async def test_inference_http_error_is_propagated(
         await module.run(arguments(capabilities))
 
 
-async def test_telemetry_probe_missing_allocator_budget_fails_closed(
+async def test_telemetry_probe_routes_without_requiring_offload(
     capabilities: Path, observations: Any, capsys: pytest.CaptureFixture[str]
 ) -> None:
     engine, _, subprocess, _ = observations
-    # Real loopback gRPC rejects the unsupported probe instead of weakening
-    # admission or pretending the fixture's free VRAM is allocator capacity.
-    with pytest.raises(grpc.aio.AioRpcError) as error:
-        await telemetry_probe.run(arguments(capabilities))
-    assert error.value.code() is grpc.StatusCode.FAILED_PRECONDITION
-    assert "no worker satisfies" in (error.value.details() or "")
+    await telemetry_probe.run(arguments(capabilities))
     output = capsys.readouterr().out
-    assert set(artifacts(output)) == {"before.prom", "after.prom"}
-    assert '"evidence_level"' not in output
+    assert set(artifacts(output)) >= {"before.prom", "after.prom"}
+    result = json.loads(output[output.index("{\n") :])
+    assert result["performance_claim_admissible"] is False
+    assert result["decision"]["kv_transfer"]["enabled"] is False
+    assert result["records"][-1]["telemetry"]["kv_admission_available_bytes_per_rank"] == 255 * 4096
+    assert result["records"][-1]["telemetry"]["cache_store_bytes_per_second"] is None
+    assert engine.requests[0].get("kv_transfer_params", {}).get("max_offload_tokens", 0) == 0
     assert subprocess.await_count == 2
     assert len(engine.requests) == 1
 
@@ -373,3 +472,179 @@ def test_calibration_fit_rejects_insufficient_samples_or_multiple_models(
             image_identity="fixture-image",
             artifact_sha256="a" * 64,
         )
+
+
+@pytest.mark.parametrize("module", [calibrate_service, telemetry_probe])
+@pytest.mark.parametrize(
+    "case",
+    [
+        "missing",
+        "worker",
+        "generation",
+        "engine",
+        "node",
+        "model",
+        "gpu",
+        "geometry",
+        "stale",
+        "future",
+    ],
+)
+async def test_runtime_mismatch_is_rejected_before_inference(
+    capabilities: Path,
+    observations: Any,
+    module: ModuleType,
+    case: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    engine, _, _, _ = observations
+    runtime = engine.runtime
+    if case == "missing":
+        runtime["capacity"] = None
+    elif case in {"worker", "generation", "engine"}:
+        key = {"worker": "worker_id", "generation": "generation", "engine": "engine_instance_id"}[
+            case
+        ]
+        runtime[key] = 2 if case == "generation" else "other"
+    elif case == "node":
+        runtime["capabilities"]["node_id"] = "other-node"
+    elif case == "model":
+        runtime["capabilities"]["models"][0]["revision"] = "other-revision"
+    elif case == "gpu":
+        runtime["capacity"]["gpu_uuid"] = "other-gpu"
+    elif case == "geometry":
+        runtime["capacity"]["block_size_tokens"] = 32
+    else:
+        runtime["observed_at"] = (
+            datetime.now(UTC) + timedelta(seconds=60 if case == "future" else -60)
+        ).isoformat()
+    with pytest.raises(ValueError, match="runtime_"):
+        await module.run(arguments(capabilities))
+    assert engine.requests == []
+    assert "manifest.json" not in artifacts(capsys.readouterr().out)
+
+
+@pytest.mark.parametrize("module", [calibrate_service, telemetry_probe])
+async def test_probe_prepares_and_confirms_every_direct_request(
+    capabilities: Path,
+    observations: Any,
+    module: ModuleType,
+) -> None:
+    engine, _, _, router = observations
+    await module.run(arguments(capabilities))
+    assert len(engine.executions) == len(engine.requests) > 0
+    assert len({command.request_id for command in engine.executions}) == len(engine.executions)
+    for headers, command in zip(engine.request_headers, engine.executions, strict=True):
+        assert headers["x-freechat-internal-preparation"] == "a" * 64
+        assert int(headers["x-freechat-internal-reserved-kv-bytes"]) == (
+            28672 if module is telemetry_probe else 32768
+        )
+        assert headers["x-freechat-internal-decision-id"] == command.decision_id
+        assert command.action.value == "query"
+    for call in router.calls:
+        assert call.request.headers.get("x-freechat-worker-token") == "fixture-token-" * 4
+
+
+@pytest.mark.parametrize("module", [calibrate_service, telemetry_probe])
+@pytest.mark.parametrize("fault", ["identity", "hash", "capacity", "expired"])
+async def test_probe_rejects_bad_preparation_before_dispatch(
+    capabilities: Path,
+    observations: Any,
+    module: ModuleType,
+    fault: str,
+) -> None:
+    engine, _, _, _ = observations
+    engine.prepare_fault = fault
+    with pytest.raises(ValueError, match="probe_preparation"):
+        await module.run(arguments(capabilities))
+    assert engine.requests == []
+
+
+@pytest.mark.parametrize("module", [calibrate_service, telemetry_probe])
+async def test_aborted_execution_cannot_produce_probe_success(
+    capabilities: Path,
+    observations: Any,
+    module: ModuleType,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    engine, _, _, _ = observations
+    engine.receipt_status = ExecutionStatus.ABORTED
+    with pytest.raises(ValueError, match="probe_execution_not_completed"):
+        await module.run(arguments(capabilities))
+    assert "manifest.json" not in artifacts(capsys.readouterr().out)
+
+
+@pytest.mark.parametrize("module", [calibrate_service, telemetry_probe])
+async def test_probe_can_measure_gpu_in_same_container_namespace(
+    capabilities: Path,
+    observations: Any,
+    module: ModuleType,
+) -> None:
+    _, _, process, _ = observations
+    args = arguments(capabilities)
+    args.gpu_host = None
+    await module.run(args)
+    assert process.await_args is not None
+    assert process.await_args.args[:2] == ("nvidia-smi", "--id=0")
+
+
+@pytest.mark.parametrize("module", [calibrate_service, telemetry_probe])
+async def test_busy_worker_is_rejected_before_probe_inference(
+    capabilities: Path,
+    observations: Any,
+    module: ModuleType,
+) -> None:
+    engine, _, _, _ = observations
+    engine.running = 1
+    with pytest.raises(ValueError, match="runtime_requires_matching_idle_observation"):
+        await module.run(arguments(capabilities))
+    assert engine.requests == []
+
+
+@pytest.mark.parametrize("module", [calibrate_service, telemetry_probe])
+@pytest.mark.parametrize("change", ["replacement", "pool"])
+async def test_runtime_change_during_inference_cannot_produce_calibration(
+    capabilities: Path,
+    observations: Any,
+    module: ModuleType,
+    change: str,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    engine, _, _, router = observations
+    original = engine.infer
+
+    def replace_runtime(request: httpx.Request) -> httpx.Response:
+        result: httpx.Response = original(request)
+        if change == "replacement":
+            engine.runtime["engine_instance_id"] = "replacement"
+        else:
+            engine.runtime["capacity"]["num_blocks"] += 1
+            engine.runtime["capacity"]["allocated_bytes"] += 4096
+        return result
+
+    router.post("http://probe.invalid:8000/v1/chat/completions").mock(side_effect=replace_runtime)
+    with pytest.raises(ValueError, match="runtime_"):
+        await module.run(arguments(capabilities))
+    assert "manifest.json" not in artifacts(capsys.readouterr().out)
+
+
+@pytest.mark.parametrize(
+    "gpu_id",
+    [
+        "712545e0-1701-6651-37f5-824cdb4368e9",
+        "GPU-712545e0-1701-6651-37f5-824cdb4368e9",
+    ],
+)
+async def test_nvidia_smi_uses_prefixed_physical_uuid(
+    capabilities: Path,
+    observations: Any,
+    gpu_id: str,
+) -> None:
+    from benchmarks.probe_runtime import observe_free_vram
+
+    _, _, process, _ = observations
+    caps = WorkerCapabilities.model_validate_json(capabilities.read_text())
+    caps = caps.model_copy(update={"gpu_id": gpu_id})
+    assert await observe_free_vram(caps, None) == 4 * 1024**3
+    assert process.await_args is not None
+    assert process.await_args.args[1] == "--id=GPU-712545e0-1701-6651-37f5-824cdb4368e9"

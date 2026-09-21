@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from freechat_contracts import WorkerCapabilities
 from freechat_contracts.cache_lifecycle import CacheLifecycleCommand, PrefixLifecycleReceipt
 from freechat_contracts.execution import ExecutionAction, ExecutionCommand, ExecutionStatus
 
@@ -165,12 +166,14 @@ class AdmissionMiddleware:
         backend: NativeExecutionBackend,
         token: str,
         capacity: EngineCapacity | None = None,
+        capabilities: WorkerCapabilities | None = None,
         preparer: PreparationService | None = None,
     ) -> None:
         if len(token) < 32:
             raise ValueError("worker_token_requires_32_characters")
         self.app, self.driver, self.backend, self.token = app, driver, backend, token
         self.capacity = capacity
+        self.capabilities = capabilities
         self.preparer = preparer
 
     async def __call__(self, scope: Any, receive: Any, send: Any) -> None:
@@ -194,6 +197,10 @@ class AdmissionMiddleware:
                     "worker_id": worker,
                     "generation": generation,
                     "engine_instance_id": engine,
+                    "observed_at": datetime.now(UTC).isoformat(),
+                    "capabilities": None
+                    if self.capabilities is None
+                    else self.capabilities.model_dump(mode="json"),
                     "capacity": None if self.capacity is None else self.capacity.model_dump(),
                 },
             )
