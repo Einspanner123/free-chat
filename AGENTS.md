@@ -16,3 +16,11 @@
 
 - Validation commands must print results to stdout and use normal service logs; never create new result directories.
 - Validated feature work must converge to main. Keep README aligned with the actual runnable entry point.
+
+## Test-first implementation
+
+- Before implementing new behavior or fixing a bug, define its scope, non-goals, contracts, failure paths and acceptance tests in the existing root plan and executable tests; do not create a separate process document.
+- Follow Red -> Green -> Refactor: first run a meaningful failing behavioral test, then implement the smallest in-scope change, then refactor while keeping the tests green.
+- A missing dependency, unavailable GPU, collection error or broken fixture is not evidence of the intended Red. Never weaken assertions, skip failures or mock the behavior under test to obtain Green.
+- Preserve the separate >=80% coverage gates and run affected regression tests after refactoring. CPU success does not close GPU, real-Harness or multinode acceptance; report unavailable validation explicitly.
+- See the root plan's test-first workflow for acceptance and evidence requirements. Do not expand agreed functionality without resolving material scope decisions with the owner.
