@@ -7,6 +7,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 from freechat_contracts import PredictiveOffloadDirective, RequestProfile, RouteDecision
+from freechat_contracts.cache_lifecycle import CacheLifecycleReceipt, CacheLifecycleUpdate
 from freechat_gateway import GatewayConfig, create_app
 from freechat_gateway.routing import StaticSchedulerClient
 
@@ -56,6 +57,11 @@ class RecordingScheduler:
 
     async def cancel(self, request: RequestProfile, decision: RouteDecision) -> None:
         self.cancellations.append((request, decision))
+
+    async def cache_lifecycle(
+        self, tenant_id: str, update: CacheLifecycleUpdate
+    ) -> CacheLifecycleReceipt:
+        return await self._delegate.cache_lifecycle(tenant_id, update)
 
     async def aclose(self) -> None:
         return None

@@ -60,6 +60,11 @@ class SchedulerServiceStub:
                 request_serializer=freechat_dot_control_dot_v1_dot_control__pb2.LeaseRequest.SerializeToString,
                 response_deserializer=freechat_dot_control_dot_v1_dot_control__pb2.RouteDecision.FromString,
                 _registered_method=True)
+        self.UpdateCacheLifecycle = channel.unary_unary(
+                '/freechat.control.v1.SchedulerService/UpdateCacheLifecycle',
+                request_serializer=freechat_dot_control_dot_v1_dot_control__pb2.CacheLifecycleUpdateRequest.SerializeToString,
+                response_deserializer=freechat_dot_control_dot_v1_dot_control__pb2.CacheLifecycleReceipt.FromString,
+                _registered_method=True)
 
 
 class SchedulerServiceServicer:
@@ -95,6 +100,12 @@ class SchedulerServiceServicer:
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def UpdateCacheLifecycle(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SchedulerServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -122,6 +133,11 @@ def add_SchedulerServiceServicer_to_server(servicer, server):
                     servicer.ExplainDecision,
                     request_deserializer=freechat_dot_control_dot_v1_dot_control__pb2.LeaseRequest.FromString,
                     response_serializer=freechat_dot_control_dot_v1_dot_control__pb2.RouteDecision.SerializeToString,
+            ),
+            'UpdateCacheLifecycle': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateCacheLifecycle,
+                    request_deserializer=freechat_dot_control_dot_v1_dot_control__pb2.CacheLifecycleUpdateRequest.FromString,
+                    response_serializer=freechat_dot_control_dot_v1_dot_control__pb2.CacheLifecycleReceipt.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -259,6 +275,33 @@ class SchedulerService:
             '/freechat.control.v1.SchedulerService/ExplainDecision',
             freechat_dot_control_dot_v1_dot_control__pb2.LeaseRequest.SerializeToString,
             freechat_dot_control_dot_v1_dot_control__pb2.RouteDecision.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def UpdateCacheLifecycle(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/freechat.control.v1.SchedulerService/UpdateCacheLifecycle',
+            freechat_dot_control_dot_v1_dot_control__pb2.CacheLifecycleUpdateRequest.SerializeToString,
+            freechat_dot_control_dot_v1_dot_control__pb2.CacheLifecycleReceipt.FromString,
             options,
             channel_credentials,
             insecure,
@@ -920,6 +963,78 @@ class TraceReplayService:
             '/freechat.control.v1.TraceReplayService/Health',
             google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
             freechat_dot_control_dot_v1_dot_control__pb2.Operation.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+
+class CacheLifecycleServiceStub:
+    """Missing associated documentation comment in .proto file."""
+
+    def __init__(self, channel):
+        """Constructor.
+
+        Args:
+            channel: A grpc.Channel.
+        """
+        self.Apply = channel.unary_unary(
+                '/freechat.control.v1.CacheLifecycleService/Apply',
+                request_serializer=freechat_dot_control_dot_v1_dot_control__pb2.CacheLifecycleCommand.SerializeToString,
+                response_deserializer=freechat_dot_control_dot_v1_dot_control__pb2.CacheLifecycleReceipt.FromString,
+                _registered_method=True)
+
+
+class CacheLifecycleServiceServicer:
+    """Missing associated documentation comment in .proto file."""
+
+    def Apply(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+
+def add_CacheLifecycleServiceServicer_to_server(servicer, server):
+    rpc_method_handlers = {
+            'Apply': grpc.unary_unary_rpc_method_handler(
+                    servicer.Apply,
+                    request_deserializer=freechat_dot_control_dot_v1_dot_control__pb2.CacheLifecycleCommand.FromString,
+                    response_serializer=freechat_dot_control_dot_v1_dot_control__pb2.CacheLifecycleReceipt.SerializeToString,
+            ),
+    }
+    generic_handler = grpc.method_handlers_generic_handler(
+            'freechat.control.v1.CacheLifecycleService', rpc_method_handlers)
+    server.add_generic_rpc_handlers((generic_handler,))
+    server.add_registered_method_handlers('freechat.control.v1.CacheLifecycleService', rpc_method_handlers)
+
+
+ # This class is part of an EXPERIMENTAL API.
+class CacheLifecycleService:
+    """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def Apply(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/freechat.control.v1.CacheLifecycleService/Apply',
+            freechat_dot_control_dot_v1_dot_control__pb2.CacheLifecycleCommand.SerializeToString,
+            freechat_dot_control_dot_v1_dot_control__pb2.CacheLifecycleReceipt.FromString,
             options,
             channel_credentials,
             insecure,

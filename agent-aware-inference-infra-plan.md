@@ -42,8 +42,11 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
    reset 清理目录，在途请求拒绝更新。A5000/A4000 已完成真实 GPU 压力、
    恢复命中、取消和物理块复用验证。
    当前仅是有界 eviction preference，不是硬 pin、共享 owner 仲裁或 offload。
-   **下一步：接通认证生命周期入口→可信 route/引擎请求身份→KV action 回执和 trace，
-   再运行真实 Harness 的工具等待、恢复、取消、失败矩阵。**
+   认证生命周期入口、可信 route/引擎身份解析和 KV 回执已实现并补齐 CPU 契约测试；
+   Gateway 只处理认证与 HTTP，Scheduler 只解析原归属并发送命令，Worker 只绑定已有执行。
+   此路径不创建或释放请求预占；缓存命令目前同步调用，由调用方重试，不具备持久化投递。
+   **下一步：对这一控制链进行 GPU 端到端验收，再接真实 Harness 的工具等待、
+   恢复、取消、失败矩阵；不以局部 CPU 测试替代上述验收。**
 4. [ ] **完整集成。** 贯通三协议、四 Harness、五页 WebUI、统一部署入口，
    补齐断连、重复、迟到、重启、存储与消息故障测试。
    复用上游协议和推理执行，不实现另一套 Agent loop 或 inference engine。

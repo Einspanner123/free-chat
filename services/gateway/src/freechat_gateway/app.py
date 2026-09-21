@@ -15,6 +15,11 @@ import httpx
 from fastapi import FastAPI, Header, HTTPException, Request, Response
 from fastapi.responses import StreamingResponse
 from freechat_contracts import AgentHints, RequestProfile, RouteDecision, scoped_cache_salt
+from freechat_contracts.cache_lifecycle import (
+    MAX_CACHE_CONTROL_BYTES,
+    CacheLifecycleReceipt,
+    CacheLifecycleUpdate,
+)
 
 from freechat_gateway.auth import APIKeyAuthenticator, AuthContext
 from freechat_gateway.console import ConsoleReadModel, EmptyConsoleReadModel
@@ -270,6 +275,39 @@ def create_app(
                 response=upstream,
                 uncertain=not completed,
             )
+
+    @app.post("/freechat/cache/lifecycle")
+    async def cache_lifecycle(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        x_api_key: str | None = Header(default=None),
+    ) -> CacheLifecycleReceipt:
+        auth = _authenticate(authenticator, authorization, x_api_key)
+        raw = bytearray()
+        async for chunk in request.stream():
+            raw.extend(chunk)
+            if len(raw) > MAX_CACHE_CONTROL_BYTES:
+                raise HTTPException(status_code=413, detail="cache update too large")
+        try:
+            update = CacheLifecycleUpdate.model_validate_json(raw)
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail="invalid cache lifecycle update") from error
+        try:
+            return await scheduler_client.cache_lifecycle(auth.tenant_id, update)
+        except NotImplementedError as error:
+            raise HTTPException(status_code=503, detail="cache control unavailable") from error
+        except ValueError as error:
+            raise HTTPException(status_code=502, detail="invalid cache control receipt") from error
+        except grpc.aio.AioRpcError as error:
+            status = {
+                grpc.StatusCode.NOT_FOUND: 404,
+                grpc.StatusCode.FAILED_PRECONDITION: 409,
+                grpc.StatusCode.UNAVAILABLE: 503,
+                grpc.StatusCode.DEADLINE_EXCEEDED: 504,
+            }.get(error.code(), 502)
+            raise HTTPException(
+                status_code=status, detail="cache lifecycle update not applied"
+            ) from error
 
     @app.post("/v1/chat/completions")
     async def chat_completions(

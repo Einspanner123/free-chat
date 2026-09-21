@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from freechat_contracts.cache_lifecycle import CacheLifecycleCommand, PrefixLifecycleReceipt
 from freechat_contracts.execution import ExecutionStatus
 
 from freechat_worker.execution import EngineObservation
@@ -122,6 +123,54 @@ class VllmExecutionBackend:
         state.abort_requested = True
         # AsyncLLM has replaced the external identity with an internal request ID.
         await self.engine.abort(state.collector.request_id, internal=True)
+
+    async def cache_lifecycle(
+        self,
+        engine_request_id: str,
+        command: CacheLifecycleCommand,
+    ) -> PrefixLifecycleReceipt:
+        state = self._state(engine_request_id)
+        update = command.update
+        if not state.finished and not state.abort_requested:
+            raise ValueError("cache_lifecycle_requires_completed_request")
+        if state.abort_requested and update.lifecycle in {"tool_wait", "resume"}:
+            raise ValueError("cancelled_route_cannot_retain")
+        request_id = state.collector.request_id
+        try:
+            value = await self.engine.engine_core.call_utility_async(
+                "freechat_update_cache_lifecycle",
+                request_id,
+                command.owner.tenant_id,
+                command.owner.worker_generation,
+                command.cache_generation,
+                update.sequence,
+                update.lifecycle,
+                update.expected_resume_ms,
+            )
+        except Exception as error:
+            # Upstream utility RPC serializes failure text rather than exception types.
+            reasons = (
+                "agent_cache_policy_disabled",
+                "prefix_caching_disabled",
+                "completed_prefix_unknown_or_expired",
+                "completed_prefix_identity_mismatch",
+                "lifecycle_sequence_conflict",
+                "lifecycle_sequence_out_of_order",
+                "completed_prefix_lifecycle_closed",
+                "cache_lifecycle_requires_completed_request",
+            )
+            for reason in reasons:
+                if reason in str(error):
+                    raise ValueError(reason) from error
+            raise
+        receipt = PrefixLifecycleReceipt.model_validate(value)
+        if (
+            receipt.request_id != request_id
+            or receipt.sequence != update.sequence
+            or receipt.lifecycle != update.lifecycle
+        ):
+            raise ValueError("cache_engine_receipt_identity_mismatch")
+        return receipt
 
     async def query(self, engine_request_id: str) -> EngineObservation:
         state = self._requests.get(engine_request_id)

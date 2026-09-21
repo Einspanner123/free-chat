@@ -161,6 +161,7 @@ service SchedulerService {
   rpc Release(LeaseRequest) returns (Operation);
   rpc Cancel(LeaseRequest) returns (Operation);
   rpc ExplainDecision(LeaseRequest) returns (RouteDecision);
+  rpc UpdateCacheLifecycle(CacheLifecycleUpdateRequest) returns (CacheLifecycleReceipt);
 }
 
 message GroupRuntimeCommand {
@@ -204,4 +205,21 @@ service TraceReplayService {
   rpc StopReplay(Operation) returns (Operation);
   rpc GetReplayStatus(Operation) returns (Operation);
   rpc Health(google.protobuf.Empty) returns (Operation);
+}
+
+message CacheLifecycleUpdateRequest {
+  RequestContext context = 1;
+  string update_json = 2;
+}
+
+message CacheLifecycleCommand {
+  string command_json = 1;
+}
+
+message CacheLifecycleReceipt {
+  string receipt_json = 1;
+}
+
+service CacheLifecycleService {
+  rpc Apply(CacheLifecycleCommand) returns (CacheLifecycleReceipt);
 }

@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from freechat_contracts.cache_lifecycle import CacheLifecycleCommand, PrefixLifecycleReceipt
 from freechat_contracts.execution import ExecutionAction, ExecutionCommand, ExecutionStatus
 
 from freechat_worker.capacity import EngineCapacity
@@ -78,6 +79,20 @@ class NativeExecutionBackend:
                 yield output
         finally:
             await stream.aclose()
+
+    async def cache_lifecycle(
+        self,
+        route_id: str,
+        command: CacheLifecycleCommand,
+    ) -> tuple[PrefixLifecycleReceipt, ...]:
+        route = self.routes.get(route_id)
+        if route is None or not route.closed:
+            raise ValueError("cache_control_requires_closed_native_route")
+        if len(route.children) != 1:
+            raise ValueError("cache_control_requires_single_budgeted_call")
+        if route.aborted and command.update.lifecycle in {"tool_wait", "resume"}:
+            raise ValueError("cancelled_route_cannot_retain")
+        return (await self.children.cache_lifecycle(route.children[0], command),)
 
     def close_submission(self, engine_request_id: str) -> None:
         self.routes[engine_request_id].closed = True
@@ -223,17 +238,27 @@ class AdmissionMiddleware:
                 preparation_id, prepared_budget = await self.preparer.prepare(
                     headers["x-freechat-internal-tenant"], payload["protocol"], payload["request"]
                 )
-                await self._reply(send, 200, {
-                    "preparation_id": preparation_id,
-                    "budget": prepared_budget.model_dump(),
-                    "worker_id": self.driver.identity[0],
-                    "generation": self.driver.identity[1],
-                    "engine_instance_id": self.driver.identity[2],
-                })
+                await self._reply(
+                    send,
+                    200,
+                    {
+                        "preparation_id": preparation_id,
+                        "budget": prepared_budget.model_dump(),
+                        "worker_id": self.driver.identity[0],
+                        "generation": self.driver.identity[1],
+                        "engine_instance_id": self.driver.identity[2],
+                    },
+                )
                 return
-            budget = None if self.preparer is None else self.preparer.require(
-                headers["x-freechat-internal-preparation"],
-                headers["x-freechat-internal-tenant"], path, payload,
+            budget = (
+                None
+                if self.preparer is None
+                else self.preparer.require(
+                    headers["x-freechat-internal-preparation"],
+                    headers["x-freechat-internal-tenant"],
+                    path,
+                    payload,
+                )
             )
             if budget is not None and self.capacity is not None:
                 total_tokens = budget.input_tokens + budget.output_tokens

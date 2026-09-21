@@ -613,3 +613,48 @@ def test_vllm_adapter_rejects_unverified_execution_modes(feature: str) -> None:
         setattr(engine.vllm_config, feature, object())
     with pytest.raises(ValueError, match="requires_sync_single_gpu"):
         VllmExecutionBackend(engine)
+
+
+async def test_submitted_key_is_read_only_and_requires_prior_dispatch(runtime: Any) -> None:
+    gate, backend = runtime
+    before = gate._db.total_changes
+    with pytest.raises(ValueError, match="execution_admission_unknown"):
+        gate.submitted_key(command())
+    assert gate._db.total_changes == before
+    key = await gate.admit(command(), {})
+    before = gate._db.total_changes
+    assert gate.submitted_key(command()) == key
+    assert gate._db.total_changes == before
+    assert len(backend.submissions) == 1
+    assert backend.aborts == backend.queries == []
+
+
+async def test_submitted_key_rejects_observed_but_never_dispatched(runtime: Any) -> None:
+    gate, _ = runtime
+    await gate.observe(command())
+    before = gate._db.total_changes
+    with pytest.raises(ValueError, match="execution_not_submitted"):
+        gate.submitted_key(command())
+    assert gate._db.total_changes == before
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"tenant_id": "foreign"},
+        {"request_id": "foreign"},
+        {"decision_id": "foreign"},
+        {"worker_generation": 2},
+        {"engine_instance_id": "replacement"},
+    ],
+)
+async def test_submitted_key_rejects_foreign_identity_without_mutation(
+    runtime: Any, changes: dict[str, Any]
+) -> None:
+    gate, backend = runtime
+    await gate.admit(command(), {})
+    before = gate._db.total_changes
+    with pytest.raises(ValueError):
+        gate.submitted_key(command(**changes))
+    assert gate._db.total_changes == before
+    assert len(backend.submissions) == 1 and not backend.aborts

@@ -25,6 +25,7 @@ from freechat_contracts import (
     WorkerCapabilities,
     WorkerTelemetry,
 )
+from freechat_contracts.cache_lifecycle import MAX_CACHE_CONTROL_BYTES, CacheLifecycleUpdate
 from freechat_control_store import EtcdHttpStore, InMemoryStore, KeyValueStore
 from freechat_trace_replay import EventEnvelope
 from freechat_trace_replay.bus import (
@@ -33,6 +34,7 @@ from freechat_trace_replay.bus import (
     connect_lifecycle_stream,
 )
 
+from freechat_scheduler.cache_lifecycle import CacheLifecycleController
 from freechat_scheduler.group_reconciler import GroupRuntimeConfig, configured_reconciler
 from freechat_scheduler.preparation import NativePreparer
 from freechat_scheduler.registry import InMemoryWorkerRegistry, PersistentWorkerRegistry
@@ -60,7 +62,9 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
         preparer: NativePreparer | None = None,
         token: str | None = None,
         log_events: bool = False,
+        cache: CacheLifecycleController | None = None,
     ) -> None:
+        self._cache = cache
         self._log_events = log_events
         self._scheduler, self._leases, self._emitter = scheduler, leases, emitter
         self._flush_lock = asyncio.Lock()
@@ -99,6 +103,42 @@ class SchedulerGrpcService(control_pb2_grpc.SchedulerServiceServicer):
             await context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
             raise AssertionError("context.abort must terminate the RPC") from error
         return _decision_message(decision)
+
+    async def UpdateCacheLifecycle(
+        self,
+        request: control_pb2.CacheLifecycleUpdateRequest,
+        context: Any,
+    ) -> control_pb2.CacheLifecycleReceipt:
+        await authenticate_control(context, self._token)
+        if self._cache is None:
+            await context.abort(grpc.StatusCode.UNAVAILABLE, "cache_control_not_configured")
+            raise AssertionError("abort must terminate RPC")
+        try:
+            if len(request.update_json.encode()) > MAX_CACHE_CONTROL_BYTES:
+                raise ValueError("cache_update_too_large")
+            update = CacheLifecycleUpdate.model_validate_json(request.update_json)
+            receipt = await self._cache.apply(request.context.tenant_id, update)
+        except KeyError:
+            await context.abort(grpc.StatusCode.NOT_FOUND, "cache_route_not_found")
+            raise AssertionError("abort must terminate RPC") from None
+        except ValueError as error:
+            await context.abort(grpc.StatusCode.FAILED_PRECONDITION, str(error))
+            raise AssertionError("abort must terminate RPC") from error
+        except grpc.aio.AioRpcError as error:
+            code = error.code()
+            await context.abort(
+                code
+                if code
+                in {
+                    grpc.StatusCode.FAILED_PRECONDITION,
+                    grpc.StatusCode.UNAVAILABLE,
+                    grpc.StatusCode.DEADLINE_EXCEEDED,
+                }
+                else grpc.StatusCode.UNAVAILABLE,
+                "cache_worker_update_rejected_or_unavailable",
+            )
+            raise AssertionError("abort must terminate RPC") from error
+        return control_pb2.CacheLifecycleReceipt(receipt_json=receipt.model_dump_json())
 
     async def RenewLease(
         self, request: control_pb2.LeaseRequest, context: Any
@@ -468,6 +508,13 @@ async def serve(
         preparer,
         None if contract_only else os.environ["FREECHAT_WORKER_TOKEN"],
         log_events=not contract_only and emitter is None,
+        cache=None
+        if contract_only
+        else CacheLifecycleController(
+            leases,
+            registry,
+            os.environ["FREECHAT_WORKER_TOKEN"],
+        ),
     )
     control_pb2_grpc.add_SchedulerServiceServicer_to_server(  # type: ignore[no-untyped-call]
         scheduler_service,

@@ -186,6 +186,21 @@ class DurableExecutionDriver:
             json.dumps([*self.identity, command.tenant_id, command.decision_id]).encode()
         ).hexdigest()
 
+    def submitted_key(self, command: ExecutionCommand) -> str:
+        """Read an existing binding without creating an admission or changing its state."""
+        key = self._key(command)
+        if self.retirement is not None:
+            raise ValueError("execution_incarnation_retired")
+        row = self._db.execute("SELECT record FROM executions WHERE key=?", (key,)).fetchone()
+        if row is None:
+            raise ValueError("execution_admission_unknown")
+        record = _Record.model_validate_json(row[0])
+        if record.command != command.model_copy(update={"action": ExecutionAction.QUERY}):
+            raise ValueError("execution_decision_binding_mismatch")
+        if not record.dispatched:
+            raise ValueError("execution_not_submitted")
+        return key
+
     def _record(self, key: str, command: ExecutionCommand) -> _Record:
         canonical = command.model_copy(update={"action": ExecutionAction.QUERY})
         row = self._db.execute("SELECT record FROM executions WHERE key=?", (key,)).fetchone()

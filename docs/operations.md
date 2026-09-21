@@ -144,6 +144,41 @@ Gateway/Scheduler/Worker 在同一个网络 namespace 中运行，不通过放�
 同机 API 推理闭环、同一 Scheduler 双 Worker 路由及限定的重启恢复切片已在 A5000/A4000 运行；
 跨节点与完整故障矩阵仍待验收，准确范围见 Claims Ledger。
 
+## Cache lifecycle control: code ownership and validation boundary
+
+The source implements `POST /freechat/cache/lifecycle`; this entry point is
+**CPU-contract tested only**, not yet GPU-accepted. Rebuild both control and Worker
+images from the same checkout before a GPU integration test.
+
+| Layer | Responsibility | Must not do |
+|---|---|---|
+| `freechat_contracts.cache_lifecycle` | Strict caller intent, trusted command and receipt schemas | Accept tenant, Worker or block IDs in caller intent |
+| Gateway `app.py` / `routing.py` | Authenticate, bound request size, forward tenant and translate transport errors | Choose cache ownership from client hints |
+| Scheduler `cache_lifecycle.py` | Resolve original decision and current incarnation, send RPC, verify receipt | Re-route to a replacement or mutate reservations |
+| Worker `execution.py` / `cache_lifecycle.py` | Read an already-dispatched journal binding and check cache generation | Create admission records or invoke execution Abort |
+| Worker `native_serving.py` / `vllm_execution.py` | Resolve one closed route to its actual internal engine request ID | Treat a fixture receipt as physical residency |
+| vLLM EngineCore utility | Verify lineage, residency and lifecycle sequence in the engine owner loop | Trust arbitrary external block IDs |
+
+The JSON body contains only `decision_id`, `sequence`, `lifecycle` and
+`expected_resume_ms`. The decision ID is returned by managed inference in
+`x-freechat-decision-id`; identity comes from the authenticated API key, not JSON.
+Sequences start at 1 for each completed request. The resume horizon is required
+for `tool_wait` (0–300000 ms), and absent/null for `resume`, `terminal` and
+`cancelled`. Request/control JSON is bounded to 16 KiB.
+Enable `VLLM_AGENT_CACHE_POLICY=1` explicitly when testing actual engine actions.
+
+Only one closed engine child per route is supported. Resume removes the old
+prefix's protection; further waiting belongs to a subsequent completed model
+request. The current cache epoch equals the Worker generation. Unknown ownership,
+a replaced engine, an open/multi-child route, or an invalid receipt fails closed.
+Cache cancellation is not execution cancellation and never releases request capacity.
+
+The Scheduler and Worker use authenticated loopback gRPC. The command is synchronous:
+a timeout is an uncertain outcome, so retry the identical sequence and payload;
+do not invent a higher sequence as a transport retry. Engine duplicate handling
+does not renew retention. `cache_lifecycle_requested` / `cache_lifecycle_applied`
+are normal service logs, not a durable outbox or exactly-once delivery proof.
+
 ## Completed-prefix engine control
 
 The opt-in `VLLM_AGENT_CACHE_POLICY=1` engine records bounded completed-request
@@ -154,9 +189,10 @@ then verifies that each block still has its original cached content hash.
 Duplicates return the original receipt without extending protection; conflicts,
 late reopening, expired/unknown targets and reset lineage are rejected.
 
-This utility is private engine plumbing, not a public authenticated endpoint.
-Gateway/Scheduler control ingress, durable command delivery and live Harness hooks
-are still pending. Resume removes protection; it does not prove a latency gain.
+This utility is private engine plumbing. A separate authenticated control ingress
+is implemented with CPU contract coverage below; its GPU integration, durable
+command delivery and live Harness hooks remain pending. Resume removes protection;
+it does not prove a latency gain.
 No tensor is sent through this control path and no offload action is claimed.
 Protection is bounded eviction preference, not a hard pin or another reservation;
 overwhelming pressure may still evict a protected block. Shared-owner policy

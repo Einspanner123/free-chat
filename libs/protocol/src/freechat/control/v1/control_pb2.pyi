@@ -314,3 +314,23 @@ class RequestExecutionReceipt(_message.Message):
     RECEIPT_JSON_FIELD_NUMBER: _ClassVar[int]
     receipt_json: str
     def __init__(self, receipt_json: _Optional[str] = ...) -> None: ...
+
+class CacheLifecycleUpdateRequest(_message.Message):
+    __slots__ = ("context", "update_json")
+    CONTEXT_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_JSON_FIELD_NUMBER: _ClassVar[int]
+    context: RequestContext
+    update_json: str
+    def __init__(self, context: _Optional[_Union[RequestContext, _Mapping]] = ..., update_json: _Optional[str] = ...) -> None: ...
+
+class CacheLifecycleCommand(_message.Message):
+    __slots__ = ("command_json",)
+    COMMAND_JSON_FIELD_NUMBER: _ClassVar[int]
+    command_json: str
+    def __init__(self, command_json: _Optional[str] = ...) -> None: ...
+
+class CacheLifecycleReceipt(_message.Message):
+    __slots__ = ("receipt_json",)
+    RECEIPT_JSON_FIELD_NUMBER: _ClassVar[int]
+    receipt_json: str
+    def __init__(self, receipt_json: _Optional[str] = ...) -> None: ...

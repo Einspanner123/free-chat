@@ -8,7 +8,9 @@ from typing import Any
 import httpx
 import pytest
 from fastapi import FastAPI, Request
+from freechat_contracts.cache_lifecycle import CacheLifecycleCommand, CacheLifecycleUpdate
 from freechat_contracts.execution import ExecutionAction, ExecutionCommand, ExecutionStatus
+from freechat_worker.cache_lifecycle import WorkerCacheLifecycleDriver
 from freechat_worker.execution import DurableExecutionDriver
 from freechat_worker.native_serving import (
     CURRENT_ROUTE,
@@ -282,3 +284,73 @@ async def test_prepared_worker_rejects_wrong_reservation_before_admission(
         accepted = await client.post("/v1/chat/completions", json={}, headers=supplied)
         assert accepted.status_code == 200
         assert (await driver.observe(command())).releasable
+
+
+async def test_cache_control_uses_admitted_route_and_actual_engine_identity(runtime: Any) -> None:
+    engine, backend, gate, _ = runtime
+    calls: list[tuple[Any, ...]] = []
+
+    async def utility(method: str, *args: Any) -> dict[str, Any]:
+        calls.append((method, *args))
+        request_id, tenant, generation, cache_generation, sequence, lifecycle, _ = args
+        assert (tenant, generation, cache_generation) == ("tenant", 1, 1)
+        return {
+            "request_id": request_id,
+            "sequence": sequence,
+            "lifecycle": lifecycle,
+            "resident_blocks": 4,
+            "protected_blocks": 4,
+            "status": "applied",
+            "applied_at_ms": 100,
+            "replayed": False,
+        }
+
+    engine.call_utility_async = utility
+    key = await gate.admit(command(), {})
+    token = CURRENT_ROUTE.set(key)
+    try:
+        async for _ in backend.generate("prompt", SimpleNamespace(n=1), "native"):
+            pass
+    finally:
+        CURRENT_ROUTE.reset(token)
+    backend.close_submission(key)
+    controller = WorkerCacheLifecycleDriver(gate, backend)
+    intent = CacheLifecycleCommand(
+        owner=command(),
+        cache_generation=1,
+        update=CacheLifecycleUpdate(
+            decision_id="decision", sequence=1, lifecycle="tool_wait", expected_resume_ms=1000
+        ),
+    )
+    before = gate._db.total_changes
+    receipt = await controller.apply(intent)
+    assert receipt.command == intent
+    assert calls[0][0] == "freechat_update_cache_lifecycle"
+    assert calls[0][1] == f"{key}:0-internal"
+    assert gate._db.total_changes == before
+    assert engine.aborts == []
+
+
+@pytest.mark.parametrize("case", ["unknown", "open", "zero", "multiple", "aborted", "epoch"])
+async def test_cache_control_rejects_unsupported_route_without_engine_update(
+    runtime: Any, case: str
+) -> None:
+    engine, backend, gate, _ = runtime
+    intent = CacheLifecycleCommand(
+        owner=command(),
+        cache_generation=2 if case == "epoch" else 1,
+        update=CacheLifecycleUpdate(
+            decision_id="decision", sequence=1, lifecycle="tool_wait", expected_resume_ms=1000
+        ),
+    )
+    if case != "unknown":
+        key = await gate.admit(command(), {})
+        route = backend.routes[key]
+        route.closed = case != "open"
+        route.children = [] if case == "zero" else ["child"]
+        if case == "multiple":
+            route.children.append("second")
+        route.aborted = case == "aborted"
+    with pytest.raises(ValueError):
+        await WorkerCacheLifecycleDriver(gate, backend).apply(intent)
+    assert engine.submissions == [] and engine.aborts == []

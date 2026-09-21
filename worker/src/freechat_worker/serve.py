@@ -16,10 +16,12 @@ from uuid import uuid4
 
 import grpc
 import uvicorn
+from freechat.control.cache_lifecycle import LocalCacheLifecycleService
 from freechat.control.execution import LocalRequestExecutionService
 from freechat.control.v1 import control_pb2_grpc
 from pydantic import SecretStr
 
+from freechat_worker.cache_lifecycle import WorkerCacheLifecycleDriver
 from freechat_worker.capacity import measure_capacity
 from freechat_worker.execution import DurableExecutionDriver
 from freechat_worker.native_serving import (
@@ -80,6 +82,14 @@ async def serve(args: Any) -> None:
                     worker_id=args.worker_id,
                     generation=args.worker_generation,
                     engine_instance_id=instance,
+                    token=SecretStr(token),
+                ),
+                control,
+            )
+            control_pb2_grpc.add_CacheLifecycleServiceServicer_to_server(  # type: ignore[no-untyped-call]
+                LocalCacheLifecycleService(
+                    WorkerCacheLifecycleDriver(driver, backend),
+                    identity=driver.identity,
                     token=SecretStr(token),
                 ),
                 control,

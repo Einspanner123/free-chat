@@ -12,11 +12,18 @@ from freechat_contracts import (
     RequestProfile,
     RouteDecision,
 )
+from freechat_contracts.cache_lifecycle import CacheLifecycleReceipt, CacheLifecycleUpdate
 from freechat_contracts.preparation import PreparedAdmission
 
 
 class SchedulerClient(Protocol):
     async def route(self, request: RequestProfile) -> RouteDecision: ...
+
+    async def cache_lifecycle(
+        self,
+        tenant_id: str,
+        update: CacheLifecycleUpdate,
+    ) -> CacheLifecycleReceipt: ...
 
     async def renew(self, request: RequestProfile, decision: RouteDecision) -> None: ...
 
@@ -60,6 +67,13 @@ class StaticSchedulerClient:
             rejected={},
             topology_generation=1,
         )
+
+    async def cache_lifecycle(
+        self,
+        tenant_id: str,
+        update: CacheLifecycleUpdate,
+    ) -> CacheLifecycleReceipt:
+        raise NotImplementedError("static_scheduler_has_no_cache_owner")
 
     async def aclose(self) -> None:
         return None
@@ -188,6 +202,29 @@ class GrpcSchedulerClient:
                 reason=response.kv_transfer.reason or "not_evaluated",
             ),
         )
+
+    async def cache_lifecycle(
+        self,
+        tenant_id: str,
+        update: CacheLifecycleUpdate,
+    ) -> CacheLifecycleReceipt:
+        response = await self._stub.UpdateCacheLifecycle(
+            control_pb2.CacheLifecycleUpdateRequest(
+                context=control_pb2.RequestContext(
+                    tenant_id=tenant_id,
+                    schema_version=1,
+                    request_id=f"{update.decision_id}:cache:{update.sequence}",
+                    idempotency_key=f"{update.decision_id}:cache:{update.sequence}",
+                ),
+                update_json=update.model_dump_json(),
+            ),
+            metadata=self._metadata,
+            timeout=7,
+        )
+        receipt = CacheLifecycleReceipt.model_validate_json(response.receipt_json)
+        if receipt.command.owner.tenant_id != tenant_id or receipt.command.update != update:
+            raise ValueError("cache_response_binding_mismatch")
+        return receipt
 
     async def release(self, request: RequestProfile, decision: RouteDecision) -> None:
         response = await self._stub.Release(
