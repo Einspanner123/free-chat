@@ -717,3 +717,34 @@ Only a real Harness process, real Gateway/worker request, service trace and
 protocol-matched failure matrix may satisfy `harness-integrations` in the
 Claims Ledger. No event-contract result is a latency, cache-hit or throughput
 claim.
+
+## Coverage gates and evidence boundaries
+
+Run `bash tools/test_cpu.sh` at the repository root after installing uv. It runs
+the partial CPU suite from the locked workspace and enforces both owned-Python
+statement and branch coverage >=80%. The strict checker enumerates every current
+production Python file in `libs`, `services`, `worker`, `tools` and `benchmarks`,
+including never-imported startup and GPU files. Only tests, generated protobuf
+and non-source caches are excluded. The file set and denominator are verified;
+module discovery, imported-only selection, or a rounded combined percentage
+cannot satisfy the separate thresholds.
+
+For the WebUI, run `npm ci`, `npm run test:types`, `npm run test:coverage` and
+`npm run build` in `webui`. All production TS/TSX files participate; statements,
+branches, functions and lines each require 80%. These are aggregate thresholds.
+The report retains per-file uncovered branches, including defensive DOM paths.
+Component tests use real React/router/query code with fetch and ECharts boundary
+fixtures; they are not browser deployment acceptance.
+
+The vLLM fork's dependency-free `agent_cache_hooks.py` can be tested separately
+without importing the GPU runtime. Its file-level coverage does not cover
+`kv_cache_manager.py`, EngineCore, CUDA subprocesses or the whole upstream fork.
+Never add this percentage to the parent workspace's denominator.
+
+Calibration probe limitation: `benchmarks.calibrate_service` and
+`benchmarks.telemetry_probe` still construct routing telemetry without allocator
+admission capacity. The current Scheduler rejects those routes; calibration also
+needs a trustworthy local node identity. The CPU tests assert that rejection and
+absence of a final success report. They do not validate successful probe routing.
+Use the managed inference loop for current routing acceptance; repair these probes
+with observed capacity before treating them as a live calibration entry point.

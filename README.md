@@ -112,17 +112,37 @@ Run the partial CPU checks from the source checkout:
 
 ```bash
 uv sync --all-packages --group dev
-uv run pytest -m "not gpu and not multinode"
+bash tools/test_cpu.sh
 uv run ruff check .
 uv run mypy libs services worker benchmarks tools
 ```
 
-The first command exercises all three Gateway protocols, generated-text streaming
+The managed inference-loop command above exercises all three Gateway protocols, generated-text streaming
 and disconnects, then sequentially reserves more than one physical KV pool to
 check capacity reuse. Correlate its decision IDs with Scheduler `lifecycle_event`
 logs: cancellation intent and terminal, quiescent, admission-closed Worker receipts
 must precede release. `tools.validate_native_http` remains the isolated Worker
 probe, not a replacement for this loop.
+The CPU entry point requires **at least 80% statements and 80% branches separately**
+across owned Python in `libs`, `services`, `worker`, `tools` and `benchmarks`.
+It explicitly includes never-imported startup/GPU modules; tests and generated
+protobuf code do not inflate the denominator. This is an aggregate gate, not a
+claim that every file or hardware path exceeds 80%. The independent vLLM fork
+is reported separately, not mixed with all of upstream.
+
+Frontend gates include every `webui/src` TS/TSX file and require statements,
+branches, functions and lines each to reach 80%:
+
+```bash
+cd webui
+npm ci
+npm run test:types
+npm run test:coverage
+npm run build
+```
+
+Coverage summaries go to stdout; CPU coverage data is temporary and removed by
+the test script. WebUI uses temporary V8 data, not a checked-in report directory.
 CPU tests check only their local logic/contracts; they do not replace GPU,
 multi-node, real-Harness or performance tests. Validators print results to stdout;
 services emit operational logs. Benchmark raw records are hash-linked JSON log

@@ -98,7 +98,9 @@ def stream_chat(
             if not line.startswith("data:"):
                 continue
             encoded = line.removeprefix("data:").strip()
-            if not encoded or encoded == "[DONE]":
+            if encoded == "[DONE]":
+                break
+            if not encoded:
                 continue
             event = json.loads(encoded)
             usage = event.get("usage") or {}

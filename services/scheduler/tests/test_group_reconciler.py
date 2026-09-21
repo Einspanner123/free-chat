@@ -354,10 +354,43 @@ async def test_node_fences_survive_reconstruction_and_reject_delayed_commands() 
     assert len(driver.started) == 2
 
 
+@pytest.mark.parametrize("block_refresh", [False, True])
 async def test_default_serve_uses_configured_group_view(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, unused_tcp_port: int
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, unused_tcp_port: int, block_refresh: bool
 ) -> None:
     controller, _, driver, _ = await setup()
+    refresh_started = asyncio.Event()
+    refresh_allowed = asyncio.Event()
+    refresh_complete = asyncio.Event()
+    reconcilers: list[GroupReconciler] = []
+    original_apply = driver.apply
+
+    async def controlled_apply(command: GroupCommand) -> GroupReceipt:
+        if command.action is GroupAction.INSPECT and block_refresh:
+            refresh_started.set()
+            await refresh_allowed.wait()
+        return await original_apply(command)
+
+    monkeypatch.setattr(driver, "apply", controlled_apply)
+
+    def tracked_reconciler(*args: Any) -> GroupReconciler:
+        reconciler = configured_reconciler(*args)
+        reconcilers.append(reconciler)
+        original_tick = reconciler.tick
+        completed_ticks = 0
+
+        async def tick() -> dict[str, str]:
+            nonlocal completed_ticks
+            result = await original_tick()
+            completed_ticks += 1
+            if completed_ticks >= 2:
+                refresh_complete.set()
+            return result
+
+        monkeypatch.setattr(reconciler, "tick", tick)
+        return reconciler
+
+    monkeypatch.setattr(grpc_server, "configured_reconciler", tracked_reconciler)
     node = grpc.aio.server()
     token = "only-a-local-test-fixture-token-123456789"
     control_pb2_grpc.add_GroupRuntimeServiceServicer_to_server(  # type: ignore[no-untyped-call]
@@ -389,6 +422,16 @@ async def test_default_serve_uses_configured_group_view(
     try:
         async with grpc.aio.insecure_channel(address) as channel:
             await asyncio.wait_for(channel.channel_ready(), timeout=5)
+        # Transport readiness can overlap the first background refresh. Its view
+        # is intentionally invalid until the node's INSPECT has completed.
+        if block_refresh:
+            await asyncio.wait_for(refresh_started.wait(), timeout=5)
+            assert reconcilers[0].snapshot()[0] == datetime.min.replace(tzinfo=UTC)
+            with pytest.raises(grpc.aio.AioRpcError) as refreshing:
+                await client.route(request())
+            assert refreshing.value.code() == grpc.StatusCode.FAILED_PRECONDITION
+            refresh_allowed.set()
+        await asyncio.wait_for(refresh_complete.wait(), timeout=5)
         decision = await client.route(request())
         assert decision.worker_id == "group"
         assert decision.reserved_kv_bytes_per_rank == 32768

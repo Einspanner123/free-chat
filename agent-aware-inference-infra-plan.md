@@ -60,6 +60,15 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
 `docs/claims-ledger.md`；启动/停止和复跑命令统一维护在
 `docs/operations.md`。本节只保留当前状态与实施依赖，不累计逐次实验过程。
 
+覆盖率门禁：自有 Python 五个源码目录的语句、分支分别至少 80%，
+WebUI 全部 TS/TSX 的语句、分支、函数、行分别至少 80%。未导入模块仍计入分母，
+不排除启动入口或 GPU kernel；测试代码与生成 protobuf 不计入。fork 纯 hooks 单独统计，
+不能替代完整引擎或 GPU 验收。统一命令为 `bash tools/test_cpu.sh` 与前端 `npm run test:coverage`。
+
+本轮补测确认 `calibrate_service.py`、`telemetry_probe.py` 的路由探针缺少当前准入所需的
+allocator 预算；服务校准请求还缺节点来源。修复应接入可信容量与节点身份，不能用空闲显存
+替代 KV 预算或放松硬过滤。该能力仍待实现，精确拒绝回归不计为成功路由验收。
+
 CPU 只检查局部逻辑、类型和契约。真实模型、GPU 执行/取消、并行、
 kernel 与端到端性能必须在 GPU 上测；不能以 CPU 通过代替。
 首个 backend 的 GPU probe 不等于 Gateway/Scheduler/WebUI 全链路验收。

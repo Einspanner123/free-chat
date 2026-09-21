@@ -7,7 +7,7 @@ import logging
 import os
 import signal
 from collections.abc import AsyncIterable, AsyncIterator
-from contextlib import suppress
+from contextlib import AsyncExitStack, suppress
 from pathlib import Path
 from typing import Any
 
@@ -453,109 +453,110 @@ async def serve(
     preparer = (
         None if contract_only else NativePreparer(os.environ.get("FREECHAT_WORKER_TOKEN", ""))
     )
-    endpoint = os.environ.get("ETCD_ENDPOINT")
-    store: KeyValueStore
-    etcd: EtcdHttpStore | None = None
-    if endpoint:
-        etcd = EtcdHttpStore(endpoint)
-        store = etcd
-        persistent_registry = PersistentWorkerRegistry(store)
-        await persistent_registry.restore()
-        registry: InMemoryWorkerRegistry = persistent_registry
-    else:
-        store = InMemoryStore()
-        registry = InMemoryWorkerRegistry()
-    nats_client = None
-    emitter = None
-    nats_url = os.environ.get("NATS_URL")
-    if nats_url:
-        nats_client, publisher = await connect_lifecycle_stream(nats_url)
-        emitter = DurableLifecycleEmitter(store, publisher)
-        await emitter.replay()
-    server = grpc.aio.server()
-    group_config_path = os.environ.get("FREECHAT_GROUP_RUNTIME_CONFIG")
-    reconciler = None
-    if group_config_path:
-        config = GroupRuntimeConfig.model_validate_json(Path(group_config_path).read_text())
-        reconciler = configured_reconciler(config, store, registry)
-        await reconciler.tick()
-    leases = LeaseBook(store)
-    execution = (
-        None
-        if contract_only
-        else RequestExecutionReconciler(
-            leases,
-            RegisteredExecutionDriver(registry, os.environ["FREECHAT_WORKER_TOKEN"], retired),
-        )
-    )
-    execution_config_path = os.environ.get("FREECHAT_REQUEST_EXECUTION_CONFIG")
-    if execution_config_path:
-        execution_config = RequestExecutionConfig.model_validate_json(
-            Path(execution_config_path).read_text()
-        )
-        execution = RequestExecutionReconciler(leases, LocalGrpcExecutionDriver(execution_config))
-    scheduler_service = SchedulerGrpcService(
-        Scheduler(
-            registry,
-            group_snapshot=None if reconciler is None else reconciler.snapshot,
-            strategy=RoutingStrategy(
-                os.environ.get("FREECHAT_ROUTING_STRATEGY", "lifecycle-aware")
-            ),
-        ),
-        leases,
-        emitter,
-        execution,
-        preparer,
-        None if contract_only else os.environ["FREECHAT_WORKER_TOKEN"],
-        log_events=not contract_only and emitter is None,
-        cache=None
-        if contract_only
-        else CacheLifecycleController(
-            leases,
-            registry,
-            os.environ["FREECHAT_WORKER_TOKEN"],
-        ),
-    )
-    control_pb2_grpc.add_SchedulerServiceServicer_to_server(  # type: ignore[no-untyped-call]
-        scheduler_service,
-        server,
-    )
-    control_pb2_grpc.add_WorkerControlServiceServicer_to_server(  # type: ignore[no-untyped-call]
-        WorkerGrpcService(
-            registry, emitter, None if contract_only else os.environ["FREECHAT_WORKER_TOKEN"]
-        ),
-        server,
-    )
-    if not server.add_insecure_port(address):
-        raise RuntimeError("scheduler control port unavailable")
-    maintenance = None
-    group_maintenance = None
-    try:
-        await server.start()
-        maintenance = asyncio.create_task(scheduler_service.maintain())
-        if reconciler is not None:
-            group_maintenance = asyncio.create_task(reconciler.run())
-        LOGGER.info("scheduler_ready address=%s", address)
-        if stop_event is None:
-            await server.wait_for_termination()
+    # Register cleanup immediately after acquiring each owned resource so failures
+    # during registry restore, event replay, configuration or port binding cannot leak it.
+    async with AsyncExitStack() as resources:
+        endpoint = os.environ.get("ETCD_ENDPOINT")
+        store: KeyValueStore
+        if endpoint:
+            etcd = EtcdHttpStore(endpoint)
+            resources.push_async_callback(etcd.close)
+            store = etcd
+            persistent_registry = PersistentWorkerRegistry(store)
+            await persistent_registry.restore()
+            registry: InMemoryWorkerRegistry = persistent_registry
         else:
-            await stop_event.wait()
-            LOGGER.info("scheduler_stop_requested")
-    finally:
-        if group_maintenance is not None:
-            group_maintenance.cancel()
-            with suppress(asyncio.CancelledError):
-                await group_maintenance
-        if maintenance is not None:
-            maintenance.cancel()
-            with suppress(asyncio.CancelledError):
-                await maintenance
-        await server.stop(grace=5)
-        if etcd is not None:
-            await etcd.close()
-        if nats_client is not None:
-            await close_lifecycle_stream(nats_client)
-        LOGGER.info("scheduler_shutdown_complete")
+            store = InMemoryStore()
+            registry = InMemoryWorkerRegistry()
+        emitter = None
+        nats_url = os.environ.get("NATS_URL")
+        if nats_url:
+            nats_client, publisher = await connect_lifecycle_stream(nats_url)
+            resources.push_async_callback(close_lifecycle_stream, nats_client)
+            emitter = DurableLifecycleEmitter(store, publisher)
+            await emitter.replay()
+        server = grpc.aio.server()
+        resources.push_async_callback(server.stop, grace=5)
+        group_config_path = os.environ.get("FREECHAT_GROUP_RUNTIME_CONFIG")
+        reconciler = None
+        if group_config_path:
+            config = GroupRuntimeConfig.model_validate_json(Path(group_config_path).read_text())
+            reconciler = configured_reconciler(config, store, registry)
+            await reconciler.tick()
+        leases = LeaseBook(store)
+        execution = (
+            None
+            if contract_only
+            else RequestExecutionReconciler(
+                leases,
+                RegisteredExecutionDriver(registry, os.environ["FREECHAT_WORKER_TOKEN"], retired),
+            )
+        )
+        execution_config_path = os.environ.get("FREECHAT_REQUEST_EXECUTION_CONFIG")
+        if execution_config_path:
+            execution_config = RequestExecutionConfig.model_validate_json(
+                Path(execution_config_path).read_text()
+            )
+            execution = RequestExecutionReconciler(
+                leases, LocalGrpcExecutionDriver(execution_config)
+            )
+        scheduler_service = SchedulerGrpcService(
+            Scheduler(
+                registry,
+                group_snapshot=None if reconciler is None else reconciler.snapshot,
+                strategy=RoutingStrategy(
+                    os.environ.get("FREECHAT_ROUTING_STRATEGY", "lifecycle-aware")
+                ),
+            ),
+            leases,
+            emitter,
+            execution,
+            preparer,
+            None if contract_only else os.environ["FREECHAT_WORKER_TOKEN"],
+            log_events=not contract_only and emitter is None,
+            cache=None
+            if contract_only
+            else CacheLifecycleController(
+                leases,
+                registry,
+                os.environ["FREECHAT_WORKER_TOKEN"],
+            ),
+        )
+        control_pb2_grpc.add_SchedulerServiceServicer_to_server(  # type: ignore[no-untyped-call]
+            scheduler_service,
+            server,
+        )
+        control_pb2_grpc.add_WorkerControlServiceServicer_to_server(  # type: ignore[no-untyped-call]
+            WorkerGrpcService(
+                registry, emitter, None if contract_only else os.environ["FREECHAT_WORKER_TOKEN"]
+            ),
+            server,
+        )
+        if not server.add_insecure_port(address):
+            raise RuntimeError("scheduler control port unavailable")
+        maintenance = None
+        group_maintenance = None
+        try:
+            await server.start()
+            maintenance = asyncio.create_task(scheduler_service.maintain())
+            if reconciler is not None:
+                group_maintenance = asyncio.create_task(reconciler.run())
+            LOGGER.info("scheduler_ready address=%s", address)
+            if stop_event is None:
+                await server.wait_for_termination()
+            else:
+                await stop_event.wait()
+                LOGGER.info("scheduler_stop_requested")
+        finally:
+            if group_maintenance is not None:
+                group_maintenance.cancel()
+                with suppress(asyncio.CancelledError):
+                    await group_maintenance
+            if maintenance is not None:
+                maintenance.cancel()
+                with suppress(asyncio.CancelledError):
+                    await maintenance
+    LOGGER.info("scheduler_shutdown_complete")
 
 
 async def _run_until_signal() -> None:

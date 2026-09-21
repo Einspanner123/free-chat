@@ -61,3 +61,14 @@ strict = true
 warn_unused_configs = true
 plugins = ["pydantic.mypy"]
 exclude = "^libs/protocol/src/freechat/control/v1/control_pb2(_grpc)?\\.(py|pyi)$"
+
+[tool.coverage.run]
+branch = true
+source = ["libs", "services", "worker", "tools", "benchmarks"]
+omit = ["*/tests/*", "libs/protocol/src/freechat/control/v1/control_pb2*.py"]
+
+[tool.coverage.report]
+include_namespace_packages = true
+precision = 2
+fail_under = 80
+show_missing = true
