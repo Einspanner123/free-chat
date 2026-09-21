@@ -2,10 +2,11 @@
 ARG WORKER_BASE=freechat-worker:8e78a3c61307
 FROM ${WORKER_BASE}
 COPY third_party/vllm/vllm/v1/engine/core.py /usr/local/lib/python3.12/dist-packages/vllm/v1/engine/core.py
+COPY third_party/vllm/vllm/v1/core/agent_cache_hooks.py third_party/vllm/vllm/v1/core/kv_cache_manager.py /usr/local/lib/python3.12/dist-packages/vllm/v1/core/
 COPY libs/contracts/src /opt/freechat/libs/contracts/src
 COPY libs/protocol/src /opt/freechat/libs/protocol/src
 COPY worker/src /opt/freechat/worker/src
-COPY tools/validate_execution_gpu.py tools/validate_native_http.py tools/validate_inference_loop.py /opt/freechat/tools/
+COPY tools/validate_execution_gpu.py tools/validate_native_http.py tools/validate_inference_loop.py tools/validate_cache_lifecycle_gpu.py /opt/freechat/tools/
 RUN uv venv /opt/freechat/.venv --system-site-packages --python /usr/bin/python3
 WORKDIR /opt/freechat
 ENV PYTHONPATH=/opt/freechat:/opt/freechat/libs/contracts/src:/opt/freechat/libs/protocol/src:/opt/freechat/worker/src

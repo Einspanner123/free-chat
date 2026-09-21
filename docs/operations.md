@@ -144,6 +144,40 @@ Gateway/Scheduler/Worker 在同一个网络 namespace 中运行，不通过放�
 同机 API 推理闭环、同一 Scheduler 双 Worker 路由及限定的重启恢复切片已在 A5000/A4000 运行；
 跨节点与完整故障矩阵仍待验收，准确范围见 Claims Ledger。
 
+## Completed-prefix engine control
+
+The opt-in `VLLM_AGENT_CACHE_POLICY=1` engine records bounded completed-request
+block/hash lineage separately from request reservations. The EngineCore utility
+`freechat_update_cache_lifecycle` accepts only completed synchronous single-GPU
+requests, checks recorded tenant/worker/cache generation and monotonic sequence,
+then verifies that each block still has its original cached content hash.
+Duplicates return the original receipt without extending protection; conflicts,
+late reopening, expired/unknown targets and reset lineage are rejected.
+
+This utility is private engine plumbing, not a public authenticated endpoint.
+Gateway/Scheduler control ingress, durable command delivery and live Harness hooks
+are still pending. Resume removes protection; it does not prove a latency gain.
+No tensor is sent through this control path and no offload action is claimed.
+Protection is bounded eviction preference, not a hard pin or another reservation;
+overwhelming pressure may still evict a protected block. Shared-owner policy
+arbitration remains a gate before claiming general multi-Agent retention.
+
+Run the isolated real-weight GPU check from the current Worker image:
+
+```bash
+docker run --name freechat-prefix-control --gpus device=0 --shm-size 1g \
+  --network none -v /absolute/path/to/Qwen2.5-0.5B-Instruct:/model:ro \
+  --entrypoint /opt/freechat/.venv/bin/python "$WORKER_IMAGE" \
+  -m tools.validate_cache_lifecycle_gpu --model /model
+```
+
+For A4000 use device 1 and `--gpu-memory-utilization 0.25`. The probe uses a real
+128-block pool and real weights; it tests protection, Resume, duplicate/conflicting
+updates, tenant mismatch, retention under pressure, physical block reuse,
+prefix-cache reset, in-flight rejection and post-abort cancellation. JSON goes
+to stdout and EngineCore logs to normal container logs. The container exits after
+engine shutdown. This is not a Gateway, real Harness or multi-GPU collective test.
+
 ## KV 容量报告
 
 Managed Worker 在分配 KV 后调用 vLLM 原生 Worker extension 的具名 RPC，
@@ -173,7 +207,26 @@ SSE 断连、非流式中断、建连失败使用有界、屏蔽外层 ASGI 取�
 未配置 etcd 时，默认 Scheduler 使用内存 store，不得据此宣称重启对账、故障恢复率或 HA。
 `tools.validate_inference_loop` 的 stdout decision ID 与这些事件对应；应核对每个 route 的
 cancel/completion intent 和唯一 release，release 的 execution receipt 必须 terminal、quiescent、
-admission_closed。HTTP 200 或顺序请求成功本身不是全部释放证据。
+admission_closed。取消更新前已经发出的 Query 也可能返回可信 aborted 回执；
+以回执身份、终态和执行 fence 判断，不强制最后一次 RPC 必须叫 Abort。
+HTTP 200 或顺序请求成功本身不是全部释放证据。
+
+清理 deadline 由 asyncio 管理，外层 AnyIO scope 只负责屏蔽断连取消，
+以兼容 gRPC 丢失 scope 标记的取消异常。超时保留告警，不把未知清理状态变成成功回执。
+
+顺序容量探针在 HTTP 完成后的确认窗口内允许最多 30 秒的未准入重试，
+不会重投已带 decision ID 的请求，也不会把其他 HTTP 错误当作成功。
+stdout 的 `expected_routes`、`expected_cancels`、`admission_retries`
+必须与完整 Scheduler 日志核验；每次重试都应有对应的 `vram_capacity` 拒绝，
+未知 503、缺失事件和未释放预占不能算通过。把本次输出值代入：
+
+```bash
+docker logs freechat-scheduler 2>&1 | docker exec -i freechat-worker \
+  /opt/freechat/.venv/bin/python -m tools.validate_inference_loop --mode audit-log \
+  --worker gpu-worker --pool-bytes "$POOL_BYTES" \
+  --expected-routes "$ROUTES" --expected-cancels "$CANCELS" \
+  --expected-rejections "$REJECTIONS"
+```
 
 ## 同机持久控制状态与重启验证
 

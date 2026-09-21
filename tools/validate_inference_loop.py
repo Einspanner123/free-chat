@@ -9,6 +9,7 @@ import os
 import sys
 from collections import Counter
 from collections.abc import Iterable
+from contextlib import suppress
 from typing import Any
 
 import httpx
@@ -28,6 +29,32 @@ def body_for(protocol: str, *, stream: bool, limit: int, pressure: bool = False)
     if pressure:
         body["stop"] = ["OK"]  # Full output budget, a deliberately short actual response.
     return body
+
+
+async def post_until_admitted(
+    client: httpx.AsyncClient,
+    url: str,
+    headers: dict[str, str],
+    body: dict[str, Any],
+    *,
+    timeout_seconds: float = 30,
+) -> tuple[httpx.Response, int]:
+    """Wait for admission closure; the Scheduler log must confirm capacity rejection."""
+    retries = 0
+    async with asyncio.timeout(timeout_seconds):
+        while True:
+            response = await client.post(url, headers=headers, json=body)
+            if response.status_code == 200:
+                return response, retries
+            retryable = False
+            if response.status_code == 503 and "x-freechat-decision-id" not in response.headers:
+                with suppress(ValueError):
+                    retryable = response.json() == {"detail": "scheduler could not admit request"}
+            if not retryable:
+                response.raise_for_status()
+                raise ValueError("unexpected admission response")
+            retries += 1
+            await asyncio.sleep(0.1)
 
 
 async def validate(args: argparse.Namespace) -> None:
@@ -126,7 +153,7 @@ async def validate(args: argparse.Namespace) -> None:
                     ),
                     flush=True,
                 )
-        total, calls = 0, 0
+        total, calls, admission_retries = 0, 0, 0
         body = {
             "model": args.model,
             **body_for(
@@ -139,12 +166,10 @@ async def validate(args: argparse.Namespace) -> None:
         while total <= pool:
             if calls >= 1000:
                 raise ValueError("capacity reuse probe exceeded bounded call count")
-            response = await client.post(
-                args.url + "/v1/chat/completions",
-                headers=headers,
-                json=body,
+            response, retries = await post_until_admitted(
+                client, args.url + "/v1/chat/completions", headers, body
             )
-            response.raise_for_status()
+            admission_retries += retries
             reserved = int(response.headers["x-freechat-reserved-kv-bytes"])
             assert reserved > 0
             total += reserved
@@ -155,6 +180,10 @@ async def validate(args: argparse.Namespace) -> None:
                     "scope": "SEQUENTIAL_CAPACITY_REUSE",
                     "worker": runtime["worker_id"],
                     "completed_calls": calls,
+                    "admission_retries": admission_retries,
+                    "expected_routes": calls + 10,
+                    "expected_cancels": 3,
+                    "log_audit_required": True,
                     "cumulative_reserved_bytes": total,
                     "physical_usable_kv_bytes": pool,
                     "exceeds_one_pool": total > pool,
@@ -377,8 +406,9 @@ def audit_log(
                 raise ValueError("release without execution fence")
             if receipt["status"] != ("aborted" if key in cancelled else "completed"):
                 raise ValueError("unexpected terminal status")
-            if key in cancelled and command["action"] != "abort":
-                raise ValueError("cancel lacks Worker abort confirmation")
+            # A Query started before cancellation can confirm the same fenced abort.
+            if command["action"] not in {"query", "abort"}:
+                raise ValueError("unsupported Worker execution observation")
             del outstanding[key]
             released.add(key)
     if (len(routes), len(cancelled), len(rejection_ids)) != (

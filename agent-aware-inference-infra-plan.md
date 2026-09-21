@@ -23,64 +23,39 @@ workstation 只部署 ross 构建的测试制品，不修改源码。先完成 r
 
 ### 当前修复顺序
 
-1. [~] **真实执行后端。** 复用 AsyncLLM 的 add_request/collector/abort，
-   将 DurableExecutionDriver 接至 pinned EngineCore 的请求移除与 CUDA 同步确认。
-   第一切片仅支持 TP=PP=DP=1、同步调度、文本、n=1、无 KV/EC 传输；
-   不支持的模式显式拒绝，不假装覆盖所有子请求与流水线。
-   A5000 + Qwen2.5-0.5B 真实权重已验证 12 次完成、提交后取消及首 token 后取消、重复准入拒绝；
-   见既有 `evidence/execution-gpu/20260921/`。原生 HTTP 三协议、认证边界与 Worker launcher 已接通，
-   A5000/A4000 已通过普通响应、SSE、生成中取消和重复准入验证；A6000 待完成。
-   同机 Gateway→Scheduler→Worker API 闭环已在两卡分别验证；
-   A5000 + 真实单节点 etcd 已验证 Scheduler 崩溃后恢复到同一存活 Worker，
-   Worker/存储及完整消息总线故障矩阵、跨节点仍待完成。
-2. [~] **真实预算。** Worker 已通过上游具名 extension RPC 读取分配后的 KV layout，
-   A5000/A4000 实测通过；报告 gross pool 并扣除 null block，不伪装成实时空闲预算。
-   原生三协议预处理已给出准确 token 数，并在 GPU 提交前核对实际 prompt 与输出上限，
-   A5000/A4000 与真实 response usage 一致。Gateway 已移除字符数估计；
-   Scheduler 按各候选 Worker 的原生预算计算并持久化预占，绑定所选 incarnation，
-   Worker 校验实际 block 对齐字节；已接通实际注册/heartbeat 和 gross budget/活动请求不重复计数，
-   两卡分别通过真实 Gateway→Scheduler→Worker 容量复用与执行确认。
-   同一 Scheduler 管理 A5000/A4000 已通过逐卡并发预算与释放核验；跨节点预算仍待验收。
-3. [~] **统一启动路径。** 同机 Worker 启动→注册→持续 heartbeat→执行确认轮询已验证；
-   Gateway 启动现已要求显式 Scheduler 地址，缺失配置直接报错；static/fake 仅用于测试。
-   当前容器共享 Worker 网络 namespace，RPC 保持真实同机边界；跨节点认证 transport 与启动仍待实现。
-4. [~] **运行闭环。** 两卡分别完成三协议 JSON/SSE/断连；累计顺序预占超过一个实际 KV 池后仍可复用，
-   A5000 161/161、A4000 126/126 请求由可信终态回执释放，各 3 次断连具有取消意图与 aborted 回执。
-   已修复 ASGI 取消作用域中断清理的问题。两卡分别完成实际 128-block 池、三轮 8 并发压力，
-   观测到容量拒绝与确认后的再次准入；每卡 10/10 已准入请求释放，峰值预占未超过物理池。
-   HTTP 完成到可信确认之间允许有界重试，不提前回收。日志核验可复跑且不生成结果目录。
-   同一 Scheduler 的两卡三轮并发已验证，每轮每卡执行两个 800-token 请求；
-   停止空闲 A4000 后新请求由 A5000 执行，健康/排空拒绝原因明确。
-   此双卡停止证据不代表在途任务恢复；注册完成前的模型 HTTP 健康也不代表已进入调度器。
-   另已完成 A5000 + 真实 etcd 的控制面故障切片：首 token 后 SIGKILL Scheduler，
-   GPU 继续生成，持久预占不丢失；重启后由原 generation/engine 的终态回执释放，
-   新请求成功且 3/3 已准入请求释放。不能推广成 Worker 崩溃恢复、HA 或 RTO 指标。
-   真实 NATS 短时中断已在 A5000 上验证：GPU 生成完成并由可信回执释放，
-   待发 route/completion/release 事件保留到 JetStream 恢复，两个切片共 4/4 请求释放。
-   发布确认丢失重试、消费未 ACK 重投及冲突事件保留通过；仅覆盖 120 秒去重窗口内，
-   不表示消费端持久幂等、永久零重复或分布式 exactly-once。
-   又已验证超过默认重连上限的 150 秒 NATS 中断：Scheduler 不重启，待发事件自动补发，
-   新 GPU 请求恢复准入，3/3 请求确认释放。运行期继续重连，初次连接/流配置仍有 10 秒期限；
-   更长、反复中断、消费者副作用与其他故障矩阵仍待完成。
-   Worker 首 token 后 SIGKILL/重启已在 A5000 + etcd 实测：旧流中断，新实例拒绝旧命令，
-   新请求正常执行；旧请求仍处于 cancel_requested 并占用 10420224 字节，尚未自动回收。
-   已接入 Docker 终止证据→持久旧身份准入封闭→旧身份回执 RPC→Scheduler 幂等释放，
-   在新 Worker 注册前由操作员触发；A5000 真实崩溃后成功回收该预占。
-   容器与恢复工具均由唯一 runtime ID/label 定位，不用共享 namespace 的 hostname 猜身份。
-   A4000 已验证新实例先注册并执行后，独立历史回执端点仍可回收已封闭旧实例的预占，
-   不改写当前注册；新旧共 4/4 请求确认释放。历史服务不挂 Docker socket。
-   此项仍由操作员配置/触发；自动终止取证、协调及原任务恢复未完成。
-   OpenAI Agents SDK 0.22.0 已在 A5000/A4000 经真实 Gateway 执行 README function tool，
-   每卡 Active/Resume 两次推理均收到完成回执并释放；模型多输出说明，严格答案检查失败。
-   验收器已修正为质量失败退出 1；SDK 并行工具全部完成前保持等待，取消/终态不可复活。
-   此桥接尚未发送独立 Tool Wait 控制事件，也未驱动真实 KV retain/offload；
-   下一步接通认证生命周期入口及 KV action 观测，再运行真实 Harness 取消/失败矩阵。
-   WebUI 及以下故障/生命周期矩阵仍待完成：
-   streaming、取消、断连、重复、迟到、重启；再贯通 Tool Wait/Resume、
-   KV action、tracing、三协议和四 Harness。复用原生协议，不重新实现另一套 API。
-5. [ ] **扩展与指标。** 实际 residency→调度基线→生命周期/成本策略→多卡与 kernel。
-   目标 3×4 H100、节点内 NVLink；初始跨节点仅 request/data parallel。
-   实际硬件、网络和收益按原验收门禁确认，不因先做单卡而缩减最终范围。
+1. [~] **真实执行与预算。** 已接入 vLLM AsyncLLM、原生三协议预处理、
+   allocator KV geometry、请求准入与 EngineCore 静止确认。
+   A5000/A4000 上的真实 Qwen2.5-0.5B 已通过 JSON、SSE、生成中取消、
+   重复准入、容量背压与确认后释放验证；A6000 待完成。
+   当前执行范围为同步 TP=PP=DP=1、文本、n=1、无 KV/EC connector；
+   不支持的模式显式拒绝。后续扩展不改变最终目标。
+2. [~] **统一运行与恢复。** Worker 注册/heartbeat、Gateway→Scheduler→Worker
+   同机路径和同一 Scheduler 管理双 GPU 已运行验证。
+   A5000 已验证真实单节点 etcd 下 Scheduler 重启与 NATS 短时/持续中断；
+   两卡已验证操作员辅助的 Worker 旧实例封闭、历史回执与预占回收。
+   自动崩溃恢复、原任务恢复、其他存储故障和跨节点认证 transport 尚未完成。
+   不将开发网络 namespace、单节点恢复或事件重投包装为生产 HA/exactly-once。
+3. [~] **Agent 生命周期与真实 KV。** OpenAI Agents SDK 已通过真实 Gateway
+   执行 function tool 和 Active/Resume 推理；两卡严格答案质量检查未通过。
+   完成请求的 block/hash 驻留目录与引擎 owner-loop 生命周期控制已实现：
+   校验租户、generation、序号和实际驻留，重复不续期，失效块不误保护，
+   reset 清理目录，在途请求拒绝更新。A5000/A4000 已完成真实 GPU 压力、
+   恢复命中、取消和物理块复用验证。
+   当前仅是有界 eviction preference，不是硬 pin、共享 owner 仲裁或 offload。
+   **下一步：接通认证生命周期入口→可信 route/引擎请求身份→KV action 回执和 trace，
+   再运行真实 Harness 的工具等待、恢复、取消、失败矩阵。**
+4. [ ] **完整集成。** 贯通三协议、四 Harness、五页 WebUI、统一部署入口，
+   补齐断连、重复、迟到、重启、存储与消息故障测试。
+   复用上游协议和推理执行，不实现另一套 Agent loop 或 inference engine。
+5. [ ] **扩展与指标。** 基于实际 residency 建立 round-robin、least-load、
+   prefix-affinity 和原生 LRU 基线，再验证生命周期/成本策略及 kernel 的端到端收益。
+   先完成 ross/workstation 三卡，再由负责人部署 3×4 H100（节点内 NVLink）；
+   初始跨节点仅 request/data parallel，其他并行必须通过实测准入。
+   GPU、真实 Harness、性能和故障验收全部完成前，不填造简历收益或宣称项目完成。
+
+测试配置、镜像身份、原始日志定位和验收边界统一记录在
+`docs/claims-ledger.md`；启动/停止和复跑命令统一维护在
+`docs/operations.md`。本节只保留当前状态与实施依赖，不累计逐次实验过程。
 
 CPU 只检查局部逻辑、类型和契约。真实模型、GPU 执行/取消、并行、
 kernel 与端到端性能必须在 GPU 上测；不能以 CPU 通过代替。

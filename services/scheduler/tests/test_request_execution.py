@@ -551,3 +551,33 @@ async def test_runtime_identity_validation_and_nonlocal_peer_rejection() -> None
     with pytest.raises(PermissionError) as malformed:
         await service.Observe(control_pb2.RequestExecutionCommand(command_json="{}"), context)
     assert malformed.value.args[0] is grpc.StatusCode.FAILED_PRECONDITION
+
+
+async def test_query_started_before_cancel_can_confirm_worker_abort() -> None:
+    ledger, scheduler = RequestLedger(), setup()
+    route = await reserve(ledger, scheduler, request())
+
+    class CancelDuringQuery(FixtureExecutionDriver):
+        async def observe(self, query: ExecutionCommand) -> ExecutionReceipt:
+            assert query.action is ExecutionAction.QUERY
+            await ledger.release(
+                route.decision_id,
+                route.worker_id,
+                route.worker_generation,
+                "tenant-a",
+                cancelled=True,
+            )
+            return await super().observe(query)
+
+    driver = CancelDuringQuery()
+    driver.status, driver.quiet, driver.closed = ExecutionStatus.ABORTED, True, True
+    assert await RequestExecutionReconciler(ledger, driver).tick() == {}
+    snapshot = await ledger.snapshot()
+    state = snapshot.reservations[route.decision_id]
+    assert state.state is RequestState.RELEASED
+    assert state.execution_receipt is not None and state.execution_receipt.releasable
+    assert state.execution_receipt.command.action is ExecutionAction.QUERY
+    assert [event.event_type for event in snapshot.pending.values()][-2:] == [
+        "lease.cancel_requested",
+        "lease.released",
+    ]

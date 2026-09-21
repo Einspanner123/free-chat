@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from collections.abc import AsyncGenerator, AsyncIterator
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
@@ -409,23 +409,26 @@ async def _finish_route(
     # ASGI disconnect cancels the enclosing AnyIO scope at every checkpoint.
     # Cleanup must survive that scope, but must not block shutdown indefinitely.
     keepalive.cancel()
-    with anyio.move_on_after(_CLEANUP_TIMEOUT_SECONDS, shield=True) as close_scope:
+    with anyio.CancelScope(shield=True):
         try:
-            with suppress(asyncio.CancelledError):
-                await keepalive
-            if response is not None:
-                await response.aclose()
+            async with asyncio.timeout(_CLEANUP_TIMEOUT_SECONDS):
+                await asyncio.gather(keepalive, return_exceptions=True)
+                if response is not None:
+                    await response.aclose()
+        except TimeoutError:
+            LOGGER.warning("upstream cleanup timed out decision_id=%s", decision.decision_id)
         except Exception:
             LOGGER.exception("upstream cleanup failed decision_id=%s", decision.decision_id)
-    if close_scope.cancel_called:
-        LOGGER.warning("upstream cleanup timed out decision_id=%s", decision.decision_id)
 
-    # A stuck/failed transport close must not prevent the cancellation intent.
-    # This is an intent only: the Scheduler still needs a quiescent Worker receipt.
-    with anyio.move_on_after(_CLEANUP_TIMEOUT_SECONDS, shield=True) as release_scope:
-        await _release_route(scheduler, profile, decision, uncertain=uncertain)
-    if release_scope.cancel_called:
-        LOGGER.warning("scheduler cleanup timed out decision_id=%s", decision.decision_id)
+    # grpc.aio may replace cancellation without AnyIO's scope marker. asyncio's
+    # deadline owns task cancellation and still recognizes that timeout.
+    # Notification remains an intent, never proof of released GPU capacity.
+    with anyio.CancelScope(shield=True):
+        try:
+            async with asyncio.timeout(_CLEANUP_TIMEOUT_SECONDS):
+                await _release_route(scheduler, profile, decision, uncertain=uncertain)
+        except TimeoutError:
+            LOGGER.warning("scheduler cleanup timed out decision_id=%s", decision.decision_id)
 
 
 async def _renew_lease_loop(

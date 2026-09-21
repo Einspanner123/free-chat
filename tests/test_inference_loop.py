@@ -6,7 +6,12 @@ from typing import Any
 import httpx
 import pytest
 
-from tools.validate_inference_loop import audit_log, concurrent_probe, worker_pools
+from tools.validate_inference_loop import (
+    audit_log,
+    concurrent_probe,
+    post_until_admitted,
+    worker_pools,
+)
 
 
 def events() -> list[dict[str, Any]]:
@@ -118,7 +123,7 @@ def test_log_audit_rejects_false_success(failure: str) -> None:
     elif failure == "wrong_status":
         receipt["status"] = "running"
     elif failure == "wrong_action":
-        receipt["command"]["action"] = "query"
+        receipt["command"]["action"] = "dispatch"
     elif failure == "mixed_workers":
         records[1]["payload"]["worker_id"] = "other"
     elif failure == "missing_cancel":
@@ -262,3 +267,63 @@ def test_shared_scheduler_logs_are_audited_per_worker_without_pool_mixing() -> N
             expected_rejections=0,
             allow_other_workers=True,
         )
+
+
+async def test_sequential_probe_waits_for_admission_without_repeating_success() -> None:
+    calls = 0
+
+    def endpoint(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return httpx.Response(503, json={"detail": "scheduler could not admit request"})
+        return httpx.Response(200, json={"usage": {"completion_tokens": 1}})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(endpoint)) as client:
+        response, retries = await post_until_admitted(client, "http://gateway/v1", {}, {})
+    assert response.status_code == 200 and retries == 1 and calls == 2
+
+
+@pytest.mark.parametrize("failure", ["owned", "upstream", "malformed", "auth", "server"])
+async def test_sequential_probe_does_not_mask_other_failures(failure: str) -> None:
+    calls = 0
+
+    def endpoint(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if failure == "malformed":
+            return httpx.Response(503, text="unavailable")
+        return httpx.Response(
+            {"auth": 401, "server": 500}.get(failure, 503),
+            headers={"x-freechat-decision-id": "owned"} if failure == "owned" else {},
+            json={
+                "detail": "upstream failed"
+                if failure == "upstream"
+                else "scheduler could not admit request"
+            },
+        )
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(endpoint)) as client:
+        with pytest.raises(httpx.HTTPStatusError):
+            await post_until_admitted(client, "http://gateway/v1", {}, {})
+    assert calls == 1
+
+
+async def test_sequential_probe_has_a_bounded_admission_deadline() -> None:
+    def endpoint(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(503, json={"detail": "scheduler could not admit request"})
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(endpoint)) as client:
+        with pytest.raises(TimeoutError):
+            await post_until_admitted(client, "http://gateway/v1", {}, {}, timeout_seconds=0.01)
+
+
+def test_inflight_query_can_confirm_fenced_abort_after_cancel_intent() -> None:
+    records = events()
+    receipt = records[-1]["payload"]["execution_receipt"]
+    receipt["command"]["action"] = "query"
+    assert audit(records)["unreleased"] == 0
+    # Query alone is never an execution-stop proof.
+    receipt["quiescent"] = False
+    with pytest.raises(ValueError, match="execution fence"):
+        audit(records)
