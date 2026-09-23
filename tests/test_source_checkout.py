@@ -11,6 +11,21 @@ from tools import check_source_checkout as checker
 from tools.source_versions import expected_worker_versions, load_versions
 
 
+def test_project_fork_uses_github_without_a_development_host_dependency() -> None:
+    root = Path(__file__).resolve().parents[1]
+    pin = load_versions(root).vllm
+    expected = "https://github.com/Einspanner123/vllm.git"
+    assert pin.fork_repository == expected
+    assert (
+        run(root, "config", "-f", ".gitmodules", "--get", "submodule.third_party/vllm.url")
+        == expected
+    )
+    assert (
+        run(root, "config", "-f", ".gitmodules", "--get", "submodule.third_party/vllm.branch")
+        == "freechat-agent-aware"
+    )
+
+
 def run(root: Path, *args: str) -> str:
     return checker.git(root, *args)
 

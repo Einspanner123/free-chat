@@ -8,7 +8,7 @@ gpu_stack:
 vllm:
   upstream_release: "0.26.0"
   upstream_commit: "9c22668436a4d94aab87ea74a220e060415cf1d8"
-  fork_repository: "ssh://linkst@ross/media/ross/8TB/linkst/freechat/vllm-fork.git"
+  fork_repository: "https://github.com/Einspanner123/vllm.git"
   fork_branch: "freechat-agent-aware"
   fork_commit: "39b61e225dce4026242d2d115089734b3c092928"
   fork_tree: "2a25134bb40e84e7afe76408cd40f49658df92b9"

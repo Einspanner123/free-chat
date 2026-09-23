@@ -3,6 +3,30 @@
 唯一实施顺序见根目录计划，当前入口见 README。验证只输出到 stdout 或正常服务日志，不创建结果目录。
 服务 journal、模型缓存和配置不是验证结果，按正常服务生命周期管理。
 
+## Git source synchronization
+
+Source edits happen only on ross. Both hosts fetch FreeChat from
+`https://github.com/Einspanner123/free-chat.git`; `third_party/vllm` is the official
+vLLM fork at `https://github.com/Einspanner123/vllm.git`, branch `freechat-agent-aware`.
+The parent gitlink and `versions.lock.yaml` pin the exact engine commit. The branch
+names the development line; deployment must not use `git submodule update --remote`.
+
+On workstation, stop if the parent or submodule has uncommitted changes, then run:
+
+```bash
+git pull --ff-only origin main
+git submodule sync --recursive
+git submodule update --init --recursive
+git rev-parse HEAD
+git submodule status
+git status --short
+```
+
+Before publishing a parent change, push the engine commit to the personal fork
+and verify it is available there. Build images from the synchronized checkout,
+not temporary source overlays. Source synchronization does not start services or
+prove GPU acceptance. No workstation-to-ross SSH access is needed.
+
 ## Compose control stack
 
 `deploy/compose/compose.yaml` is a control-service development stack, not the

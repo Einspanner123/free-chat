@@ -11,7 +11,11 @@
 
 源码仅在 ross `/home/linkst/workspace/projects/free-chat` 的 `main` 修改；
 独立引擎仓库由 `third_party/vllm` submodule 和 `versions.lock.yaml` 精确固定。
-workstation 只部署 ross 构建的测试制品，不修改源码。先完成 ross/workstation 的 A6000/A5000/A4000 验证，H100 实机由负责人随后部署测试。
+引擎远端为官方 `vllm-project/vllm` 的个人 fork `Einspanner123/vllm`，项目分支为 `freechat-agent-aware`。
+ross 提交并推送源码；workstation 从 GitHub 同步 FreeChat 与固定的 submodule commit，在本机构建、测试，不修改源码。
+验收边界：主仓库远端配置一致、个人分支包含固定提交、fork tree 不变、workstation 可直接从 GitHub 获取；配置回归先红后绿。
+本次只纠正 Git 布局，不升级上游、改变引擎代码或将同步成功视为 GPU 验收；不再使用临时源码包作为常规同步入口。
+先完成 ross/workstation 的 A6000/A5000/A4000 验证，H100 实机由负责人随后部署测试。
 开发服务可按需停止；不再为普通开发增加常驻分支和生产切换流程。
 
 文档入口只有本计划、README、`docs/operations.md`（操作）、
